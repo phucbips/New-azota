@@ -88,19 +88,17 @@ class UserService {
       throw new Error('Không tìm thấy người dùng. Họ phải đăng nhập ít nhất 1 lần.');
     }
 
-    if (user.role !== 'student') {
-      throw new Error('Chỉ có thể kích hoạt tài khoản học sinh.');
-    }
-
     if (user.isWhitelisted) {
       throw new Error('Tài khoản đã được kích hoạt trước đó.');
     }
 
-    await this.updateUser(user.uid, { isWhitelisted: true });
+    // Ensure the user is set as a student and whitelisted
+    await this.updateUser(user.uid, { isWhitelisted: true, role: 'student' });
     return true;
   }
 
   async removeFromWhitelist(uid: string): Promise<void> {
+    // Also consider if you want to change the role back on removal
     await this.updateUser(uid, { isWhitelisted: false });
   }
 

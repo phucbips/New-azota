@@ -198,13 +198,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   );
 
   const signOut = useCallback(async () => {
-    if (user) {
-      // Set a different sessionId on sign out to prevent the "logged in elsewhere" message
-      // for the user who is intentionally signing out.
-      await userService.updateUser(user.uid, { sessionId: crypto.randomUUID() });
+    try {
+        if (user) {
+          // Invalidate the session on the server to prevent reuse
+          await userService.updateUser(user.uid, { sessionId: crypto.randomUUID() });
+        }
+    } catch (error) {
+        console.error("Error invalidating session on server:", error);
+        // Don't block logout if this fails, just log it
+    } finally {
+        // Always clear local session and sign out from Firebase
+        sessionStorage.removeItem('sessionId');
+        await firebaseSignOut(auth);
     }
-    sessionStorage.removeItem('sessionId');
-    await firebaseSignOut(auth);
   }, [user]);
 
   const value: AuthContextType = {
