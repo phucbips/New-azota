@@ -9,6 +9,26 @@ interface LessonViewerProps {
   onBack: () => void;
 }
 
+// Function to ensure iframe has necessary fullscreen attributes
+const addFullscreenAttributes = (embedCode: string) => {
+  if (!embedCode) return '';
+  // Use a regex to find iframe tags and add allowfullscreen attributes if not present
+  return embedCode.replace(/<iframe([^>]*?)>/g, (match, attrs) => {
+    let newAttrs = attrs;
+    if (!newAttrs.includes('allowfullscreen')) {
+      newAttrs += ' allowfullscreen';
+    }
+    if (!newAttrs.includes('webkitallowfullscreen')) {
+      newAttrs += ' webkitallowfullscreen'; // For iOS Safari
+    }
+    // Ensure scrolling is allowed if it's not explicitly set
+    if (!newAttrs.includes('scrolling')) {
+      newAttrs += ' scrolling="no" class="w-full h-full" style="position:absolute;top:0;left:0;" '; // Add scrolling attribute
+    }
+    return `<iframe${newAttrs}>`;
+  });
+};
+
 export const LessonViewer: React.FC<LessonViewerProps> = ({ lesson, onBack }) => {
   const embedContainerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -18,6 +38,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ lesson, onBack }) =>
     const element = embedContainerRef.current; // Target the embed container
     if (element) {
       if (!document.fullscreenElement) {
+        // Request fullscreen on the embed container
         element.requestFullscreen().catch((err) => {
           alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
         });
@@ -35,7 +56,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ lesson, onBack }) =>
     // Listen for fullscreen changes on the document
     document.addEventListener('fullscreenchange', handleFullscreenChange);
 
-    // Ensure iframe loads properly and fills its container
+    // Style the iframe inside the container (this might be partially redundant with CSS but good for initial setup)
     const container = embedContainerRef.current;
     if (container) {
       const iframe = container.querySelector('iframe');
@@ -54,6 +75,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ lesson, onBack }) =>
   }, [lesson]);
 
   const shouldHideUI = isFullscreen && isMobile;
+  const processedEmbedCode = addFullscreenAttributes(lesson.embedCode);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -86,8 +108,8 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ lesson, onBack }) =>
         <div
           ref={embedContainerRef}
           id="embed-container"
-          className={`bg-white border-4 border-slate-100 rounded-2xl overflow-hidden shadow-xl ${isFullscreen ? 'fullscreen-embed-active' : 'min-h-[600px]'}`}
-          dangerouslySetInnerHTML={{ __html: lesson.embedCode }}
+          className={`relative bg-white border-4 border-slate-100 rounded-2xl overflow-hidden shadow-xl ${isFullscreen ? 'fullscreen-embed-active' : 'min-h-[600px]'}`}
+          dangerouslySetInnerHTML={{ __html: processedEmbedCode }}
         />
       </div>
 
