@@ -21,10 +21,12 @@ const addFullscreenAttributes = (embedCode: string) => {
     if (!newAttrs.includes('webkitallowfullscreen')) {
       newAttrs += ' webkitallowfullscreen'; // For iOS Safari
     }
-    // Ensure scrolling is allowed if it's not explicitly set
-    if (!newAttrs.includes('scrolling')) {
-      newAttrs += ' scrolling="no" class="w-full h-full" style="position:absolute;top:0;left:0;" '; // Add scrolling attribute
-    }
+    // Remove explicit scrolling="no" if it exists or was added incorrectly
+    newAttrs = newAttrs.replace(/\s*scrolling="(no|yes)"/, '');
+    // Remove previously added inline styles/classes if they conflict
+    newAttrs = newAttrs.replace(/\s*class="[^"]*w-full h-full[^"]*"/, '');
+    newAttrs = newAttrs.replace(/\s*style="[^"]*position:absolute;top:0;left:0;[^"]*"/, '');
+
     return `<iframe${newAttrs}>`;
   });
 };
@@ -56,7 +58,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ lesson, onBack }) =>
     // Listen for fullscreen changes on the document
     document.addEventListener('fullscreenchange', handleFullscreenChange);
 
-    // Style the iframe inside the container (this might be partially redundant with CSS but good for initial setup)
+    // Ensure iframe loads properly and fills its container
     const container = embedContainerRef.current;
     if (container) {
       const iframe = container.querySelector('iframe');
