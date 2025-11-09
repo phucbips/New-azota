@@ -80,3 +80,44 @@
   display: block;
   border: none;
 }
+
+/* Thêm/Cập nhật quy tắc cho chế độ Fullscreen giả lập (áp dụng cho Mobile) */
+.fullscreen-mode-active {
+  position: fixed; /* Cố định vị trí */
+  top: 0;
+  left: 0;
+  width: 100vw; /* Chiếm toàn bộ chiều rộng viewport */
+  height: 100vh; /* Chiếm toàn bộ chiều cao viewport */
+  z-index: 9999; /* Đảm bảo hiển thị trên cùng */
+  margin: 0 !important;
+  padding: 0 !important; /* Xóa padding p-6/p-8 của Tailwind */
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  overflow: hidden; /* Ngăn cuộn cho phần tử cha này */
+  /* Sử dụng màu nền tối nếu cần, tùy thuộc vào thiết kế của bạn */
+  background-color: black; 
+}
+
+/* Đảm bảo #embed-container bên trong nó lấp đầy không gian mới */
+.fullscreen-mode-active #embed-container {
+  width: 100%;
+  height: 100%;
+  min-height: auto !important; /* Xóa min-height: 600px */
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  /* CRUCIAL: Đặt overflow: auto cho #embed-container nếu iframe không tự cuộn */
+  /* Tuy nhiên, tốt nhất là để iframe tự cuộn. */
+}
+
+/* Đảm bảo iframe vẫn lấp đầy container cha */
+.fullscreen-mode-active .iframe-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* Đảm bảo iframe bên trong .fullscreen-mode-active lấp đầy 100% */
+.fullscreen-mode-active .iframe-embed {
+  width: 100%;
+  height: 100%;
+}

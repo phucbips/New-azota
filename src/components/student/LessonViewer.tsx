@@ -45,12 +45,18 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ lesson, onBack }) =>
   const handleFullscreenToggle = () => {
     const element = embedContainerRef.current;
     if (element) {
-      if (!document.fullscreenElement) {
-        element.requestFullscreen().catch((err) => {
-          alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-        });
+      if (isMobile) {
+        // [Cập nhật] Trên di động, chỉ cần toggle trạng thái để kích hoạt CSS Fullscreen
+        setIsFullscreen(prev => !prev);
       } else {
-        document.exitFullscreen();
+        // Trên desktop, vẫn sử dụng Native Fullscreen API
+        if (!document.fullscreenElement) {
+          element.requestFullscreen().catch((err) => {
+            alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+          });
+        } else {
+          document.exitFullscreen();
+        }
       }
     }
   };
