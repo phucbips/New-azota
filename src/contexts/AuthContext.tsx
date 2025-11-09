@@ -35,14 +35,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [sessionId] = useState(getSessionId);
 
-  const handleUserLogin = useCallback(async (firebaseUser: FirebaseUser) => {
+  // This function handles the one-time operation of fetching or creating a user in Firestore.
+  const getOrCreateUser = useCallback(async (firebaseUser: FirebaseUser): Promise<User | null> => {
     try {
-      const userData = await userService.getUser(firebaseUser.uid);
+      const existingUser = await userService.getUser(firebaseUser.uid);
       const isSuperAdmin = firebaseUser.email === import.meta.env.VITE_SUPER_ADMIN_EMAIL;
 
-      if (!userData) {
-        // Create new user
-        const newUserData: Omit<User, 'uid'> = {
+      if (existingUser) {
+        // User exists, check if an update is needed
+        const updates: Partial<User> = {};
+        let needsUpdate = false;
+
+        if (existingUser.sessionId !== sessionId) {
+          updates.sessionId = sessionId;
+          needsUpdate = true;
+        }
+
+        if (isSuperAdmin && (existingUser.role !== 'admin' || !existingUser.isWhitelisted)) {
+          updates.role = 'admin';
+          updates.isWhitelisted = true;
+          needsUpdate = true;
+        }
+
+        if (needsUpdate) {
+          await userService.updateUser(firebaseUser.uid, updates);
+          return { ...existingUser, ...updates }; // Return updated user data immediately
+        }
+        
+        return existingUser; // Return existing user data
+      } else {
+        // User does not exist, create a new one
+        const newUser: Omit<User, 'uid'> = {
           email: firebaseUser.email || '',
           displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
           photoURL: firebaseUser.photoURL || `https://ui-avatars.com/api/?name=${firebaseUser.email?.[0]}&background=667eea&color=fff&size=200`,
@@ -52,86 +75,91 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           joinedAt: null as any, // Will be set by service
         };
 
-        await userService.createUser(firebaseUser.uid, newUserData);
-      } else {
-        // Update session ID for the new login if it's different
-        if (userData.sessionId !== sessionId) {
-            const updates: Partial<User> = { sessionId };
-            if (isSuperAdmin && (userData.role !== 'admin' || !userData.isWhitelisted)) {
-              updates.role = 'admin';
-              updates.isWhitelisted = true;
-            }
-            await userService.updateUser(firebaseUser.uid, updates);
-        }
+        await userService.createUser(firebaseUser.uid, newUser);
+        
+        // Return the full user object including the UID
+        return { ...newUser, uid: firebaseUser.uid };
       }
-
-      // Subscribe to user document changes
-      return userService.subscribeToUser(
-        firebaseUser.uid,
-        (updatedUser) => {
-          if (!updatedUser) {
-            firebaseSignOut(auth);
-            return;
-          }
-
-          // Enforce single session: if DB sessionId is different, log out this client
-          if (updatedUser.sessionId !== sessionId) {
-            alert('Tài khoản của bạn đã được đăng nhập từ một thiết bị khác. Phiên này sẽ được đăng xuất.');
-            sessionStorage.removeItem('sessionId');
-            firebaseSignOut(auth);
-            return;
-          }
-
-          // Handle account deactivation
-          if (updatedUser.isActive === false) {
-            alert('Tài khoản của bạn đã bị vô hiệu hóa.');
-            sessionStorage.removeItem('sessionId');
-            firebaseSignOut(auth);
-            return;
-          }
-
-          setUser(updatedUser);
-          setLoading(false);
-        },
-        (error) => {
-          console.error('Error in user subscription:', error);
-          firebaseSignOut(auth);
-        }
-      );
     } catch (error) {
-      console.error('Error handling user login:', error);
-      firebaseSignOut(auth);
-      setLoading(false);
-      return null;
+        console.error("Error getting or creating user:", error);
+        return null;
     }
   }, [sessionId]);
+
 
   // Handle auth state changes
   useEffect(() => {
     let unsubscribeUser: (() => void) | null = null;
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      // First, cancel any existing user subscription
       if (unsubscribeUser) {
         unsubscribeUser();
         unsubscribeUser = null;
       }
 
       if (firebaseUser) {
-        const newUnsubscribeUser = await handleUserLogin(firebaseUser);
-        if (newUnsubscribeUser) {
-          unsubscribeUser = newUnsubscribeUser;
+        setLoading(true);
+        // Get or create the user document in Firestore
+        const dbUser = await getOrCreateUser(firebaseUser);
+
+        if (dbUser) {
+          // We have the initial user data. Now, set up a real-time listener.
+          unsubscribeUser = userService.subscribeToUser(
+            firebaseUser.uid,
+            (updatedUser) => {
+              if (updatedUser) {
+                // Enforce single session
+                if (updatedUser.sessionId !== sessionId) {
+                  alert('Tài khoản của bạn đã được đăng nhập từ một thiết bị khác. Phiên này sẽ được đăng xuất.');
+                  sessionStorage.removeItem('sessionId');
+                  firebaseSignOut(auth); // This will trigger onAuthStateChanged again
+                  return;
+                }
+                
+                // Handle account deactivation
+                if (updatedUser.isActive === false) {
+                  alert('Tài khoản của bạn đã bị vô hiệu hóa.');
+                  sessionStorage.removeItem('sessionId');
+                  firebaseSignOut(auth); // This will trigger onAuthStateChanged again
+                  return;
+                }
+                
+                // Update state with the latest data
+                setUser(updatedUser);
+              } else {
+                // The user document was deleted from Firestore.
+                console.warn(`User document for ${firebaseUser.uid} not found or deleted.`);
+                firebaseSignOut(auth); // This will trigger onAuthStateChanged again
+              }
+              setLoading(false); // Stop loading once we have a definitive state
+            },
+            (error) => {
+              console.error('Error in user subscription:', error);
+              firebaseSignOut(auth);
+              setLoading(false);
+            }
+          );
+        } else {
+          // Failed to get or create the user in Firestore, so sign out.
+          firebaseSignOut(auth);
+          setLoading(false);
         }
       } else {
+        // No Firebase user, so clear our state
         setUser(null);
         setLoading(false);
       }
     });
 
+    // Cleanup function for the component unmounting
     return () => {
       unsubscribeAuth();
-      if (unsubscribeUser) unsubscribeUser();
+      if (unsubscribeUser) {
+        unsubscribeUser();
+      }
     };
-  }, [handleUserLogin]);
+  }, [getOrCreateUser, sessionId]);
 
   const signInWithGoogle = useCallback(async () => {
     const provider = new GoogleAuthProvider();
@@ -198,20 +226,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   );
 
   const signOut = useCallback(async () => {
-    try {
-        if (user) {
-          // Invalidate the session on the server to prevent reuse
-          await userService.updateUser(user.uid, { sessionId: crypto.randomUUID() });
-        }
-    } catch (error) {
-        console.error("Error invalidating session on server:", error);
-        // Don't block logout if this fails, just log it
-    } finally {
-        // Always clear local session and sign out from Firebase
-        sessionStorage.removeItem('sessionId');
-        await firebaseSignOut(auth);
-    }
-  }, [user]);
+    sessionStorage.removeItem('sessionId');
+    await firebaseSignOut(auth);
+  }, []);
 
   const value: AuthContextType = {
     user,
