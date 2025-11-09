@@ -105,7 +105,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ lesson, onBack }) =>
         >
           {src && (
             <div
-              className={`iframe-container ${isFullscreen ? 'fullscreen-scroll' : ''}`}
+              className={`iframe-container`} 
             >
               <iframe
                 key={src}

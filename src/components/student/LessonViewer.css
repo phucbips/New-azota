@@ -5,11 +5,6 @@
   overflow: hidden; /* Mặc định ẩn cuộn */
 }
 
-.iframe-container.fullscreen-scroll {
-  overflow: auto; /* Cho phép cuộn khi ở chế độ toàn màn hình */
-  -webkit-overflow-scrolling: touch; /* Cải thiện trải nghiệm cuộn trên iOS */
-}
-
 .iframe-embed {
   position: absolute;
   top: 0;
