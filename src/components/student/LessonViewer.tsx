@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { ArrowLeft, Maximize, Minimize } from 'lucide-react';
 import { Lesson } from '../../types';
 import { AIChat } from './AIChat';
@@ -9,26 +9,30 @@ interface LessonViewerProps {
   onBack: () => void;
 }
 
-// Function to ensure iframe has necessary fullscreen attributes
-const addFullscreenAttributes = (embedCode: string) => {
-  if (!embedCode) return '';
-  // Use a regex to find iframe tags and add allowfullscreen attributes if not present
-  return embedCode.replace(/<iframe([^>]*?)>/g, (match, attrs) => {
-    let newAttrs = attrs;
-    if (!newAttrs.includes('allowfullscreen')) {
-      newAttrs += ' allowfullscreen';
-    }
-    if (!newAttrs.includes('webkitallowfullscreen')) {
-      newAttrs += ' webkitallowfullscreen'; // For iOS Safari
-    }
-    // Remove explicit scrolling="no" if it exists or was added incorrectly
-    newAttrs = newAttrs.replace(/\s*scrolling="(no|yes)"/, '');
-    // Remove previously added inline styles/classes if they conflict
-    newAttrs = newAttrs.replace(/\s*class="[^"]*w-full h-full[^"]*"/, '');
-    newAttrs = newAttrs.replace(/\s*style="[^"]*position:absolute;top:0;left:0;[^"]*"/, '');
+// Helper function to parse iframe attributes
+const parseIframeProps = (embedCode: string) => {
+  const iframeRegex = /<iframe\s+([^>]*?)src="([^"]+)"([^>]*?)>/i;
+  const match = embedCode.match(iframeRegex);
 
-    return `<iframe${newAttrs}>`;
-  });
+  if (!match) {
+    return { src: '', otherProps: {} };
+  }
+
+  const src = match[2];
+  const allAttrs = (match[1] + match[3]).trim();
+  const propRegex = /(\w+)="([^"]*)"/g;
+  let propMatch;
+  const otherProps: { [key: string]: any } = {};
+
+  while ((propMatch = propRegex.exec(allAttrs)) !== null) {
+    const key = propMatch[1];
+    const value = propMatch[2];
+    // Convert kebab-case to camelCase for React props
+    const reactKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+    otherProps[reactKey] = value;
+  }
+
+  return { src, otherProps };
 };
 
 export const LessonViewer: React.FC<LessonViewerProps> = ({ lesson, onBack }) => {
@@ -36,11 +40,13 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ lesson, onBack }) =>
   const [isFullscreen, setIsFullscreen] = useState(false);
   const isMobile = useMobile(); // Use the hook
 
+  // Parse iframe props using useMemo to optimize
+  const { src, otherProps } = useMemo(() => parseIframeProps(lesson.embedCode), [lesson.embedCode]);
+
   const handleFullscreenToggle = () => {
     const element = embedContainerRef.current; // Target the embed container
     if (element) {
       if (!document.fullscreenElement) {
-        // Request fullscreen on the embed container
         element.requestFullscreen().catch((err) => {
           alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
         });
@@ -58,26 +64,12 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ lesson, onBack }) =>
     // Listen for fullscreen changes on the document
     document.addEventListener('fullscreenchange', handleFullscreenChange);
 
-    // Ensure iframe loads properly and fills its container
-    const container = embedContainerRef.current;
-    if (container) {
-      const iframe = container.querySelector('iframe');
-      if (iframe) {
-        iframe.style.width = '100%';
-        iframe.style.height = '100%'; // Make it fill the container
-        iframe.style.minHeight = 'auto'; // Allow it to shrink if needed in fullscreen
-        iframe.style.display = 'block';
-        iframe.style.border = 'none';
-      }
-    }
-
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
-  }, [lesson]);
+  }, []); // Empty dependency array: run once on mount, clean up on unmount
 
   const shouldHideUI = isFullscreen && isMobile;
-  const processedEmbedCode = addFullscreenAttributes(lesson.embedCode);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -111,8 +103,31 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ lesson, onBack }) =>
           ref={embedContainerRef}
           id="embed-container"
           className={`relative bg-white border-4 border-slate-100 rounded-2xl overflow-hidden shadow-xl ${isFullscreen ? 'fullscreen-embed-active' : 'min-h-[600px]'}`}
-          dangerouslySetInnerHTML={{ __html: processedEmbedCode }}
-        />
+        >
+          {src && (
+            <iframe
+              key={src} // Key helps React remount iframe if src changes
+              src={src}
+              title={otherProps.title || lesson.name} // Use existing title or lesson name
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" // Common permissions
+              allowFullScreen
+              webkitAllowFullScreen
+              mozallowfullscreen
+              msallowfullscreen
+              scrolling={isFullscreen ? "yes" : "no"} // Dynamic scrolling
+              width="100%"
+              height="100%"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                border: 'none',
+              }}
+              {...otherProps} // Spread any other parsed props
+            />
+          )}
+        </div>
       </div>
 
       {/* AI Chat */}
