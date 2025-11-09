@@ -2,14 +2,15 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { ArrowLeft, Maximize, Minimize } from 'lucide-react';
 import { Lesson } from '../../types';
 import { AIChat } from './AIChat';
-import useMobile from '../../hooks/use-mobile'; // Import the new hook
+import useMobile from '../../hooks/use-mobile';
+import './LessonViewer.css'; // Import a custom CSS file
 
 interface LessonViewerProps {
   lesson: Lesson;
   onBack: () => void;
 }
 
-// Helper function to parse iframe attributes
+// Helper function to parse iframe attributes (no changes here)
 const parseIframeProps = (embedCode: string) => {
   const iframeRegex = /<iframe\s+([^>]*?)src="([^"]+)"([^>]*?)>/i;
   const match = embedCode.match(iframeRegex);
@@ -27,7 +28,6 @@ const parseIframeProps = (embedCode: string) => {
   while ((propMatch = propRegex.exec(allAttrs)) !== null) {
     const key = propMatch[1];
     const value = propMatch[2];
-    // Convert kebab-case to camelCase for React props
     const reactKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
     otherProps[reactKey] = value;
   }
@@ -38,13 +38,12 @@ const parseIframeProps = (embedCode: string) => {
 export const LessonViewer: React.FC<LessonViewerProps> = ({ lesson, onBack }) => {
   const embedContainerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const isMobile = useMobile(); // Use the hook
+  const isMobile = useMobile();
 
-  // Parse iframe props using useMemo to optimize
   const { src, otherProps } = useMemo(() => parseIframeProps(lesson.embedCode), [lesson.embedCode]);
 
   const handleFullscreenToggle = () => {
-    const element = embedContainerRef.current; // Target the embed container
+    const element = embedContainerRef.current;
     if (element) {
       if (!document.fullscreenElement) {
         element.requestFullscreen().catch((err) => {
@@ -58,16 +57,16 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ lesson, onBack }) =>
 
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const isCurrentlyFullscreen = !!document.fullscreenElement;
+      setIsFullscreen(isCurrentlyFullscreen);
     };
 
-    // Listen for fullscreen changes on the document
     document.addEventListener('fullscreenchange', handleFullscreenChange);
 
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
-  }, []); // Empty dependency array: run once on mount, clean up on unmount
+  }, []);
 
   const shouldHideUI = isFullscreen && isMobile;
 
@@ -105,27 +104,19 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ lesson, onBack }) =>
           className={`relative bg-white border-4 border-slate-100 rounded-2xl overflow-hidden shadow-xl ${isFullscreen ? 'fullscreen-embed-active' : 'min-h-[600px]'}`}
         >
           {src && (
-            <iframe
-              key={src} // Key helps React remount iframe if src changes
-              src={src}
-              title={otherProps.title || lesson.name} // Use existing title or lesson name
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" // Common permissions
-              allowFullScreen
-              webkitAllowFullScreen
-              mozallowfullscreen
-              msallowfullscreen
-              scrolling={isFullscreen ? "yes" : "no"} // Dynamic scrolling
-              width="100%"
-              height="100%"
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                border: 'none',
-              }}
-              {...otherProps} // Spread any other parsed props
-            />
+            <div
+              className={`iframe-container ${isFullscreen ? 'fullscreen-scroll' : ''}`}
+            >
+              <iframe
+                key={src}
+                src={src}
+                title={otherProps.title || lesson.name}
+                className="iframe-embed" // Use a class for consistent styling
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                {...otherProps}
+              />
+            </div>
           )}
         </div>
       </div>
