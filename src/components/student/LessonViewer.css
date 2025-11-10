@@ -14,15 +14,17 @@
   border: none;
 }
 
-.iframe-container-mobile {
-  overflow: auto;
-  height: auto;
-  max-height: 80vh;
-  -webkit-overflow-scrolling: touch;
-}
+@media (max-width: 768px) {
+  .iframe-container {
+    overflow: auto;
+    height: auto;
+    max-height: 80vh;
+    -webkit-overflow-scrolling: touch;
+  }
 
-.iframe-container-mobile .iframe-embed {
-  position: static;
-  height: auto;
-  min-height: 70vh;
+  .iframe-embed {
+    position: static;
+    height: auto;
+    min-height: 70vh;
+  }
 }
