@@ -42,6 +42,34 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ lesson, onBack }) =>
 
   const { src, otherProps } = useMemo(() => parseIframeProps(lesson.embedCode), [lesson.embedCode]);
 
+  const iframeUrl = useMemo(() => {
+    try {
+      return src ? new URL(src) : null;
+    } catch (error) {
+      console.warn('Invalid iframe src provided:', src, error);
+      return null;
+    }
+  }, [src]);
+
+  const embedWarnings = useMemo(() => {
+    if (!iframeUrl) {
+      return [];
+    }
+
+    const issues: string[] = [];
+
+    if (iframeUrl.protocol !== 'https:') {
+      issues.push('Liên kết nhúng hiện chưa sử dụng giao thức HTTPS nên có thể bị trình duyệt trên iPhone chặn.');
+    }
+
+    const privateHosts = ['wayground', 'localhost', '127.0.0.1'];
+    if (privateHosts.some((host) => iframeUrl.hostname.includes(host))) {
+      issues.push('Liên kết nhúng đang trỏ đến máy chủ nội bộ (ví dụ: wayground). Hãy đổi sang đường dẫn công khai của Quizizz hoặc đảm bảo thiết bị cùng mạng/VPN.');
+    }
+
+    return issues;
+  }, [iframeUrl]);
+
   const handleFullscreenToggle = () => {
     const element = embedContainerRef.current;
     if (element) {
@@ -111,7 +139,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ lesson, onBack }) =>
         >
           {src && (
             <div
-              className={`iframe-container`} 
+              className={`iframe-container ${isMobile ? 'iframe-container-mobile' : ''}`}
             >
               <iframe
                 key={src}
@@ -122,6 +150,16 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ lesson, onBack }) =>
                 allowFullScreen
                 {...otherProps}
               />
+            </div>
+          )}
+          {embedWarnings.length > 0 && (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+              <p className="font-semibold mb-2">Không thể hiển thị Quizizz?</p>
+              <ul className="list-disc space-y-1 pl-5">
+                {embedWarnings.map((warning, index) => (
+                  <li key={index}>{warning}</li>
+                ))}
+              </ul>
             </div>
           )}
         </div>

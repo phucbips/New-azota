@@ -13,3 +13,13 @@
   height: 100%;
   border: none;
 }
+
+.iframe-container-mobile {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.iframe-container-mobile .iframe-embed {
+  position: static;
+  min-height: 70vh;
+}
