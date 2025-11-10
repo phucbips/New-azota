@@ -13,3 +13,18 @@
   height: 100%;
   border: none;
 }
+
+@media (max-width: 768px) {
+  .iframe-container {
+    overflow: auto;
+    height: auto;
+    max-height: 80vh;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .iframe-embed {
+    position: static;
+    height: auto;
+    min-height: 70vh;
+  }
+}

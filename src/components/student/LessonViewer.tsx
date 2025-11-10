@@ -110,9 +110,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ lesson, onBack }) =>
           className={`relative bg-white border-4 border-slate-100 rounded-2xl overflow-hidden shadow-xl ${isFullscreen ? 'fullscreen-embed-active' : 'min-h-[600px]'}`}
         >
           {src && (
-            <div
-              className={`iframe-container`} 
-            >
+            <div className="iframe-container">
               <iframe
                 key={src}
                 src={src}
