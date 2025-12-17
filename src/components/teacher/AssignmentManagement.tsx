@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../../hooks/useAuth';
 import { assignmentService } from '../../services/assignment.service';
 import { Assignment } from '../../types';
-import { Plus, Trash2, Edit2, Loader2, Link } from 'lucide-react';
+import { Plus, Trash2, Edit2, Loader2, Link, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 type AssignmentForm = {
@@ -16,11 +16,16 @@ type AssignmentForm = {
 export const AssignmentManagement: React.FC = () => {
   const { user } = useAuth();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<AssignmentForm>({
+  const { register, handleSubmit, reset, formState: { errors }, watch } = useForm<AssignmentForm>({
       defaultValues: { targetGrade: '10' }
   });
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Preview state
+  const [previewCode, setPreviewCode] = useState<string | null>(null);
+
+  const watchedEmbedCode = watch('embedCode');
 
   useEffect(() => {
     if (!user) return;
@@ -126,11 +131,22 @@ export const AssignmentManagement: React.FC = () => {
             <label className="block text-sm font-medium mb-1 text-slate-700 flex items-center gap-1">
                 <Link className="w-4 h-4" /> Link Azota (Embed Link) <span className="text-red-500">*</span>
             </label>
-            <input
-              {...register('embedCode', { required: 'Vui lòng nhập link Azota' })}
-              className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm bg-slate-50"
-              placeholder="https://azota.vn/..."
-            />
+            <div className="flex gap-2">
+                <input
+                  {...register('embedCode', { required: 'Vui lòng nhập link Azota' })}
+                  className="flex-1 p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm bg-slate-50"
+                  placeholder="https://azota.vn/..."
+                />
+                {watchedEmbedCode && (
+                    <button
+                        type="button"
+                        onClick={() => setPreviewCode(watchedEmbedCode)}
+                        className="px-3 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 flex items-center gap-2 text-sm font-medium"
+                    >
+                        <Eye className="w-4 h-4" /> Xem trước
+                    </button>
+                )}
+            </div>
             <p className="text-xs text-slate-500 mt-1">Dán link bài tập Azota hoặc mã nhúng (iframe) vào đây.</p>
              {errors.embedCode && <p className="text-red-500 text-xs mt-1">{errors.embedCode.message}</p>}
           </div>
@@ -200,6 +216,30 @@ export const AssignmentManagement: React.FC = () => {
               )}
           </div>
       </div>
+
+      {/* Preview Modal */}
+      {previewCode && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fadeIn" onClick={() => setPreviewCode(null)}>
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+                  <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                      <h3 className="font-bold text-slate-800 flex items-center gap-2"><Eye className="w-4 h-4" /> Xem trước nội dung</h3>
+                      <button onClick={() => setPreviewCode(null)} className="p-1 hover:bg-slate-200 rounded-full transition-colors"><X className="w-5 h-5" /></button>
+                  </div>
+                  <div className="flex-1 bg-slate-100 relative min-h-[400px]">
+                      {previewCode.startsWith('<iframe') ? (
+                          <div dangerouslySetInnerHTML={{ __html: previewCode }} className="w-full h-full absolute inset-0 [&>iframe]:w-full [&>iframe]:h-full" />
+                      ) : (
+                          <iframe
+                              src={previewCode}
+                              className="w-full h-full absolute inset-0"
+                              title="Preview"
+                              allowFullScreen
+                          />
+                      )}
+                  </div>
+              </div>
+          </div>
+      )}
     </div>
   );
 };

@@ -44,8 +44,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       let existingUser = await userService.getUser(firebaseUser.uid);
 
       // If not found by UID, try to find by Email (pre-created by Admin)
-      if (!existingUser && firebaseUser.email) {
-        const userByEmail = await userService.findUserByEmail(firebaseUser.email);
+      // Normalize email to avoid case sensitivity issues
+      const userEmail = firebaseUser.email ? firebaseUser.email.toLowerCase() : null;
+
+      if (!existingUser && userEmail) {
+        const userByEmail = await userService.findUserByEmail(userEmail);
         if (userByEmail) {
           // Found an invitation document
 
@@ -73,7 +76,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       }
 
-      const isSuperAdmin = firebaseUser.email === SUPER_ADMIN_EMAIL;
+      const isSuperAdmin = userEmail === SUPER_ADMIN_EMAIL.toLowerCase();
 
       if (existingUser) {
         // User exists, check if an update is needed
@@ -100,9 +103,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         // User does not exist, and wasn't pre-created. Create a new one.
         const newUser: Omit<User, 'uid'> = {
-          email: firebaseUser.email || '',
-          displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-          photoURL: firebaseUser.photoURL || `https://ui-avatars.com/api/?name=${firebaseUser.email?.[0]}&background=667eea&color=fff&size=200`,
+          email: userEmail || '',
+          displayName: firebaseUser.displayName || userEmail?.split('@')[0] || 'User',
+          photoURL: firebaseUser.photoURL || `https://ui-avatars.com/api/?name=${userEmail?.[0]}&background=667eea&color=fff&size=200`,
           role: isSuperAdmin ? 'admin' : 'student',
           grade: null, // Default to null
           isWhitelisted: isSuperAdmin,

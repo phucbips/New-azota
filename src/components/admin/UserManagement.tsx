@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { userService } from '../../services/user.service';
 import { User, UserRole } from '../../types';
-import { Trash2, UserPlus, Check, X, Loader2 } from 'lucide-react';
+import { Trash2, UserPlus, Check, X, Loader2, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 type CreateUserForm = {
@@ -18,6 +18,10 @@ export const UserManagement: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
+
+  // Edit Mode State
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const selectedRole = watch('role');
 
@@ -61,6 +65,11 @@ export const UserManagement: React.FC = () => {
       } finally {
           setDeleteLoading(null);
       }
+  };
+
+  const handleEdit = (user: User) => {
+      setEditingUser(user);
+      setIsEditModalOpen(true);
   };
 
   const teachers = users.filter(u => u.role === 'teacher');
@@ -147,7 +156,14 @@ export const UserManagement: React.FC = () => {
                   <td className="p-4 text-slate-500">
                     {teacher.joinedAt?.toDate().toLocaleDateString('vi-VN')}
                   </td>
-                  <td className="p-4 text-right">
+                  <td className="p-4 text-right flex justify-end gap-2">
+                    <button
+                        onClick={() => handleEdit(teacher)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Sửa"
+                    >
+                        <Edit2 className="w-4 h-4" />
+                    </button>
                     <button
                         onClick={() => handleDelete(teacher.uid)}
                         disabled={deleteLoading === teacher.uid}
@@ -197,7 +213,14 @@ export const UserManagement: React.FC = () => {
                   <td className="p-4 text-slate-500">
                     {student.joinedAt?.toDate().toLocaleDateString('vi-VN')}
                   </td>
-                  <td className="p-4 text-right">
+                  <td className="p-4 text-right flex justify-end gap-2">
+                    <button
+                        onClick={() => handleEdit(student)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Sửa"
+                    >
+                        <Edit2 className="w-4 h-4" />
+                    </button>
                     <button
                         onClick={() => handleDelete(student.uid)}
                         disabled={deleteLoading === student.uid}
@@ -218,6 +241,112 @@ export const UserManagement: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {isEditModalOpen && editingUser && (
+          <EditUserModal
+             user={editingUser}
+             onClose={() => setIsEditModalOpen(false)}
+             onUpdate={() => {
+                 setIsEditModalOpen(false);
+                 setEditingUser(null);
+             }}
+          />
+      )}
     </div>
   );
+};
+
+const EditUserModal: React.FC<{ user: User, onClose: () => void, onUpdate: () => void }> = ({ user, onClose, onUpdate }) => {
+    const { register, handleSubmit, watch } = useForm({
+        defaultValues: {
+            role: user.role,
+            grade: user.grade || '10',
+            isWhitelisted: user.isWhitelisted
+        }
+    });
+    const [loading, setLoading] = useState(false);
+    const selectedRole = watch('role');
+
+    const onSubmit = async (data: any) => {
+        setLoading(true);
+        try {
+            await userService.updateUser(user.uid, {
+                role: data.role,
+                grade: data.role === 'student' ? data.grade : null,
+                isWhitelisted: data.isWhitelisted
+            });
+            toast.success('Đã cập nhật thông tin người dùng');
+            onUpdate();
+        } catch (error) {
+            toast.error('Lỗi khi cập nhật');
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn">
+            <div className="bg-white p-6 rounded-xl w-full max-w-md shadow-2xl">
+                <h3 className="text-xl font-bold mb-4">Chỉnh sửa người dùng</h3>
+                <p className="text-sm text-slate-500 mb-4">{user.email}</p>
+
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-1 text-slate-700">Vai trò</label>
+                        <select
+                            {...register('role')}
+                            className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                        >
+                            <option value="student">Học sinh</option>
+                            <option value="teacher">Giáo viên</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+
+                    {selectedRole === 'student' && (
+                        <div>
+                            <label className="block text-sm font-medium mb-1 text-slate-700">Khối</label>
+                            <select
+                                {...register('grade')}
+                                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                            >
+                                <option value="10">Khối 10</option>
+                                <option value="11">Khối 11</option>
+                                <option value="12">Khối 12</option>
+                            </select>
+                        </div>
+                    )}
+
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="checkbox"
+                            id="isWhitelisted"
+                            {...register('isWhitelisted')}
+                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                        />
+                        <label htmlFor="isWhitelisted" className="text-sm font-medium text-slate-700">Đã kích hoạt (Whitelisted)</label>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-4">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                        >
+                            Hủy
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        >
+                            {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, BookOpen, ChevronRight } from 'lucide-react';
+import { Clock, BookOpen, ChevronRight, AlertCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { Header } from '../components/shared/Header';
 import { assignmentService } from '../services/assignment.service';
@@ -34,10 +34,10 @@ export const StudentDashboard: React.FC = () => {
               Chào mừng, {user?.displayName}!
             </h2>
             <p className="text-slate-700 text-lg mb-2 font-semibold">
-              Tài khoản của bạn chưa được kích hoạt hoặc chưa được xếp lớp.
+              Tài khoản của bạn chưa được kích hoạt.
             </p>
             <p className="text-slate-500">
-              Vui lòng liên hệ Admin hoặc Giáo viên để được hỗ trợ.
+              Vui lòng liên hệ Admin để được phê duyệt quyền truy cập.
             </p>
             <div className="mt-8 inline-block bg-blue-50 px-6 py-3 rounded-xl border border-blue-200">
               <p className="text-sm text-slate-600">
@@ -48,6 +48,34 @@ export const StudentDashboard: React.FC = () => {
         </div>
       </div>
     );
+  }
+
+  // Handle case where user is whitelisted but has NO grade
+  if (!user.grade) {
+      return (
+        <div className="container mx-auto px-4 py-8 min-h-screen">
+          <Header title="Trang học tập" />
+          <div className="glass p-8 rounded-2xl shadow-xl animate-fadeIn">
+            <div className="text-center py-16">
+              <div className="inline-block p-6 bg-red-100 rounded-full mb-6">
+                <AlertCircle className="w-12 h-12 text-red-500" />
+              </div>
+              <h2 className="text-2xl font-bold text-slate-800 mb-4">
+                Chưa cập nhật Khối lớp
+              </h2>
+              <p className="text-slate-600 text-lg mb-6">
+                Tài khoản của bạn chưa được phân vào Khối lớp nào. <br/>
+                Vui lòng liên hệ Admin hoặc Giáo viên chủ nhiệm để cập nhật thông tin.
+              </p>
+               <div className="mt-4 inline-block bg-slate-50 px-6 py-3 rounded-xl border border-slate-200">
+                <p className="text-sm text-slate-600">
+                  Email: <span className="font-bold text-slate-800">{user?.email}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
   }
 
   // Detail View (Iframe)

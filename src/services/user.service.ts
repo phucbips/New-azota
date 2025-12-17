@@ -23,32 +23,25 @@ class UserService {
     await setDoc(userRef, {
       uid,
       ...userData,
+      email: userData.email.toLowerCase(),
       joinedAt: userData.joinedAt || Timestamp.now(),
     });
   }
 
   // Pre-creates a user document (invitation) without a UID (uses email as ID initially or a random ID)
-  // Actually, to make lookup easy, let's use the email as the document ID if we can,
-  // BUT `createUser` above uses UID.
-  // So for invitations, we can create a doc where ID is the email, or just query by email.
-  // The plan in AuthContext is to query by email.
-  // So we can just create a document with a random ID, but with the email field set.
   async createInvitation(email: string, role: UserRole, grade: string | null): Promise<void> {
-    const existing = await this.findUserByEmail(email);
+    const normalizedEmail = email.toLowerCase();
+    const existing = await this.findUserByEmail(normalizedEmail);
     if (existing) {
        throw new Error('User with this email already exists.');
     }
 
-    // We create a doc with a random ID (auto-generated)
-    // We can't set the ID to email because the eventual user doc will be keyed by UID.
-    // So we just create a placeholder doc.
-    // Wait, `addDoc` is for auto ID. `setDoc` needs ID.
     const newDocRef = doc(this.collection); // Auto ID
 
     const userData: Omit<User, 'uid'> = {
-        email,
-        displayName: email.split('@')[0],
-        photoURL: `https://ui-avatars.com/api/?name=${email[0]}&background=667eea&color=fff&size=200`,
+        email: normalizedEmail,
+        displayName: normalizedEmail.split('@')[0],
+        photoURL: `https://ui-avatars.com/api/?name=${normalizedEmail[0]}&background=667eea&color=fff&size=200`,
         role,
         grade,
         isWhitelisted: true, // Auto whitelist invited users
@@ -83,7 +76,12 @@ class UserService {
     userData: Partial<Omit<User, 'uid'>>
   ): Promise<void> {
     const userRef = doc(db, COLLECTIONS.USERS, uid);
-    await updateDoc(userRef, userData);
+    // If email is being updated (rare), normalize it
+    const updates = { ...userData };
+    if (updates.email) {
+        updates.email = updates.email.toLowerCase();
+    }
+    await updateDoc(userRef, updates);
   }
 
   subscribeToUser(
@@ -112,13 +110,12 @@ class UserService {
   }
 
   async findUserByEmail(email: string): Promise<User | null> {
-    const q = query(this.collection, where('email', '==', email));
+    const normalizedEmail = email.toLowerCase();
+    const q = query(this.collection, where('email', '==', normalizedEmail));
     const querySnapshot = await getDocs(q);
 
     if (!querySnapshot.empty) {
       const userDoc = querySnapshot.docs[0];
-      // We must return the doc data, but also ensure uid is correct if it's the ID
-      // If the doc was created with auto-ID (invitation), doc.id is the ID.
       return { uid: userDoc.id, ...userDoc.data() } as User;
     }
 
@@ -132,6 +129,8 @@ class UserService {
       const q = query(this.collection);
       return onSnapshot(q, (snapshot) => {
           const users = snapshot.docs.map(d => ({ uid: d.id, ...d.data() } as User));
+          // Client-side sort by joinedAt desc
+          users.sort((a, b) => b.joinedAt.toMillis() - a.joinedAt.toMillis());
           callback(users);
       }, onError);
   }
