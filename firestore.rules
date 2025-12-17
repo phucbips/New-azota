@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions to check roles
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return getUserData().role == 'admin';
+    }
+
+    function isTeacher() {
+      return getUserData().role == 'teacher';
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      // Allow any authenticated user to read users (needed for checking duplicates/invitations and listing in admin/teacher views)
+      // Ideally, we'd limit this further, but for this app's "findUserByEmail" and "UserList" features, open read for auth users is required.
+      allow read: if request.auth != null;
+
+      // Allow users to write to their own document (for initial creation/updates)
+      // Allow admins to write to any document (for invitations, editing, deleting)
+      allow create, update: if request.auth != null && (request.auth.uid == userId || isAdmin());
+
+      // Only admins can delete users
+      allow delete: if request.auth != null && isAdmin();
+    }
+
+    // Assignments Collection
+    match /assignments/{assignmentId} {
+      // Allow any authenticated user to read assignments (Students need to see them, Admins/Teachers need to list them)
+      allow read: if request.auth != null;
+
+      // Allow Teachers and Admins to create, update, delete assignments
+      allow create, update, delete: if request.auth != null && (isTeacher() || isAdmin());
+    }
+  }
+}
