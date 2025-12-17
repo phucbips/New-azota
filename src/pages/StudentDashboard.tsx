@@ -11,7 +11,8 @@ export const StudentDashboard: React.FC = () => {
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
 
   useEffect(() => {
-    if (!user || !user.grade) return;
+    // Check whitelist before subscribing to prevent permission errors
+    if (!user || !user.grade || !user.isWhitelisted) return;
 
     // Subscribe to assignments for the student's grade
     const unsubscribe = assignmentService.subscribeToGradeAssignments(user.grade, (data) => {

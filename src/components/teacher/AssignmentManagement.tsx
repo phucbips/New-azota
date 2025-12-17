@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../../hooks/useAuth';
 import { assignmentService } from '../../services/assignment.service';
 import { Assignment } from '../../types';
-import { Plus, Trash2, Edit2, Loader2, Link, Eye } from 'lucide-react';
+import { Plus, Trash2, Edit2, Loader2, Link, Eye, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 type AssignmentForm = {
@@ -28,7 +28,9 @@ export const AssignmentManagement: React.FC = () => {
   const watchedEmbedCode = watch('embedCode');
 
   useEffect(() => {
-    if (!user) return;
+    // Only subscribe if user exists AND is whitelisted/teacher to avoid permission errors
+    if (!user || !user.isWhitelisted) return;
+
     const unsubscribe = assignmentService.subscribeToTeacherAssignments(user.uid, (data) => {
       setAssignments(data);
     });
