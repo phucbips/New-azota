@@ -2,40 +2,55 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions to check roles
-    function getUserData() {
+    // Helper function to get the current user's document
+    function getCurrentUser() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     function isAdmin() {
-      return getUserData().role == 'admin';
+      return getCurrentUser().role == 'admin';
     }
 
     function isTeacher() {
-      return getUserData().role == 'teacher';
+      return getCurrentUser().role == 'teacher';
     }
 
-    // Users Collection
+    function isWhitelisted() {
+      return getCurrentUser().isWhitelisted == true;
+    }
+
+    // Collection: users
     match /users/{userId} {
-      // Allow any authenticated user to read users (needed for checking duplicates/invitations and listing in admin/teacher views)
-      // Ideally, we'd limit this further, but for this app's "findUserByEmail" and "UserList" features, open read for auth users is required.
+      // READ:
+      // 1. Users must be able to read their own doc (get).
+      // 2. Admins must be able to read all docs (list/get).
+      // 3. CRITICAL: New users (auth but not fully set up) need to query users by email to find their invitation.
+      //    So we must allow 'list' for authenticated users to support `findUserByEmail`.
+      //    If we restrict this, the invitation flow breaks for non-admins.
       allow read: if request.auth != null;
 
-      // Allow users to write to their own document (for initial creation/updates)
-      // Allow admins to write to any document (for invitations, editing, deleting)
-      allow create, update: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      // CREATE: User creates their own doc on signup.
+      allow create: if request.auth != null && (
+        request.auth.uid == userId || isAdmin()
+      );
 
-      // Only admins can delete users
+      // UPDATE: User updates own doc (session, etc) OR Admin updates any doc.
+      allow update: if request.auth != null && (
+        request.auth.uid == userId || isAdmin()
+      );
+
+      // DELETE: Only Admin can delete users.
       allow delete: if request.auth != null && isAdmin();
     }
 
-    // Assignments Collection
+    // Collection: assignments (Codebase uses 'assignments', NOT 'lessons')
     match /assignments/{assignmentId} {
-      // Allow any authenticated user to read assignments (Students need to see them, Admins/Teachers need to list them)
-      allow read: if request.auth != null;
 
-      // Allow Teachers and Admins to create, update, delete assignments
-      allow create, update, delete: if request.auth != null && (isTeacher() || isAdmin());
+      // READ/LIST: Any whitelisted user (Student, Teacher, Admin) can see assignments.
+      allow read: if request.auth != null && isWhitelisted();
+
+      // WRITE: Only Teachers and Admins can create/update/delete assignments.
+      allow write: if request.auth != null && (isTeacher() || isAdmin());
     }
   }
 }
