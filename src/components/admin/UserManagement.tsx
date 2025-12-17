@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { userService } from '../../services/user.service';
 import { User, UserRole } from '../../types';
-import { Trash2, UserPlus, Check, X } from 'lucide-react';
+import { Trash2, UserPlus, Check, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 type CreateUserForm = {
@@ -14,9 +14,10 @@ type CreateUserForm = {
 export const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const { register, handleSubmit, watch, reset, setValue } = useForm<CreateUserForm>({
-      defaultValues: { role: 'student' }
+      defaultValues: { role: 'student', grade: '10' }
   });
   const [loading, setLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
 
   const selectedRole = watch('role');
 
@@ -30,15 +31,20 @@ export const UserManagement: React.FC = () => {
   const onSubmit = async (data: CreateUserForm) => {
     setLoading(true);
     try {
+      if (data.role === 'student' && !data.grade) {
+          toast.error('Vui lòng chọn Khối cho học sinh');
+          return;
+      }
+
       await userService.createInvitation(
           data.email,
           data.role,
           data.role === 'student' ? (data.grade || null) : null
       );
-      toast.success(`Đã tạo tài khoản cho ${data.email}`);
-      reset();
+      toast.success(`Đã mời ${data.email} thành công!`);
+      reset({ role: 'student', grade: '10', email: '' });
     } catch (error: any) {
-      toast.error(error.message || 'Có lỗi xảy ra');
+      toast.error(error.message || 'Có lỗi xảy ra khi tạo tài khoản');
     } finally {
       setLoading(false);
     }
@@ -46,11 +52,14 @@ export const UserManagement: React.FC = () => {
 
   const handleDelete = async (uid: string) => {
       if(!confirm('Bạn có chắc chắn muốn xóa người dùng này?')) return;
+      setDeleteLoading(uid);
       try {
           await userService.deleteUser(uid);
           toast.success('Đã xóa người dùng');
       } catch (error) {
           toast.error('Lỗi khi xóa người dùng');
+      } finally {
+          setDeleteLoading(null);
       }
   };
 
@@ -63,13 +72,16 @@ export const UserManagement: React.FC = () => {
       <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
         <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
             <UserPlus className="w-5 h-5 text-blue-600" />
-            Tạo tài khoản mới
+            Mời người dùng mới
         </h3>
+        <p className="text-slate-500 mb-4 text-sm">
+            Nhập email của người dùng. Họ sẽ được tự động cấp quyền khi đăng nhập bằng Google hoặc Email này.
+        </p>
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col md:flex-row gap-4 items-end">
           <div className="flex-1 w-full">
             <label className="block text-sm font-medium mb-1 text-slate-700">Email</label>
             <input
-              {...register('email', { required: true })}
+              {...register('email', { required: 'Vui lòng nhập email' })}
               type="email"
               className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
               placeholder="nguyenvana@gmail.com"
@@ -84,13 +96,12 @@ export const UserManagement: React.FC = () => {
             >
               <option value="student">Học sinh</option>
               <option value="teacher">Giáo viên</option>
-              {/* Admin usually shouldn't create other admins easily via this simple form, but acceptable */}
               <option value="admin">Admin</option>
             </select>
           </div>
 
           {selectedRole === 'student' && (
-            <div className="w-full md:w-40">
+            <div className="w-full md:w-40 animate-fadeIn">
               <label className="block text-sm font-medium mb-1 text-slate-700">Khối</label>
               <select
                 {...register('grade')}
@@ -106,8 +117,9 @@ export const UserManagement: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full md:w-auto px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+            className="w-full md:w-auto px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
             {loading ? 'Đang thêm...' : 'Thêm'}
           </button>
         </form>
@@ -138,10 +150,11 @@ export const UserManagement: React.FC = () => {
                   <td className="p-4 text-right">
                     <button
                         onClick={() => handleDelete(teacher.uid)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        disabled={deleteLoading === teacher.uid}
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                         title="Xóa"
                     >
-                        <Trash2 className="w-4 h-4" />
+                        {deleteLoading === teacher.uid ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                     </button>
                   </td>
                 </tr>
@@ -187,10 +200,11 @@ export const UserManagement: React.FC = () => {
                   <td className="p-4 text-right">
                     <button
                         onClick={() => handleDelete(student.uid)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        disabled={deleteLoading === student.uid}
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                         title="Xóa"
                     >
-                        <Trash2 className="w-4 h-4" />
+                        {deleteLoading === student.uid ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                     </button>
                   </td>
                 </tr>

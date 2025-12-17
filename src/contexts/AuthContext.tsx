@@ -47,32 +47,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (!existingUser && firebaseUser.email) {
         const userByEmail = await userService.findUserByEmail(firebaseUser.email);
         if (userByEmail) {
-          // If we found a user by email but with a different UID (or a placeholder UID), we should update it.
-          // However, userService.findUserByEmail returns the doc with `uid` as the doc ID.
-          // If the doc ID is NOT the firebaseUser.uid, we might need to migrate it or just update it.
-          // In this simple "Admin creates invite" flow, the Admin creates a doc.
-          // If the admin creates a doc with a random ID, we need to handle that.
-          // Strategy: If found by email, and the document ID is NOT the firebaseUser.uid,
-          // we should ideally migrate the data to a new doc with the correct UID, OR
-          // (simpler for now) just use the existing doc if possible, but Firestore Auth users usually map 1:1 to UID.
-          // BETTER STRATEGY:
-          // 1. Admin creates a doc with ID = email (sanitized) or just a random ID, but with field `email`.
-          // 2. When user logs in, we find that doc.
-          // 3. If the doc ID is different from firebaseUser.uid, we should probably COPY that data to a new doc with ID = firebaseUser.uid and DELETE the old one.
-          // OR: Just allow the doc ID to be different from UID? No, userService.getUser(uid) expects docId == uid.
+          // Found an invitation document
 
           if (userByEmail.uid !== firebaseUser.uid) {
              // Migrate the pre-created user data to the correct UID doc
              const { uid: oldUid, ...userData } = userByEmail;
+
+             // Create the real user doc
              await userService.createUser(firebaseUser.uid, {
                  ...userData,
                  // Ensure we keep the role and grade set by admin
                  sessionId: sessionId,
-                 joinedAt: userData.joinedAt || new Date() as any // will be handled by create
+                 joinedAt: userData.joinedAt || new Date() as any
              });
-             // Delete the old placeholder doc if needed, or just leave it? Better delete to avoid duplicates.
-             // We need a deleteUser method in userService but we can skip for now or add it.
-             // For now, let's just assume we created the new correct one.
+
+             // IMPORTANT: Delete the old invitation doc to prevent duplicates in Admin list
+             if (oldUid) {
+                 await userService.deleteUser(oldUid);
+             }
+
              existingUser = await userService.getUser(firebaseUser.uid);
           } else {
              existingUser = userByEmail;

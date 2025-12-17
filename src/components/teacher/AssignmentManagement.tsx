@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../../hooks/useAuth';
 import { assignmentService } from '../../services/assignment.service';
 import { Assignment } from '../../types';
-import { Plus, Trash2, Edit2, ExternalLink, X, Check } from 'lucide-react';
+import { Plus, Trash2, Edit2, Loader2, Link } from 'lucide-react';
 import { toast } from 'sonner';
 
 type AssignmentForm = {
@@ -16,7 +16,9 @@ type AssignmentForm = {
 export const AssignmentManagement: React.FC = () => {
   const { user } = useAuth();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<AssignmentForm>();
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<AssignmentForm>({
+      defaultValues: { targetGrade: '10' }
+  });
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -43,7 +45,7 @@ export const AssignmentManagement: React.FC = () => {
           });
           toast.success('Đã tạo bài tập mới');
       }
-      reset();
+      reset({ title: '', description: '', embedCode: '', targetGrade: '10' });
     } catch (error) {
       toast.error('Có lỗi xảy ra');
       console.error(error);
@@ -64,8 +66,6 @@ export const AssignmentManagement: React.FC = () => {
 
   const handleEdit = (assignment: Assignment) => {
       setEditingId(assignment.id!);
-      // Need to reset form with values.
-      // Since useForm is unchecked here, we might need to use setValue or reset with values
       reset({
           title: assignment.title,
           description: assignment.description,
@@ -90,7 +90,7 @@ export const AssignmentManagement: React.FC = () => {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1 text-slate-700">Tiêu đề</label>
+              <label className="block text-sm font-medium mb-1 text-slate-700">Tiêu đề <span className="text-red-500">*</span></label>
               <input
                 {...register('title', { required: 'Vui lòng nhập tiêu đề' })}
                 className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
@@ -100,10 +100,10 @@ export const AssignmentManagement: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1 text-slate-700">Khối Lớp</label>
+              <label className="block text-sm font-medium mb-1 text-slate-700">Dành cho Khối <span className="text-red-500">*</span></label>
               <select
                 {...register('targetGrade', { required: true })}
-                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
               >
                 <option value="10">Khối 10</option>
                 <option value="11">Khối 11</option>
@@ -123,16 +123,19 @@ export const AssignmentManagement: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1 text-slate-700">Link Azota (Embed Link)</label>
+            <label className="block text-sm font-medium mb-1 text-slate-700 flex items-center gap-1">
+                <Link className="w-4 h-4" /> Link Azota (Embed Link) <span className="text-red-500">*</span>
+            </label>
             <input
               {...register('embedCode', { required: 'Vui lòng nhập link Azota' })}
-              className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm"
+              className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm bg-slate-50"
               placeholder="https://azota.vn/..."
             />
+            <p className="text-xs text-slate-500 mt-1">Dán link bài tập Azota hoặc mã nhúng (iframe) vào đây.</p>
              {errors.embedCode && <p className="text-red-500 text-xs mt-1">{errors.embedCode.message}</p>}
           </div>
 
-          <div className="flex justify-end gap-3">
+          <div className="flex justify-end gap-3 pt-2">
              {editingId && (
                  <button
                     type="button"
@@ -147,6 +150,7 @@ export const AssignmentManagement: React.FC = () => {
               disabled={loading}
               className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
             >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (editingId ? <Edit2 className="w-4 h-4" /> : <Plus className="w-4 h-4" />)}
               {loading ? 'Đang xử lý...' : (editingId ? 'Cập nhật' : 'Tạo Bài tập')}
             </button>
           </div>
