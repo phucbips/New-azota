@@ -48,31 +48,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const userEmail = firebaseUser.email ? firebaseUser.email.toLowerCase() : null;
 
       if (!existingUser && userEmail) {
-        const userByEmail = await userService.findUserByEmail(userEmail);
-        if (userByEmail) {
-          // Found an invitation document
+        try {
+            const userByEmail = await userService.findUserByEmail(userEmail);
+            if (userByEmail) {
+            // Found an invitation document
 
-          if (userByEmail.uid !== firebaseUser.uid) {
-             // Migrate the pre-created user data to the correct UID doc
-             const { uid: oldUid, ...userData } = userByEmail;
+            if (userByEmail.uid !== firebaseUser.uid) {
+                // Migrate the pre-created user data to the correct UID doc
+                const { uid: oldUid, ...userData } = userByEmail;
 
-             // Create the real user doc
-             await userService.createUser(firebaseUser.uid, {
-                 ...userData,
-                 // Ensure we keep the role and grade set by admin
-                 sessionId: sessionId,
-                 joinedAt: userData.joinedAt || new Date() as any
-             });
+                // Create the real user doc
+                await userService.createUser(firebaseUser.uid, {
+                    ...userData,
+                    // Ensure we keep the role and grade set by admin
+                    sessionId: sessionId,
+                    joinedAt: userData.joinedAt || new Date() as any
+                });
 
-             // IMPORTANT: Delete the old invitation doc to prevent duplicates in Admin list
-             if (oldUid) {
-                 await userService.deleteUser(oldUid);
-             }
+                // IMPORTANT: Delete the old invitation doc to prevent duplicates in Admin list
+                if (oldUid) {
+                    await userService.deleteUser(oldUid);
+                }
 
-             existingUser = await userService.getUser(firebaseUser.uid);
-          } else {
-             existingUser = userByEmail;
-          }
+                existingUser = await userService.getUser(firebaseUser.uid);
+            } else {
+                existingUser = userByEmail;
+            }
+            }
+        } catch (error: any) {
+            // If we hit a permission error (e.g. non-admin trying to query users),
+            // just ignore the invitation check and proceed to create a new user.
+            console.warn('Error checking for invitation (likely permission issue), creating new user instead:', error);
         }
       }
 
@@ -120,6 +126,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     } catch (error) {
         console.error("Error getting or creating user:", error);
+        // Important: Return null here so we don't crash, but the user state will be null, triggering sign out
         return null;
     }
   }, [sessionId]);

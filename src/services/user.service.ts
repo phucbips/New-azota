@@ -130,7 +130,11 @@ class UserService {
       return onSnapshot(q, (snapshot) => {
           const users = snapshot.docs.map(d => ({ uid: d.id, ...d.data() } as User));
           // Client-side sort by joinedAt desc
-          users.sort((a, b) => b.joinedAt.toMillis() - a.joinedAt.toMillis());
+          users.sort((a, b) => {
+             const timeA = a.joinedAt?.toMillis ? a.joinedAt.toMillis() : 0;
+             const timeB = b.joinedAt?.toMillis ? b.joinedAt.toMillis() : 0;
+             return timeB - timeA;
+          });
           callback(users);
       }, onError);
   }

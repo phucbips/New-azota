@@ -52,7 +52,11 @@ class AssignmentService {
         ...doc.data()
       } as Assignment));
       // Client-side sort by createdAt desc if index not available yet
-      assignments.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+      assignments.sort((a, b) => {
+          const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+          const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+          return timeB - timeA;
+      });
       callback(assignments);
     }, onError);
   }
@@ -69,7 +73,11 @@ class AssignmentService {
         id: doc.id,
         ...doc.data()
       } as Assignment));
-      assignments.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+      assignments.sort((a, b) => {
+          const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+          const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+          return timeB - timeA;
+      });
       callback(assignments);
     }, onError);
   }
