@@ -9,10 +9,11 @@ import {
   where,
   getDocs,
   Timestamp,
+  deleteDoc,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { COLLECTIONS } from '../config/constants';
-import { User } from '../types';
+import { User, UserRole } from '../types';
 
 class UserService {
   private collection = collection(db, COLLECTIONS.USERS);
@@ -22,8 +23,49 @@ class UserService {
     await setDoc(userRef, {
       uid,
       ...userData,
-      joinedAt: Timestamp.now(),
+      joinedAt: userData.joinedAt || Timestamp.now(),
     });
+  }
+
+  // Pre-creates a user document (invitation) without a UID (uses email as ID initially or a random ID)
+  // Actually, to make lookup easy, let's use the email as the document ID if we can,
+  // BUT `createUser` above uses UID.
+  // So for invitations, we can create a doc where ID is the email, or just query by email.
+  // The plan in AuthContext is to query by email.
+  // So we can just create a document with a random ID, but with the email field set.
+  async createInvitation(email: string, role: UserRole, grade: string | null): Promise<void> {
+    const existing = await this.findUserByEmail(email);
+    if (existing) {
+       throw new Error('User with this email already exists.');
+    }
+
+    // We create a doc with a random ID (auto-generated)
+    // We can't set the ID to email because the eventual user doc will be keyed by UID.
+    // So we just create a placeholder doc.
+    // Wait, `addDoc` is for auto ID. `setDoc` needs ID.
+    const newDocRef = doc(this.collection); // Auto ID
+
+    const userData: Omit<User, 'uid'> = {
+        email,
+        displayName: email.split('@')[0],
+        photoURL: `https://ui-avatars.com/api/?name=${email[0]}&background=667eea&color=fff&size=200`,
+        role,
+        grade,
+        isWhitelisted: true, // Auto whitelist invited users
+        sessionId: '',
+        joinedAt: Timestamp.now(),
+        isActive: true,
+    };
+
+    await setDoc(newDocRef, {
+        ...userData,
+        uid: newDocRef.id // Temporary UID until real signup
+    });
+  }
+
+  async deleteUser(uid: string): Promise<void> {
+      const userRef = doc(db, COLLECTIONS.USERS, uid);
+      await deleteDoc(userRef);
   }
 
   async getUser(uid: string): Promise<User | null> {
@@ -75,58 +117,34 @@ class UserService {
 
     if (!querySnapshot.empty) {
       const userDoc = querySnapshot.docs[0];
+      // We must return the doc data, but also ensure uid is correct if it's the ID
+      // If the doc was created with auto-ID (invitation), doc.id is the ID.
       return { uid: userDoc.id, ...userDoc.data() } as User;
     }
 
     return null;
   }
 
-  async whitelistStudent(email: string): Promise<boolean> {
-    const user = await this.findUserByEmail(email);
-
-    if (!user) {
-      throw new Error('Không tìm thấy người dùng. Họ phải đăng nhập ít nhất 1 lần.');
-    }
-
-    if (user.isWhitelisted) {
-      throw new Error('Tài khoản đã được kích hoạt trước đó.');
-    }
-
-    // Ensure the user is set as a student and whitelisted
-    await this.updateUser(user.uid, { isWhitelisted: true, role: 'student' });
-    return true;
-  }
-
-  async removeFromWhitelist(uid: string): Promise<void> {
-    // Also consider if you want to change the role back on removal
-    await this.updateUser(uid, { isWhitelisted: false });
-  }
-
-  subscribeToWhitelistedStudents(
-    callback: (students: User[]) => void,
-    onError?: (error: Error) => void
+  subscribeToAllUsers(
+      callback: (users: User[]) => void,
+      onError?: (error: Error) => void
   ): () => void {
-    const q = query(
-      this.collection,
-      where('isWhitelisted', '==', true),
-      where('role', '==', 'student')
-    );
+      const q = query(this.collection);
+      return onSnapshot(q, (snapshot) => {
+          const users = snapshot.docs.map(d => ({ uid: d.id, ...d.data() } as User));
+          callback(users);
+      }, onError);
+  }
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const students = snapshot.docs.map(
-          (doc) => ({ uid: doc.id, ...doc.data() } as User)
-        );
-        callback(students);
-      },
-      (error) => {
-        console.error('Error fetching whitelisted students:', error);
-        onError?.(error);
-      }
-    );
+  // Deprecated/Modified methods below to support legacy or specific needs
 
-    return unsubscribe;
+  async whitelistStudent(email: string): Promise<boolean> {
+     // Re-implement if needed, but createInvitation handles new users.
+     // For existing users:
+     const user = await this.findUserByEmail(email);
+     if (!user) return false;
+     await this.updateUser(user.uid, { isWhitelisted: true, role: 'student' });
+     return true;
   }
 }
 

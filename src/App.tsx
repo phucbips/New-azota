@@ -3,6 +3,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './components/auth/LoginPage';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { TeacherDashboard } from './pages/TeacherDashboard';
 import { StudentDashboard } from './pages/StudentDashboard';
 import { Loading } from './components/shared/Loading';
 import './styles/globals.css';
@@ -20,6 +21,10 @@ const AppContent: React.FC = () => {
 
   if (user.role === 'admin') {
     return <AdminDashboard />;
+  }
+
+  if (user.role === 'teacher') {
+    return <TeacherDashboard />;
   }
 
   return <StudentDashboard />;
