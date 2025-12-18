@@ -5,6 +5,7 @@ import { assignmentService } from '../../services/assignment.service';
 import { Assignment } from '../../types';
 import { Plus, Trash2, Edit2, Loader2, Link, Eye, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatDate } from '../../lib/formatters';
 
 type AssignmentForm = {
   title: string;
@@ -190,7 +191,7 @@ export const AssignmentManagement: React.FC = () => {
                           </div>
                           <p className="text-sm text-slate-600 mb-2 line-clamp-2">{assignment.description}</p>
                           <div className="text-xs text-slate-400">
-                              Ngày tạo: {assignment.createdAt?.toDate().toLocaleDateString('vi-VN')}
+                              Ngày tạo: {formatDate(assignment.createdAt)}
                           </div>
                       </div>
                       <div className="flex gap-2">

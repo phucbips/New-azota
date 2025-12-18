@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/useAuth';
 import { assignmentService } from '../services/assignment.service';
 import { Assignment } from '../types';
 import { BookOpen, ChevronRight, AlertCircle, Calendar } from 'lucide-react';
+import { formatDate } from '../lib/formatters';
 
 export const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -121,7 +122,7 @@ export const StudentDashboard: React.FC = () => {
               <div className="flex items-center justify-between text-xs text-slate-400 pt-4 border-t border-slate-50">
                 <span className="flex items-center gap-1">
                   <Calendar className="w-3 h-3" />
-                  {assignment.createdAt?.toDate().toLocaleDateString('vi-VN')}
+                  {formatDate(assignment.createdAt)}
                 </span>
                 <span className="flex items-center font-medium text-primary group-hover:translate-x-1 transition-transform">
                   Làm bài <ChevronRight className="w-3 h-3 ml-1" />
