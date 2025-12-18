@@ -18,6 +18,7 @@ module.exports = {
 		extend: {
             fontFamily: {
                 sans: ['Inter', 'sans-serif'],
+                display: ['Inter', 'sans-serif'], // Added for compatibility with provided HTML
             },
 			colors: {
 				border: 'hsl(var(--border))',
@@ -25,9 +26,11 @@ module.exports = {
 				ring: 'hsl(var(--ring))',
 				// Defined Design System Colors
 				primary: {
-					DEFAULT: '#2563EB', // Royal Blue
+					DEFAULT: '#1c60f2', // Updated to match user request
 					foreground: '#FFFFFF',
 				},
+                "background-light": "#f5f6f8", // Added
+                "background-dark": "#101622",  // Added
 				secondary: {
 					DEFAULT: '#64748B', // Slate-500
 					foreground: '#FFFFFF',
@@ -37,7 +40,7 @@ module.exports = {
 					foreground: '#0F172A',
 				},
 				background: {
-					DEFAULT: '#F8FAFC', // Slate-50
+					DEFAULT: '#f5f6f8', // Updated to match background-light
 					foreground: '#0F172A',
 				},
 				// Keep Shadcn/existing variables mapping if needed, or override
