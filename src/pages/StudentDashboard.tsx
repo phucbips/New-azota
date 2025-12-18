@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '../layouts/DashboardLayout';
-import { PageHeader } from '../components/ui/PageHeader';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { useAuth } from '../hooks/useAuth';
 import { assignmentService } from '../services/assignment.service';
 import { Assignment } from '../types';
 import { BookOpen, ChevronRight, AlertCircle, Calendar, Filter, Plus, Clock, AlertTriangle } from 'lucide-react';
-import { formatDate, safeString } from '../lib/formatters';
+import { formatDate } from '../lib/formatters';
 
 export const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -36,11 +35,6 @@ export const StudentDashboard: React.FC = () => {
 
   // Handle Detail View
   if (selectedAssignment) {
-    const embed = safeString(selectedAssignment.embedCode);
-    const title = safeString(selectedAssignment.title);
-    const description = safeString(selectedAssignment.description);
-    const targetGrade = safeString(selectedAssignment.targetGrade);
-
     return (
       <DashboardLayout role="student">
         <button
@@ -52,24 +46,24 @@ export const StudentDashboard: React.FC = () => {
 
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
             <div>
-                <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{title}</h1>
-                <p className="text-slate-500 mt-2">Grade {targetGrade} Coursework</p>
+                <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{selectedAssignment.title}</h1>
+                <p className="text-slate-500 mt-2">Grade {selectedAssignment.targetGrade} Coursework</p>
             </div>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 min-h-[600px] flex flex-col">
            <div className="mb-6">
-               <p className="text-slate-600 leading-relaxed">{description}</p>
+               <p className="text-slate-600 leading-relaxed">{selectedAssignment.description}</p>
            </div>
 
            <div className="flex-1 w-full bg-slate-50 rounded-lg border border-slate-200 relative overflow-hidden">
-              {embed.startsWith('<iframe') ? (
-                  <div dangerouslySetInnerHTML={{ __html: embed }} className="w-full h-full absolute inset-0 [&>iframe]:w-full [&>iframe]:h-full" />
+              {selectedAssignment.embedCode.startsWith('<iframe') ? (
+                  <div dangerouslySetInnerHTML={{ __html: selectedAssignment.embedCode }} className="w-full h-full absolute inset-0 [&>iframe]:w-full [&>iframe]:h-full" />
               ) : (
                   <iframe
-                    src={embed}
+                    src={selectedAssignment.embedCode}
                     className="w-full h-full absolute inset-0"
-                    title={title}
+                    title={selectedAssignment.title}
                     allowFullScreen
                   />
               )}
@@ -173,17 +167,17 @@ export const StudentDashboard: React.FC = () => {
                             </span>
                         </div>
                         <div className="absolute bottom-3 left-3">
-                            <p className="text-white text-xs font-medium bg-black/30 px-2 py-1 rounded backdrop-blur-md">Grade {safeString(assignment.targetGrade)}</p>
+                            <p className="text-white text-xs font-medium bg-black/30 px-2 py-1 rounded backdrop-blur-md">Grade {assignment.targetGrade}</p>
                         </div>
                     </div>
 
                     <div className="p-5 flex flex-col gap-3 flex-1">
                         <div>
                             <h3 className="text-lg font-bold text-slate-900 leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">
-                                {safeString(assignment.title)}
+                                {assignment.title}
                             </h3>
                             <p className="text-sm text-slate-500 mt-1 line-clamp-2">
-                                {safeString(assignment.description) || 'Complete the exercises attached in the module.'}
+                                {assignment.description || 'Complete the exercises attached in the module.'}
                             </p>
                         </div>
 
