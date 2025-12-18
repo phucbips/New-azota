@@ -1,4 +1,5 @@
 import React, { createContext, useEffect, useState, useCallback } from 'react';
+import { Timestamp } from 'firebase/firestore';
 import {
   onAuthStateChanged,
   signInWithPopup,
@@ -62,12 +63,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     ...userData,
                     // Ensure we keep the role and grade set by admin
                     sessionId: sessionId,
-                    joinedAt: userData.joinedAt || new Date() as any
+                    joinedAt: userData.joinedAt || Timestamp.now()
                 });
 
                 // IMPORTANT: Delete the old invitation doc to prevent duplicates in Admin list
                 if (oldUid) {
+                  try {
                     await userService.deleteUser(oldUid);
+                  } catch (deleteError) {
+                    console.warn('Failed to delete invitation doc (non-fatal):', deleteError);
+                  }
                 }
 
                 existingUser = await userService.getUser(firebaseUser.uid);
