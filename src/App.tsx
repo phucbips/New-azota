@@ -1,4 +1,5 @@
 import React from 'react';
+import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './components/auth/LoginPage';
@@ -32,11 +33,13 @@ const AppContent: React.FC = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
-        <AppContent />
-      </div>
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
+          <AppContent />
+        </div>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 
