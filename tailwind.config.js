@@ -16,24 +16,32 @@ module.exports = {
 			},
 		},
 		extend: {
+            fontFamily: {
+                sans: ['Inter', 'sans-serif'],
+            },
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
-				background: 'hsl(var(--background))',
-				foreground: 'hsl(var(--foreground))',
+				// Defined Design System Colors
 				primary: {
-					DEFAULT: '#2B5D3A',
-					foreground: 'hsl(var(--primary-foreground))',
+					DEFAULT: '#2563EB', // Royal Blue
+					foreground: '#FFFFFF',
 				},
 				secondary: {
-					DEFAULT: '#4A90E2',
-					foreground: 'hsl(var(--secondary-foreground))',
+					DEFAULT: '#64748B', // Slate-500
+					foreground: '#FFFFFF',
 				},
-				accent: {
-					DEFAULT: '#F5A623',
-					foreground: 'hsl(var(--accent-foreground))',
+				surface: {
+					DEFAULT: '#FFFFFF',
+					foreground: '#0F172A',
 				},
+				background: {
+					DEFAULT: '#F8FAFC', // Slate-50
+					foreground: '#0F172A',
+				},
+				// Keep Shadcn/existing variables mapping if needed, or override
+				foreground: 'hsl(var(--foreground))',
 				destructive: {
 					DEFAULT: 'hsl(var(--destructive))',
 					foreground: 'hsl(var(--destructive-foreground))',

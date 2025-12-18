@@ -1,21 +1,19 @@
 import React from 'react';
-import { Header } from '../components/shared/Header';
+import { DashboardLayout } from '../layouts/DashboardLayout';
+import { PageHeader } from '../components/ui/PageHeader';
 import { AssignmentManagement } from '../components/teacher/AssignmentManagement';
-import { BookOpen } from 'lucide-react';
 
 export const TeacherDashboard: React.FC = () => {
   return (
-    <div className="container mx-auto px-4 py-8 min-h-screen">
-      <Header title="Trang Giáo viên" />
+    <DashboardLayout role="teacher">
+      <PageHeader
+        title="Quản lý Bài tập"
+        subtitle="Tạo và quản lý các bài tập Azota cho học sinh"
+      />
 
-      <div className="glass p-8 rounded-2xl shadow-xl animate-fadeIn">
-        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-200">
-             <BookOpen className="w-6 h-6 text-blue-600" />
-             <h2 className="text-xl font-bold text-slate-800">Quản lý Bài tập</h2>
-        </div>
-
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200">
         <AssignmentManagement />
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
