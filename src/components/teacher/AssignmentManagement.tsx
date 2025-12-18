@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../../hooks/useAuth';
 import { assignmentService } from '../../services/assignment.service';
 import { Assignment } from '../../types';
-import { Plus, Trash2, Edit2, Loader2, Link, Eye, X } from 'lucide-react';
+import { Plus, Trash2, Edit2, Loader2, Link, Eye, X, ChevronDown, Upload, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDate } from '../../lib/formatters';
 
@@ -22,16 +22,12 @@ export const AssignmentManagement: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-
-  // Preview state
   const [previewCode, setPreviewCode] = useState<string | null>(null);
 
   const watchedEmbedCode = watch('embedCode');
 
   useEffect(() => {
-    // Only subscribe if user exists AND is whitelisted/teacher to avoid permission errors
     if (!user || !user.isWhitelisted) return;
-
     const unsubscribe = assignmentService.subscribeToTeacherAssignments(user.uid, (data) => {
       setAssignments(data);
     });
@@ -44,18 +40,18 @@ export const AssignmentManagement: React.FC = () => {
     try {
       if (editingId) {
           await assignmentService.updateAssignment(editingId, data);
-          toast.success('Đã cập nhật bài tập');
+          toast.success('Assignment updated');
           setEditingId(null);
       } else {
           await assignmentService.createAssignment({
             ...data,
             createdByTeacherId: user.uid,
           });
-          toast.success('Đã tạo bài tập mới');
+          toast.success('Assignment published');
       }
       reset({ title: '', description: '', embedCode: '', targetGrade: '10' });
     } catch (error) {
-      toast.error('Có lỗi xảy ra');
+      toast.error('Operation failed');
       console.error(error);
     } finally {
       setLoading(false);
@@ -63,12 +59,12 @@ export const AssignmentManagement: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa bài tập này?')) return;
+    if (!confirm('Are you sure?')) return;
     try {
       await assignmentService.deleteAssignment(id);
-      toast.success('Đã xóa bài tập');
+      toast.success('Deleted');
     } catch (error) {
-      toast.error('Lỗi khi xóa bài tập');
+      toast.error('Failed to delete');
     }
   };
 
@@ -88,156 +84,140 @@ export const AssignmentManagement: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8">
-      {/* Form */}
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-        <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-          {editingId ? <Edit2 className="w-5 h-5 text-blue-600" /> : <Plus className="w-5 h-5 text-blue-600" />}
-          {editingId ? 'Cập nhật Bài tập' : 'Tạo Bài tập Mới'}
-        </h3>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1 text-slate-700">Tiêu đề <span className="text-red-500">*</span></label>
+    <div className="flex flex-col gap-8">
+      {/* Form Card */}
+      <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8 flex flex-col gap-6">
+          {/* Title */}
+          <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-slate-900">Assignment Title <span className="text-red-500">*</span></label>
               <input
-                {...register('title', { required: 'Vui lòng nhập tiêu đề' })}
-                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder="Bài tập Toán Tuần 1"
+                {...register('title', { required: true })}
+                className="w-full h-12 px-4 rounded-lg bg-white border border-slate-200 text-slate-900 text-base placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
+                placeholder="e.g., Introduction to Algebra II"
               />
-              {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1 text-slate-700">Dành cho Khối <span className="text-red-500">*</span></label>
-              <select
-                {...register('targetGrade', { required: true })}
-                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-              >
-                <option value="10">Khối 10</option>
-                <option value="11">Khối 11</option>
-                <option value="12">Khối 12</option>
-              </select>
-            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1 text-slate-700">Mô tả</label>
-            <textarea
-              {...register('description')}
-              rows={3}
-              className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-              placeholder="Hướng dẫn làm bài..."
-            />
+          {/* Grade Select */}
+          <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-slate-900">Assign to Grade <span className="text-red-500">*</span></label>
+              <div className="relative">
+                  <select
+                    {...register('targetGrade', { required: true })}
+                    className="w-full h-12 px-4 pr-10 rounded-lg bg-white border border-slate-200 text-slate-900 text-base focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all appearance-none cursor-pointer"
+                  >
+                    <option value="10">Grade 10</option>
+                    <option value="11">Grade 11</option>
+                    <option value="12">Grade 12</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                      <ChevronDown className="w-5 h-5" />
+                  </div>
+              </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1 text-slate-700 flex items-center gap-1">
-                <Link className="w-4 h-4" /> Link Azota (Embed Link) <span className="text-red-500">*</span>
-            </label>
-            <div className="flex gap-2">
-                <input
-                  {...register('embedCode', { required: 'Vui lòng nhập link Azota' })}
-                  className="flex-1 p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm bg-slate-50"
-                  placeholder="https://azota.vn/..."
-                />
-                {watchedEmbedCode && (
-                    <button
+          {/* Description */}
+          <div className="flex flex-col gap-2">
+              <div className="flex justify-between items-center">
+                  <label className="text-sm font-medium text-slate-900">Description & Instructions</label>
+                  <span className="text-xs text-slate-500">Markdown supported</span>
+              </div>
+              <textarea
+                {...register('description')}
+                rows={6}
+                className="w-full p-4 rounded-lg bg-white border border-slate-200 text-slate-900 text-base placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all resize-y"
+                placeholder="Detail the requirements, objectives..."
+              />
+          </div>
+
+          {/* Embed Link */}
+          <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-slate-900">External Resource Link (Azota) <span className="text-red-500">*</span></label>
+              <div className="relative">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500">
+                      <Link className="w-5 h-5" />
+                  </div>
+                  <input
+                    {...register('embedCode', { required: true })}
+                    className="w-full h-12 pl-11 pr-24 rounded-lg bg-white border border-slate-200 text-slate-900 text-base placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
+                    placeholder="https://"
+                  />
+                  {watchedEmbedCode && (
+                      <button
                         type="button"
                         onClick={() => setPreviewCode(watchedEmbedCode)}
-                        className="px-3 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 flex items-center gap-2 text-sm font-medium"
-                    >
-                        <Eye className="w-4 h-4" /> Xem trước
-                    </button>
-                )}
-            </div>
-            <p className="text-xs text-slate-500 mt-1">Dán link bài tập Azota hoặc mã nhúng (iframe) vào đây.</p>
-             {errors.embedCode && <p className="text-red-500 text-xs mt-1">{errors.embedCode.message}</p>}
+                        className="absolute right-2 top-2 h-8 px-3 bg-slate-100 text-slate-600 rounded-md text-xs font-bold hover:bg-slate-200 transition-colors flex items-center gap-1"
+                      >
+                          <Eye className="w-3 h-3" /> Preview
+                      </button>
+                  )}
+              </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-2">
-             {editingId && (
-                 <button
-                    type="button"
-                    onClick={cancelEdit}
-                    className="px-6 py-2 bg-slate-100 text-slate-700 font-semibold rounded-lg hover:bg-slate-200 transition-colors"
-                 >
-                     Hủy
-                 </button>
-             )}
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (editingId ? <Edit2 className="w-4 h-4" /> : <Plus className="w-4 h-4" />)}
-              {loading ? 'Đang xử lý...' : (editingId ? 'Cập nhật' : 'Tạo Bài tập')}
-            </button>
-          </div>
-        </form>
-      </div>
+          <div className="h-px bg-slate-200 my-2"></div>
 
-      {/* List */}
-      <div className="space-y-4">
-          <h3 className="text-lg font-bold text-slate-800">Danh sách Bài tập đã tạo ({assignments.length})</h3>
-          <div className="grid gap-4">
-              {assignments.map(assignment => (
-                  <div key={assignment.id} className="bg-white p-4 rounded-xl border border-slate-200 hover:shadow-md transition-shadow flex justify-between items-start">
-                      <div>
-                          <div className="flex items-center gap-2 mb-1">
-                              <span className="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-bold">
-                                  Khối {assignment.targetGrade}
-                              </span>
-                              <h4 className="font-bold text-slate-900">{assignment.title}</h4>
-                          </div>
-                          <p className="text-sm text-slate-600 mb-2 line-clamp-2">{assignment.description}</p>
-                          <div className="text-xs text-slate-400">
-                              Ngày tạo: {formatDate(assignment.createdAt)}
-                          </div>
-                      </div>
-                      <div className="flex gap-2">
-                           <button
-                              onClick={() => handleEdit(assignment)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Sửa"
-                           >
-                               <Edit2 className="w-4 h-4" />
-                           </button>
-                           <button
-                              onClick={() => handleDelete(assignment.id!)}
-                              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Xóa"
-                           >
-                               <Trash2 className="w-4 h-4" />
-                           </button>
-                      </div>
-                  </div>
-              ))}
-              {assignments.length === 0 && (
-                  <div className="text-center p-8 text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                      Chưa có bài tập nào. Hãy tạo bài tập đầu tiên!
-                  </div>
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-3">
+              {editingId && (
+                  <button type="button" onClick={cancelEdit} className="h-10 px-5 rounded-lg text-slate-600 font-bold hover:bg-slate-100 transition-colors">
+                      Cancel
+                  </button>
               )}
+              <button type="button" className="h-10 px-5 rounded-lg text-slate-600 font-bold hover:bg-slate-100 transition-colors">
+                  Save Draft
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="h-10 px-5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-500/20 transition-all flex items-center gap-2 disabled:opacity-50"
+              >
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (editingId ? <Upload className="w-5 h-5" /> : <Upload className="w-5 h-5" />)}
+                  {editingId ? 'Update Assignment' : 'Publish Assignment'}
+              </button>
           </div>
+      </form>
+
+      {/* Helper Tip */}
+      <div className="flex gap-3 p-4 bg-blue-50 border border-blue-100 rounded-lg">
+          <Info className="w-6 h-6 text-blue-600 flex-shrink-0" />
+          <p className="text-sm text-blue-900">
+              <strong>Tip:</strong> You can edit this assignment after publishing, but students who have already submitted work may need to be notified of changes.
+          </p>
       </div>
+
+      {/* List (Teacher view of created assignments) */}
+      {assignments.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-200 font-bold text-slate-900">Recently Created</div>
+              <div className="divide-y divide-slate-100">
+                  {assignments.map(a => (
+                      <div key={a.id} className="p-4 sm:px-6 flex items-center justify-between hover:bg-slate-50 transition-colors group">
+                          <div>
+                              <h4 className="font-bold text-slate-900">{a.title}</h4>
+                              <p className="text-sm text-slate-500 mt-1">Grade {a.targetGrade} • {formatDate(a.createdAt)}</p>
+                          </div>
+                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button onClick={() => handleEdit(a)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Edit2 className="w-4 h-4" /></button>
+                              <button onClick={() => handleDelete(a.id!)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                          </div>
+                      </div>
+                  ))}
+              </div>
+          </div>
+      )}
 
       {/* Preview Modal */}
       {previewCode && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fadeIn" onClick={() => setPreviewCode(null)}>
-              <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setPreviewCode(null)}>
+              <div className="bg-white w-full max-w-4xl h-[80vh] rounded-xl overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
                   <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-                      <h3 className="font-bold text-slate-800 flex items-center gap-2"><Eye className="w-4 h-4" /> Xem trước nội dung</h3>
-                      <button onClick={() => setPreviewCode(null)} className="p-1 hover:bg-slate-200 rounded-full transition-colors"><X className="w-5 h-5" /></button>
+                      <h3 className="font-bold">Preview</h3>
+                      <button onClick={() => setPreviewCode(null)}><X className="w-6 h-6" /></button>
                   </div>
-                  <div className="flex-1 bg-slate-100 relative min-h-[400px]">
+                  <div className="flex-1 bg-slate-100 relative">
                       {previewCode.startsWith('<iframe') ? (
                           <div dangerouslySetInnerHTML={{ __html: previewCode }} className="w-full h-full absolute inset-0 [&>iframe]:w-full [&>iframe]:h-full" />
                       ) : (
-                          <iframe
-                              src={previewCode}
-                              className="w-full h-full absolute inset-0"
-                              title="Preview"
-                              allowFullScreen
-                          />
+                          <iframe src={previewCode} className="w-full h-full absolute inset-0" />
                       )}
                   </div>
               </div>
