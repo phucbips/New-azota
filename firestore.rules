@@ -44,7 +44,11 @@ service cloud.firestore {
       );
 
       // DELETE (Xóa): Chỉ Admin mới được xóa user.
-      allow delete: if request.auth != null && isAdmin();
+      // Cho phép user tự xóa bản ghi nếu email khớp (trường hợp migration)
+      allow delete: if request.auth != null && (
+        isAdmin() ||
+        (resource.data.email == request.auth.token.email)
+      );
     }
 
     // --- COLLECTION: ASSIGNMENTS (Bài tập) ---
