@@ -28,7 +28,7 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
   ],
   student: [
     { label: 'Home', href: '/student', icon: <LayoutDashboard className="w-6 h-6" /> },
-    { label: 'My Assignments', href: '/student', icon: <BookOpen className="w-6 h-6" /> },
+    { label: 'My Assignments', href: '/student/assignments', icon: <BookOpen className="w-6 h-6" /> },
     { label: 'Courses', href: '#', icon: <GraduationCap className="w-6 h-6" /> },
   ],
 };
@@ -105,8 +105,19 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
           )}
 
           {navItems.map((item) => {
-            const isActive = location.pathname === item.href ||
-                             (item.href !== '/' && item.href !== '/admin' && item.href !== '/teacher' && item.href !== '/student' && location.pathname.startsWith(item.href));
+            // Enhanced Active State Logic
+            let isActive = false;
+
+            if (item.href === '/student') {
+                // Exact match for Student Home to prevent overlap with assignments
+                isActive = location.pathname === '/student';
+            } else if (item.href === '/admin' || item.href === '/teacher') {
+                // Exact match for other dashboards roots usually
+                isActive = location.pathname === item.href;
+            } else {
+                 // Standard prefix match for sub-routes (e.g., /student/assignments)
+                 isActive = location.pathname.startsWith(item.href) && item.href !== '#';
+            }
 
             return (
               <Link
@@ -120,7 +131,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 )}
               >
-                {/* Clone icon to enforce size consistency if needed, though classes handle it */}
                 <span className={cn("transition-colors", isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-900")}>
                     {item.icon}
                 </span>

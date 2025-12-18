@@ -21,6 +21,7 @@ import { TeacherOverview } from './pages/teacher/Overview';
 import { TeacherAssignments } from './pages/teacher/Assignments';
 
 // Student Pages
+import { StudentHome } from './pages/student/Home';
 import { StudentAssignments } from './pages/student/Assignments';
 
 // Component to handle root redirect based on role
@@ -91,7 +92,8 @@ function App() {
               </RouteMiddleware>
             }
           >
-            <Route index element={<StudentAssignments />} />
+            <Route index element={<StudentHome />} />
+            <Route path="assignments" element={<StudentAssignments />} />
           </Route>
 
           {/* Catch-all */}
