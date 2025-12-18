@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { DashboardLayout } from '../layouts/DashboardLayout';
-import { StatusBadge } from '../components/ui/StatusBadge';
-import { useAuth } from '../hooks/useAuth';
-import { assignmentService } from '../services/assignment.service';
-import { Assignment } from '../types';
-import { BookOpen, ChevronRight, AlertCircle, Calendar, Filter, Plus, Clock, AlertTriangle } from 'lucide-react';
-import { formatDate, safeString } from '../lib/formatters';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { StatusBadge } from '../../components/ui/StatusBadge';
+import { useAuth } from '../../hooks/useAuth';
+import { assignmentService } from '../../services/assignment.service';
+import { Assignment } from '../../types';
+import { BookOpen, ChevronRight, AlertCircle, Calendar, Filter, Plus, Clock } from 'lucide-react';
+import { formatDate, safeString } from '../../lib/formatters';
 
-export const StudentDashboard: React.FC = () => {
+export const StudentAssignments: React.FC = () => {
   const { user } = useAuth();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [filteredAssignments, setFilteredAssignments] = useState<Assignment[]>([]);
@@ -18,17 +18,16 @@ export const StudentDashboard: React.FC = () => {
     if (!user || !user.grade || !user.isWhitelisted) return;
     const unsubscribe = assignmentService.subscribeToGradeAssignments(user.grade, (data) => {
       setAssignments(data);
-      setFilteredAssignments(data); // Initial filter
+      setFilteredAssignments(data);
     });
     return () => unsubscribe();
   }, [user]);
 
-  // Filter Logic (Mock logic for now as we don't track status per student yet)
+  // Filter Logic
   useEffect(() => {
       if (filter === 'all') {
           setFilteredAssignments(assignments);
       } else {
-          // Placeholder: just show all for now, or filter if we had status data
           setFilteredAssignments(assignments);
       }
   }, [filter, assignments]);
@@ -41,7 +40,7 @@ export const StudentDashboard: React.FC = () => {
     const targetGrade = safeString(selectedAssignment.targetGrade);
 
     return (
-      <DashboardLayout role="student">
+      <>
         <button
           onClick={() => setSelectedAssignment(null)}
           className="mb-4 flex items-center gap-2 text-slate-600 hover:text-blue-600 font-medium transition-colors"
@@ -74,14 +73,13 @@ export const StudentDashboard: React.FC = () => {
               )}
            </div>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   // Handle Loading/Empty/Error States
   if (!user?.isWhitelisted) {
     return (
-      <DashboardLayout role="student">
         <div className="flex flex-col items-center justify-center h-[60vh] text-center">
            <div className="p-4 bg-yellow-100 rounded-full mb-4">
              <AlertCircle className="w-8 h-8 text-yellow-600" />
@@ -89,13 +87,11 @@ export const StudentDashboard: React.FC = () => {
            <h2 className="text-xl font-bold text-slate-900 mb-2">Account Not Active</h2>
            <p className="text-slate-500 max-w-md">Please contact the administrator to approve your access.</p>
         </div>
-      </DashboardLayout>
     );
   }
 
   if (!user.grade) {
     return (
-      <DashboardLayout role="student">
         <div className="flex flex-col items-center justify-center h-[60vh] text-center">
            <div className="p-4 bg-red-100 rounded-full mb-4">
              <AlertCircle className="w-8 h-8 text-red-600" />
@@ -103,12 +99,10 @@ export const StudentDashboard: React.FC = () => {
            <h2 className="text-xl font-bold text-slate-900 mb-2">Missing Grade Level</h2>
            <p className="text-slate-500 max-w-md">Please contact your teacher to assign your grade level.</p>
         </div>
-      </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout role="student">
       <div className="flex flex-col gap-6">
         {/* Header & Filters */}
         <div className="flex flex-col gap-6">
@@ -122,10 +116,11 @@ export const StudentDashboard: React.FC = () => {
                         <Filter className="w-5 h-5" />
                         <span>Filter</span>
                     </button>
-                    <button className="flex items-center justify-center gap-2 px-4 h-10 rounded-lg bg-blue-600 text-white text-sm font-bold shadow-sm hover:bg-blue-700 transition-colors">
+                    {/* Student shouldn't usually submit generic work, but kept for UI match */}
+                    {/* <button className="flex items-center justify-center gap-2 px-4 h-10 rounded-lg bg-blue-600 text-white text-sm font-bold shadow-sm hover:bg-blue-700 transition-colors">
                         <Plus className="w-5 h-5" />
                         <span className="hidden sm:inline">Submit Work</span>
-                    </button>
+                    </button> */}
                 </div>
             </div>
 
@@ -137,9 +132,6 @@ export const StudentDashboard: React.FC = () => {
                 >
                     All Assignments
                 </button>
-                {/*
-                REMOVED PENDING/OVERDUE as requested to "remove deadlines"
-                */}
             </div>
         </div>
 
@@ -151,7 +143,6 @@ export const StudentDashboard: React.FC = () => {
                     onClick={() => setSelectedAssignment(assignment)}
                     className="group flex flex-col rounded-xl bg-white shadow-sm border border-slate-200 overflow-hidden hover:shadow-lg hover:border-blue-600/30 transition-all duration-300 cursor-pointer"
                 >
-                    {/* Cover Image Area */}
                     <div className="h-44 bg-slate-100 relative bg-cover bg-center" style={{ backgroundImage: `url('https://source.unsplash.com/random/800x600?education,book,${index}')` }}>
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                         <div className="absolute top-3 right-3">
@@ -175,8 +166,6 @@ export const StudentDashboard: React.FC = () => {
                             </p>
                         </div>
 
-                        {/* REMOVED PROGRESS BAR as requested */}
-
                         <button className="w-full mt-2 h-10 flex items-center justify-center gap-2 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors group-hover:shadow-md mt-auto">
                             Continue
                             <ChevronRight className="w-4 h-4" />
@@ -195,6 +184,5 @@ export const StudentDashboard: React.FC = () => {
             </div>
         )}
       </div>
-    </DashboardLayout>
   );
 };
