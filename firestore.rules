@@ -2,54 +2,63 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to get the current user's document
+    // --- HÀM HỖ TRỢ (HELPER FUNCTIONS) ---
+
+    // Lấy thông tin user hiện tại từ database
     function getCurrentUser() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
+    // Kiểm tra có phải Admin không
     function isAdmin() {
       return getCurrentUser().role == 'admin';
     }
 
+    // Kiểm tra có phải Giáo viên không
     function isTeacher() {
       return getCurrentUser().role == 'teacher';
     }
 
+    // Kiểm tra tài khoản đã được kích hoạt chưa (Student cần cái này)
     function isWhitelisted() {
       return getCurrentUser().isWhitelisted == true;
     }
 
-    // Collection: users
+    // --- COLLECTION: USERS ---
     match /users/{userId} {
-      // READ:
-      // 1. Users must be able to read their own doc (get).
-      // 2. Admins must be able to read all docs (list/get).
-      // 3. CRITICAL: New users (auth but not fully set up) need to query users by email to find their invitation.
-      //    So we must allow 'list' for authenticated users to support `findUserByEmail`.
-      //    If we restrict this, the invitation flow breaks for non-admins.
+      // READ (Đọc):
+      // Cho phép tất cả user đã đăng nhập được đọc.
+      // LÝ DO: Khi user mới đăng nhập lần đầu, họ cần query (tìm kiếm) trong collection 'users'
+      // bằng email của mình để xem có "lời mời" (invitation) nào từ Admin tạo trước đó không.
+      // Nếu chặn quyền này, tính năng tự động nhận role/grade sẽ bị lỗi với user thường.
       allow read: if request.auth != null;
 
-      // CREATE: User creates their own doc on signup.
+      // CREATE (Tạo): User tự tạo doc của mình khi đăng nhập lần đầu HOẶC Admin tạo (lời mời).
       allow create: if request.auth != null && (
         request.auth.uid == userId || isAdmin()
       );
 
-      // UPDATE: User updates own doc (session, etc) OR Admin updates any doc.
+      // UPDATE (Cập nhật): User cập nhật thông tin mình (ví dụ: sessionId) HOẶC Admin cập nhật.
       allow update: if request.auth != null && (
         request.auth.uid == userId || isAdmin()
       );
 
-      // DELETE: Only Admin can delete users.
+      // DELETE (Xóa): Chỉ Admin mới được xóa user.
       allow delete: if request.auth != null && isAdmin();
     }
 
-    // Collection: assignments (Codebase uses 'assignments', NOT 'lessons')
+    // --- COLLECTION: ASSIGNMENTS (Bài tập) ---
+    // Lưu ý: Trong code đang dùng collection tên là "assignments", KHÔNG PHẢI "lessons".
     match /assignments/{assignmentId} {
 
-      // READ/LIST: Any whitelisted user (Student, Teacher, Admin) can see assignments.
+      // READ (Đọc):
+      // Admin, Teacher, Student đều xem được, MIỄN LÀ đã được kích hoạt (whitelisted).
+      // Điều này ngăn user chưa được duyệt xem nội dung.
       allow read: if request.auth != null && isWhitelisted();
 
-      // WRITE: Only Teachers and Admins can create/update/delete assignments.
+      // WRITE (Ghi - Tạo/Sửa/Xóa):
+      // Chỉ Giáo viên và Admin mới có quyền quản lý bài tập.
+      // Học sinh KHÔNG được phép tạo bài tập.
       allow write: if request.auth != null && (isTeacher() || isAdmin());
     }
   }
