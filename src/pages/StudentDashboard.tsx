@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { assignmentService } from '../services/assignment.service';
 import { Assignment } from '../types';
 import { BookOpen, ChevronRight, AlertCircle, Calendar, Filter, Plus, Clock, AlertTriangle } from 'lucide-react';
-import { formatDate } from '../lib/formatters';
+import { formatDate, safeString } from '../lib/formatters';
 
 export const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -35,6 +35,11 @@ export const StudentDashboard: React.FC = () => {
 
   // Handle Detail View
   if (selectedAssignment) {
+    const embed = safeString(selectedAssignment.embedCode);
+    const title = safeString(selectedAssignment.title);
+    const description = safeString(selectedAssignment.description);
+    const targetGrade = safeString(selectedAssignment.targetGrade);
+
     return (
       <DashboardLayout role="student">
         <button
@@ -46,24 +51,24 @@ export const StudentDashboard: React.FC = () => {
 
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
             <div>
-                <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{selectedAssignment.title}</h1>
-                <p className="text-slate-500 mt-2">Grade {selectedAssignment.targetGrade} Coursework</p>
+                <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{title}</h1>
+                <p className="text-slate-500 mt-2">Grade {targetGrade} Coursework</p>
             </div>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 min-h-[600px] flex flex-col">
            <div className="mb-6">
-               <p className="text-slate-600 leading-relaxed">{selectedAssignment.description}</p>
+               <p className="text-slate-600 leading-relaxed">{description}</p>
            </div>
 
            <div className="flex-1 w-full bg-slate-50 rounded-lg border border-slate-200 relative overflow-hidden">
-              {selectedAssignment.embedCode.startsWith('<iframe') ? (
-                  <div dangerouslySetInnerHTML={{ __html: selectedAssignment.embedCode }} className="w-full h-full absolute inset-0 [&>iframe]:w-full [&>iframe]:h-full" />
+              {embed.startsWith('<iframe') ? (
+                  <div dangerouslySetInnerHTML={{ __html: embed }} className="w-full h-full absolute inset-0 [&>iframe]:w-full [&>iframe]:h-full" />
               ) : (
                   <iframe
-                    src={selectedAssignment.embedCode}
+                    src={embed}
                     className="w-full h-full absolute inset-0"
-                    title={selectedAssignment.title}
+                    title={title}
                     allowFullScreen
                   />
               )}
@@ -132,20 +137,9 @@ export const StudentDashboard: React.FC = () => {
                 >
                     All Assignments
                 </button>
-                <button
-                    onClick={() => setFilter('pending')}
-                    className={`flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full px-4 transition-colors font-medium text-sm ${filter === 'pending' ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50'}`}
-                >
-                    Pending
-                    <span className="bg-slate-100 text-slate-500 text-[10px] font-bold px-1.5 py-0.5 rounded-md">3</span>
-                </button>
-                <button
-                    onClick={() => setFilter('overdue')}
-                    className={`flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full px-4 transition-colors font-medium text-sm ${filter === 'overdue' ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50'}`}
-                >
-                    Overdue
-                    <span className="bg-red-100 text-red-600 text-[10px] font-bold px-1.5 py-0.5 rounded-md">1</span>
-                </button>
+                {/*
+                REMOVED PENDING/OVERDUE as requested to "remove deadlines"
+                */}
             </div>
         </div>
 
@@ -167,28 +161,23 @@ export const StudentDashboard: React.FC = () => {
                             </span>
                         </div>
                         <div className="absolute bottom-3 left-3">
-                            <p className="text-white text-xs font-medium bg-black/30 px-2 py-1 rounded backdrop-blur-md">Grade {assignment.targetGrade}</p>
+                            <p className="text-white text-xs font-medium bg-black/30 px-2 py-1 rounded backdrop-blur-md">Grade {safeString(assignment.targetGrade)}</p>
                         </div>
                     </div>
 
                     <div className="p-5 flex flex-col gap-3 flex-1">
                         <div>
                             <h3 className="text-lg font-bold text-slate-900 leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">
-                                {assignment.title}
+                                {safeString(assignment.title)}
                             </h3>
                             <p className="text-sm text-slate-500 mt-1 line-clamp-2">
-                                {assignment.description || 'Complete the exercises attached in the module.'}
+                                {safeString(assignment.description) || 'Complete the exercises attached in the module.'}
                             </p>
                         </div>
 
-                        <div className="mt-auto pt-4 flex items-center justify-between gap-3">
-                            <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden flex-1">
-                                <div className="h-full bg-blue-600 w-1/3 rounded-full"></div>
-                            </div>
-                            <span className="text-xs font-semibold text-slate-500">33%</span>
-                        </div>
+                        {/* REMOVED PROGRESS BAR as requested */}
 
-                        <button className="w-full mt-2 h-10 flex items-center justify-center gap-2 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors group-hover:shadow-md">
+                        <button className="w-full mt-2 h-10 flex items-center justify-center gap-2 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors group-hover:shadow-md mt-auto">
                             Continue
                             <ChevronRight className="w-4 h-4" />
                         </button>
