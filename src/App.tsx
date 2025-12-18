@@ -1,11 +1,16 @@
-import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './components/auth/LoginPage';
-import { DashboardLayout } from './layouts/DashboardLayout';
 import { Loading } from './components/shared/Loading';
+import { RouteMiddleware } from './middleware/RouteMiddleware';
 import './styles/globals.css';
+
+// Layouts
+import { AdminLayout } from './layouts/AdminLayout';
+import { TeacherLayout } from './layouts/TeacherLayout';
+import { StudentLayout } from './layouts/StudentLayout';
 
 // Admin Pages
 import { AdminOverview } from './pages/admin/Overview';
@@ -17,47 +22,6 @@ import { TeacherAssignments } from './pages/teacher/Assignments';
 
 // Student Pages
 import { StudentAssignments } from './pages/student/Assignments';
-
-const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, loading } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate('/login');
-    }
-  }, [user, loading, navigate]);
-
-  if (loading) {
-    return <Loading message="Loading application..." fullScreen />;
-  }
-
-  if (!user) {
-    return null; // Will redirect in useEffect
-  }
-
-  return <>{children}</>;
-};
-
-const RoleGuard: React.FC<{ children: React.ReactNode; allowedRoles: string[] }> = ({ children, allowedRoles }) => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (user && !allowedRoles.includes(user.role)) {
-      // Redirect to their correct dashboard
-      if (user.role === 'admin') navigate('/admin');
-      else if (user.role === 'teacher') navigate('/teacher');
-      else if (user.role === 'student') navigate('/student');
-    }
-  }, [user, allowedRoles, navigate]);
-
-  if (!user || !allowedRoles.includes(user.role)) {
-    return null;
-  }
-
-  return <>{children}</>;
-};
 
 // Component to handle root redirect based on role
 const RootRedirect: React.FC = () => {
@@ -92,61 +56,46 @@ function App() {
           <Route path="/" element={<RootRedirect />} />
           <Route path="/login" element={<LoginWrapper />} />
 
-          {/* Admin Routes */}
+          {/* Admin Route Group */}
           <Route
-            path="/admin/*"
+            path="/admin"
             element={
-              <AuthGuard>
-                <RoleGuard allowedRoles={['admin']}>
-                  <DashboardLayout role="admin">
-                    <Routes>
-                      <Route index element={<AdminOverview />} />
-                      <Route path="users" element={<AdminUsers />} />
-                      {/* Fallback */}
-                      <Route path="*" element={<Navigate to="/admin" replace />} />
-                    </Routes>
-                  </DashboardLayout>
-                </RoleGuard>
-              </AuthGuard>
+              <RouteMiddleware allowedRoles={['admin']}>
+                <AdminLayout />
+              </RouteMiddleware>
             }
-          />
+          >
+            <Route index element={<AdminOverview />} />
+            <Route path="users" element={<AdminUsers />} />
+          </Route>
 
-          {/* Teacher Routes */}
+          {/* Teacher Route Group */}
           <Route
-            path="/teacher/*"
+            path="/teacher"
             element={
-              <AuthGuard>
-                <RoleGuard allowedRoles={['teacher']}>
-                  <DashboardLayout role="teacher">
-                    <Routes>
-                      <Route index element={<TeacherOverview />} />
-                      <Route path="assignments" element={<TeacherAssignments />} />
-                      {/* Fallback */}
-                      <Route path="*" element={<Navigate to="/teacher" replace />} />
-                    </Routes>
-                  </DashboardLayout>
-                </RoleGuard>
-              </AuthGuard>
+              <RouteMiddleware allowedRoles={['teacher']}>
+                <TeacherLayout />
+              </RouteMiddleware>
             }
-          />
+          >
+            <Route index element={<TeacherOverview />} />
+            <Route path="assignments" element={<TeacherAssignments />} />
+          </Route>
 
-          {/* Student Routes */}
+          {/* Student Route Group */}
           <Route
-            path="/student/*"
+            path="/student"
             element={
-              <AuthGuard>
-                <RoleGuard allowedRoles={['student']}>
-                  <DashboardLayout role="student">
-                    <Routes>
-                      <Route index element={<StudentAssignments />} />
-                      {/* Fallback */}
-                      <Route path="*" element={<Navigate to="/student" replace />} />
-                    </Routes>
-                  </DashboardLayout>
-                </RoleGuard>
-              </AuthGuard>
+              <RouteMiddleware allowedRoles={['student']}>
+                <StudentLayout />
+              </RouteMiddleware>
             }
-          />
+          >
+            <Route index element={<StudentAssignments />} />
+          </Route>
+
+          {/* Catch-all */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
