@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { useAuth } from '../../hooks/useAuth';
@@ -10,7 +10,6 @@ import { formatDate, safeString } from '../../lib/formatters';
 export const StudentAssignments: React.FC = () => {
   const { user } = useAuth();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [filteredAssignments, setFilteredAssignments] = useState<Assignment[]>([]);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
   const [filter, setFilter] = useState<'all' | 'pending' | 'overdue' | 'completed'>('all');
 
@@ -18,19 +17,19 @@ export const StudentAssignments: React.FC = () => {
     if (!user || !user.grade || !user.isWhitelisted) return;
     const unsubscribe = assignmentService.subscribeToGradeAssignments(user.grade, (data) => {
       setAssignments(data);
-      setFilteredAssignments(data);
     });
     return () => unsubscribe();
   }, [user]);
 
-  // Filter Logic
-  useEffect(() => {
+  // Optimized: Use useMemo for filtering to prevent unnecessary re-renders (derived state)
+  const filteredAssignments = useMemo(() => {
       if (filter === 'all') {
-          setFilteredAssignments(assignments);
+          return assignments;
       } else {
-          setFilteredAssignments(assignments);
+          // Placeholder for future filter logic
+          return assignments;
       }
-  }, [filter, assignments]);
+  }, [assignments, filter]);
 
   // Handle Detail View
   if (selectedAssignment) {
@@ -143,7 +142,14 @@ export const StudentAssignments: React.FC = () => {
                     onClick={() => setSelectedAssignment(assignment)}
                     className="group flex flex-col rounded-xl bg-white shadow-sm border border-slate-200 overflow-hidden hover:shadow-lg hover:border-blue-600/30 transition-all duration-300 cursor-pointer"
                 >
-                    <div className="h-44 bg-slate-100 relative bg-cover bg-center" style={{ backgroundImage: `url('https://source.unsplash.com/random/800x600?education,book,${index}')` }}>
+                    {/* Optimized Image: Use img with loading="lazy" instead of backgroundImage */}
+                    <div className="h-44 bg-slate-100 relative overflow-hidden">
+                        <img
+                            src={`https://source.unsplash.com/random/800x600?education,book,${index}`}
+                            alt="Course cover"
+                            loading="lazy"
+                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                         <div className="absolute top-3 right-3">
                             <span className="px-2.5 py-1 rounded-md bg-white/95 text-slate-700 text-xs font-bold shadow-sm backdrop-blur-sm border border-transparent flex items-center gap-1">
