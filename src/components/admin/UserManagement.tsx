@@ -11,6 +11,16 @@ type CreateUserForm = {
   grade?: string;
 };
 
+// Helper for safe date formatting
+const formatDate = (timestamp: any) => {
+    if (!timestamp || !timestamp.toDate) return 'N/A';
+    try {
+        return timestamp.toDate().toLocaleDateString('vi-VN');
+    } catch (e) {
+        return 'Invalid Date';
+    }
+};
+
 export const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const { register, handleSubmit, watch, reset, setValue } = useForm<CreateUserForm>({
@@ -154,7 +164,7 @@ export const UserManagement: React.FC = () => {
                       <div className="text-sm text-slate-500">{teacher.email}</div>
                   </td>
                   <td className="p-4 text-slate-500">
-                    {teacher.joinedAt?.toDate().toLocaleDateString('vi-VN')}
+                    {formatDate(teacher.joinedAt)}
                   </td>
                   <td className="p-4 text-right flex justify-end gap-2">
                     <button
@@ -211,7 +221,7 @@ export const UserManagement: React.FC = () => {
                     </span>
                   </td>
                   <td className="p-4 text-slate-500">
-                    {student.joinedAt?.toDate().toLocaleDateString('vi-VN')}
+                    {formatDate(student.joinedAt)}
                   </td>
                   <td className="p-4 text-right flex justify-end gap-2">
                     <button
