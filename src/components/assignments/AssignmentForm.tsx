@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Assignment } from '../../types';
-import { ImageUploader } from '../ui/ImageUploader';
+import CloudinaryUploadWidget from '../ui/CloudinaryUploadWidget';
 import { Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -108,13 +108,15 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
           {errors.embedUrl && <span className="text-xs text-red-500">{errors.embedUrl.message}</span>}
         </div>
 
-        {/* Cover Image */}
+        {/* Cover Image (Cloudinary) */}
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-bold text-slate-700">Cover Image (Optional)</label>
-          <ImageUploader
-            value={coverImageUrl}
-            onChange={(url) => setValue('coverImageUrl', url)}
+          <CloudinaryUploadWidget
+            onUploadSuccess={(url) => setValue('coverImageUrl', url)}
+            defaultImage={defaultValues?.coverImageUrl}
+            label="Upload Cover Image"
           />
+          <input type="hidden" {...register('coverImageUrl')} />
         </div>
       </div>
 

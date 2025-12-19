@@ -66,7 +66,8 @@ class UserService {
     const userSnap = await getDoc(userRef);
 
     if (userSnap.exists()) {
-      return userSnap.data() as User;
+      // Ensure uid is always present even if missing in data
+      return { uid: userSnap.id, ...userSnap.data() } as User;
     }
     return null;
   }
@@ -95,7 +96,8 @@ class UserService {
       userRef,
       (docSnap) => {
         if (docSnap.exists()) {
-          callback(docSnap.data() as User);
+          // SAFEGUARD: Inject uid from docSnap.id to prevent undefined errors
+          callback({ uid: docSnap.id, ...docSnap.data() } as User);
         } else {
           callback(null);
         }
