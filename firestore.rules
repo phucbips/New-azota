@@ -26,38 +26,27 @@ service cloud.firestore {
 
     // --- COLLECTION: USERS ---
     match /users/{userId} {
-      // READ (Đọc):
-      // Cho phép tất cả user đã đăng nhập được đọc.
       allow read: if request.auth != null;
-
-      // CREATE (Tạo): User tự tạo doc của mình khi đăng nhập lần đầu HOẶC Admin tạo (lời mời).
-      allow create: if request.auth != null && (
-        request.auth.uid == userId || isAdmin()
-      );
-
-      // UPDATE (Cập nhật): User cập nhật thông tin mình HOẶC Admin cập nhật.
-      allow update: if request.auth != null && (
-        request.auth.uid == userId || isAdmin()
-      );
-
-      // DELETE (Xóa):
-      // 1. Admin được xóa bất kỳ ai.
-      // 2. User được phép xóa document nếu document đó có field 'email' trùng với email đăng nhập của họ.
-      //    (Dùng để tự xóa "lời mời/invitation" cũ sau khi đã tạo tài khoản chính thức).
-      allow delete: if request.auth != null && (
-        isAdmin() ||
-        resource.data.email == request.auth.token.email
-      );
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow delete: if request.auth != null && (isAdmin() || resource.data.email == request.auth.token.email);
     }
 
     // --- COLLECTION: ASSIGNMENTS (Bài tập) ---
     match /assignments/{assignmentId} {
+      allow read: if request.auth != null;
 
-      // READ (Đọc):
-      allow read: if request.auth != null && isWhitelisted();
+      // Allow create if user is teacher or admin
+      allow create: if request.auth != null && (isTeacher() || isAdmin());
 
-      // WRITE (Ghi):
-      allow write: if request.auth != null && (isTeacher() || isAdmin());
+      // Allow update/delete if admin OR (teacher AND owner)
+      // Note: "owner" check requires reading the resource being updated/deleted.
+      allow update, delete: if request.auth != null && (
+        isAdmin() ||
+        (isTeacher() && resource.data.teacherId == request.auth.uid) ||
+        // Fallback for legacy documents using createdByTeacherId
+        (isTeacher() && resource.data.createdByTeacherId == request.auth.uid)
+      );
     }
   }
 }
