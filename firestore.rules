@@ -5,53 +5,58 @@ service cloud.firestore {
     // --- HÀM HỖ TRỢ (HELPER FUNCTIONS) ---
 
     // Lấy thông tin user hiện tại từ database
-    function getCurrentUser() {
+    function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     // Kiểm tra có phải Admin không
     function isAdmin() {
-      // Check role AND specific email fallback for hardcoded admin
-      return getCurrentUser().role == 'admin' || request.auth.token.email == 'thanhphucn06@gmail.com';
+      return getUserData().role == 'admin' || request.auth.token.email == 'thanhphucn06@gmail.com';
     }
 
     // Kiểm tra có phải Giáo viên không
     function isTeacher() {
-      return getCurrentUser().role == 'teacher';
+      return getUserData().role == 'teacher';
     }
 
-    // Kiểm tra tài khoản đã được kích hoạt chưa (Student cần cái này)
+    // Kiểm tra tài khoản đã được kích hoạt (Student/Teacher)
     function isWhitelisted() {
-      return getCurrentUser().isWhitelisted == true;
+      // Safe check if field exists, though usually it should
+      return getUserData().isWhitelisted == true;
     }
 
     // --- COLLECTION: USERS ---
     match /users/{userId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null;
-      // Allow update self or admin
       allow update: if request.auth != null && (request.auth.uid == userId || isAdmin());
-      // Allow delete self (invitation cleanup) or admin
       allow delete: if request.auth != null && (isAdmin() || resource.data.email == request.auth.token.email);
     }
 
     // --- COLLECTION: ASSIGNMENTS (Bài tập) ---
     match /assignments/{assignmentId} {
-      // Allow read if authenticated and (whitelisted OR teacher OR admin)
-      // This ensures Teachers/Admins can always read assignments even if isWhitelisted flag is missing/false
-      allow read: if request.auth != null && (isWhitelisted() || isTeacher() || isAdmin());
+      // READ RULES (Optimized):
+      // 1. Owner (Teacher) can always read their own assignments (Fast, no DB lookup required for rule).
+      // 2. Admin can read all.
+      // 3. Whitelisted users (Students/Teachers) can read (e.g. filtered by Grade).
+      allow read: if request.auth != null && (
+        resource.data.teacherId == request.auth.uid ||
+        resource.data.createdByTeacherId == request.auth.uid ||
+        isWhitelisted() ||
+        isAdmin() ||
+        isTeacher()
+      );
 
-      // Allow create if user is teacher or admin
+      // CREATE RULES:
       allow create: if request.auth != null && (isTeacher() || isAdmin());
 
-      // Allow update/delete if:
+      // UPDATE/DELETE RULES:
       // 1. Admin
-      // 2. Teacher AND is the owner (teacherId matches UID)
+      // 2. Owner (Teacher)
       allow update, delete: if request.auth != null && (
         isAdmin() ||
-        (isTeacher() && resource.data.teacherId == request.auth.uid) ||
-        // Fallback compatibility
-        (isTeacher() && resource.data.createdByTeacherId == request.auth.uid)
+        resource.data.teacherId == request.auth.uid ||
+        resource.data.createdByTeacherId == request.auth.uid
       );
     }
   }
