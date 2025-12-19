@@ -1,0 +1,3 @@
+## 2024-05-23 - [Optimization Opportunity: Route-based Code Splitting]
+**Learning:** The application currently imports `AdminDashboard` and `StudentDashboard` statically in `App.tsx`. This means that users download the code for both dashboards regardless of their role. For example, a student downloads all the admin management components (LessonsManagement, WhitelistManagement) which they will never use.
+**Action:** Implement `React.lazy` and `Suspense` to split these routes into separate chunks. This will reduce the initial bundle size and speed up the initial load for all users. I will verify this by checking if the build output generates separate chunks for these files.
