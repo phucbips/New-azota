@@ -4,6 +4,8 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../config/firebase';
 import { cn } from '../../lib/utils';
 import { toast } from 'sonner';
+import imageCompression from 'browser-image-compression';
+import { useAuth } from '../../hooks/useAuth';
 
 interface ImageUploaderProps {
   value?: string;
@@ -12,6 +14,7 @@ interface ImageUploaderProps {
 }
 
 export const ImageUploader: React.FC<ImageUploaderProps> = ({ value, onChange, className }) => {
+  const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -25,22 +28,43 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ value, onChange, c
         return;
     }
 
-    // Validate size (e.g. 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image size must be less than 5MB');
+    if (!user) {
+        toast.error('You must be logged in to upload');
         return;
     }
 
     setUploading(true);
     try {
-      const storageRef = ref(storage, `assignments/${Date.now()}_${file.name}`);
-      const snapshot = await uploadBytes(storageRef, file);
+      // Compress image
+      const options = {
+        maxSizeMB: 0.2, // ~200KB as requested for optimization
+        maxWidthOrHeight: 1200,
+        useWebWorker: true,
+      };
+
+      let uploadFile = file;
+      try {
+          uploadFile = await imageCompression(file, options);
+      } catch (compressionError) {
+          console.error("Compression failed, uploading original", compressionError);
+      }
+
+      // Upload path: assignments/{teacherId}/{timestamp}_{filename}
+      // This matches the storage.rules: match /assignments/{teacherId}/{imageId}
+      const storagePath = `assignments/${user.uid}/${Date.now()}_${uploadFile.name}`;
+      const storageRef = ref(storage, storagePath);
+
+      const snapshot = await uploadBytes(storageRef, uploadFile);
       const url = await getDownloadURL(snapshot.ref);
       onChange(url);
       toast.success('Image uploaded successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error("Upload failed", error);
-      toast.error('Failed to upload image');
+      if (error.code === 'storage/unauthorized') {
+          toast.error('Permission denied: You can only upload to your own folder.');
+      } else {
+          toast.error('Failed to upload image');
+      }
     } finally {
       setUploading(false);
     }
@@ -83,9 +107,9 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ value, onChange, c
                         <ImageIcon className="w-8 h-8 mb-2 text-slate-400" />
                     )}
                     <p className="mb-2 text-sm font-semibold">
-                        {uploading ? 'Uploading...' : 'Click to upload cover image'}
+                        {uploading ? 'Compressing & Uploading...' : 'Click to upload cover image'}
                     </p>
-                    <p className="text-xs text-slate-400">SVG, PNG, JPG or GIF (MAX. 5MB)</p>
+                    <p className="text-xs text-slate-400">Auto-compressed (&lt;200KB)</p>
                 </div>
             )}
             <input

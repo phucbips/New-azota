@@ -11,7 +11,8 @@ service cloud.firestore {
 
     // Kiểm tra có phải Admin không
     function isAdmin() {
-      return getCurrentUser().role == 'admin';
+      // Check role AND specific email fallback for hardcoded admin
+      return getCurrentUser().role == 'admin' || request.auth.token.email == 'thanhphucn06@gmail.com';
     }
 
     // Kiểm tra có phải Giáo viên không
@@ -28,23 +29,28 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null;
+      // Allow update self or admin
       allow update: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      // Allow delete self (invitation cleanup) or admin
       allow delete: if request.auth != null && (isAdmin() || resource.data.email == request.auth.token.email);
     }
 
     // --- COLLECTION: ASSIGNMENTS (Bài tập) ---
     match /assignments/{assignmentId} {
-      allow read: if request.auth != null;
+      // Allow read if authenticated and whitelisted (active student/teacher)
+      allow read: if request.auth != null && isWhitelisted();
 
       // Allow create if user is teacher or admin
+      // Note: Data validation could be added here (e.g. enforcing teacherId == auth.uid)
       allow create: if request.auth != null && (isTeacher() || isAdmin());
 
-      // Allow update/delete if admin OR (teacher AND owner)
-      // Note: "owner" check requires reading the resource being updated/deleted.
+      // Allow update/delete if:
+      // 1. Admin
+      // 2. Teacher AND is the owner (teacherId matches UID)
       allow update, delete: if request.auth != null && (
         isAdmin() ||
         (isTeacher() && resource.data.teacherId == request.auth.uid) ||
-        // Fallback for legacy documents using createdByTeacherId
+        // Fallback compatibility
         (isTeacher() && resource.data.createdByTeacherId == request.auth.uid)
       );
     }
