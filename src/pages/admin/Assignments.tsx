@@ -142,7 +142,7 @@ export const AdminAssignments: React.FC = () => {
                                   </span>
                               </td>
                               <td className="px-6 py-4 text-slate-500 font-mono text-xs">
-                                  {assignment.teacherId.slice(0, 8)}...
+                                  {(assignment.teacherId || 'unknown').slice(0, 8)}...
                               </td>
                               <td className="px-6 py-4 text-right">
                                   <div className="flex justify-end gap-2">
