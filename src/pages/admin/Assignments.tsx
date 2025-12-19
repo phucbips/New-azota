@@ -8,6 +8,7 @@ import { formatDate } from '../../lib/formatters';
 import { AssignmentForm } from '../../components/assignments/AssignmentForm';
 import { toast } from 'sonner';
 
+// Reusing the inline Modal from TeacherAssignments for speed/consistency in this turn.
 const Modal: React.FC<{ isOpen: boolean; onClose: () => void; title: string; children: React.ReactNode }> = ({ isOpen, onClose, title, children }) => {
     if (!isOpen) return null;
     return (
@@ -25,7 +26,7 @@ const Modal: React.FC<{ isOpen: boolean; onClose: () => void; title: string; chi
     );
 };
 
-export const TeacherAssignments: React.FC = () => {
+export const AdminAssignments: React.FC = () => {
   const { user } = useAuth();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -33,12 +34,12 @@ export const TeacherAssignments: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
-    const unsubscribe = assignmentService.subscribeToTeacherAssignments(user.uid, (data) => {
+    // Admin sees ALL assignments
+    const unsubscribe = assignmentService.subscribeToAllAssignments((data) => {
       setAssignments(data);
     });
     return () => unsubscribe();
-  }, [user]);
+  }, []); // Run once on mount
 
   const handleCreate = () => {
       setEditingAssignment(null);
@@ -70,10 +71,11 @@ export const TeacherAssignments: React.FC = () => {
               });
               toast.success('Assignment updated');
           } else {
+              if (!user) return;
               await assignmentService.createAssignment({
                   ...data,
                   gradeLevel: Number(data.gradeLevel),
-                  teacherId: user!.uid
+                  teacherId: user.uid // Admin creating assignment
               });
               toast.success('Assignment created');
           }
@@ -90,24 +92,16 @@ export const TeacherAssignments: React.FC = () => {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <PageHeader
-            title="My Assignments"
-            description="Manage the assignments you have created."
+            title="All Assignments"
+            description="Manage all assignments across the platform."
         />
         <button
             onClick={handleCreate}
             className="h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm shadow-blue-600/20 transition-all flex items-center gap-2"
         >
             <Plus className="w-5 h-5" />
-            Create New
+            Create Assignment
         </button>
-      </div>
-
-      {/* Stats / Filters (Optional placeholder) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-              <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Total Assignments</span>
-              <span className="text-2xl font-extrabold text-slate-900">{assignments.length}</span>
-          </div>
       </div>
 
       {/* List */}
@@ -119,7 +113,7 @@ export const TeacherAssignments: React.FC = () => {
                           <th className="px-6 py-4 font-bold text-slate-700">Assignment</th>
                           <th className="px-6 py-4 font-bold text-slate-700">Topic</th>
                           <th className="px-6 py-4 font-bold text-slate-700">Grade</th>
-                          <th className="px-6 py-4 font-bold text-slate-700">Date</th>
+                          <th className="px-6 py-4 font-bold text-slate-700">Creator</th>
                           <th className="px-6 py-4 font-bold text-slate-700 text-right">Actions</th>
                       </tr>
                   </thead>
@@ -136,7 +130,7 @@ export const TeacherAssignments: React.FC = () => {
                                       <div className="flex flex-col">
                                           <span className="font-bold text-slate-900">{assignment.title}</span>
                                           <a href={assignment.embedUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline truncate max-w-[150px]">
-                                              View Source
+                                              Link
                                           </a>
                                       </div>
                                   </div>
@@ -147,7 +141,9 @@ export const TeacherAssignments: React.FC = () => {
                                       Grade {assignment.gradeLevel}
                                   </span>
                               </td>
-                              <td className="px-6 py-4 text-slate-500">{formatDate(assignment.createdAt)}</td>
+                              <td className="px-6 py-4 text-slate-500 font-mono text-xs">
+                                  {assignment.teacherId.slice(0, 8)}...
+                              </td>
                               <td className="px-6 py-4 text-right">
                                   <div className="flex justify-end gap-2">
                                       <button
@@ -168,7 +164,7 @@ export const TeacherAssignments: React.FC = () => {
                       )) : (
                           <tr>
                               <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
-                                  No assignments found. Create your first one!
+                                  No assignments found.
                               </td>
                           </tr>
                       )}
@@ -180,7 +176,7 @@ export const TeacherAssignments: React.FC = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingAssignment ? 'Edit Assignment' : 'Create New Assignment'}
+        title={editingAssignment ? 'Edit Assignment (Admin)' : 'Create Assignment (Admin)'}
       >
           <AssignmentForm
             defaultValues={editingAssignment || {}}

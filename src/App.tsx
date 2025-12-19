@@ -15,6 +15,7 @@ import { StudentLayout } from './layouts/StudentLayout';
 // Admin Pages
 import { AdminOverview } from './pages/admin/Overview';
 import { AdminUsers } from './pages/admin/Users';
+import { AdminAssignments } from './pages/admin/Assignments';
 
 // Teacher Pages
 import { TeacherOverview } from './pages/teacher/Overview';
@@ -68,6 +69,7 @@ function App() {
           >
             <Route index element={<AdminOverview />} />
             <Route path="users" element={<AdminUsers />} />
+            <Route path="assignments" element={<AdminAssignments />} />
           </Route>
 
           {/* Teacher Route Group */}

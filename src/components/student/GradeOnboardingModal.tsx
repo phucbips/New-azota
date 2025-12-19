@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { userService } from '../../services/user.service';
-import { GraduationCap, CheckCircle } from 'lucide-react';
+import { GraduationCap, CheckCircle, ChevronRight } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 export const GradeOnboardingModal: React.FC = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [selectedGrade, setSelectedGrade] = useState<string | null>(null);
 
   // If user is not loaded or already has a grade, do not show
   if (!user || user.grade) return null;
@@ -13,12 +15,11 @@ export const GradeOnboardingModal: React.FC = () => {
   // Only show for students
   if (user.role !== 'student') return null;
 
-  const handleSelectGrade = async (grade: string) => {
+  const handleConfirm = async () => {
+    if (!selectedGrade) return;
     setLoading(true);
     try {
-      await userService.updateUser(user.uid, { grade });
-      // The auth context should update automatically via snapshot listener,
-      // effectively closing the modal
+      await userService.updateUser(user.uid, { grade: selectedGrade });
     } catch (error) {
       console.error("Failed to update grade", error);
       alert("Failed to update grade. Please try again.");
@@ -39,27 +40,42 @@ export const GradeOnboardingModal: React.FC = () => {
           Vui lòng chọn khối lớp của bạn để bắt đầu.
         </p>
 
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 gap-3 mb-8">
           {['10', '11', '12'].map((grade) => (
             <button
               key={grade}
-              disabled={loading}
-              onClick={() => handleSelectGrade(grade)}
-              className="group relative flex items-center justify-between p-4 rounded-xl border-2 border-slate-100 hover:border-blue-600 hover:bg-blue-50 transition-all duration-200"
+              onClick={() => setSelectedGrade(grade)}
+              className={cn(
+                "group relative flex items-center justify-between p-4 rounded-xl border-2 transition-all duration-200",
+                selectedGrade === grade
+                  ? "border-blue-600 bg-blue-50 ring-2 ring-blue-600/20"
+                  : "border-slate-100 hover:border-blue-600 hover:bg-slate-50"
+              )}
             >
-              <span className="font-bold text-slate-700 group-hover:text-blue-700">
+              <span className={cn(
+                  "font-bold text-lg",
+                  selectedGrade === grade ? "text-blue-700" : "text-slate-700"
+              )}>
                 Khối {grade}
               </span>
-              <div className="w-6 h-6 rounded-full border-2 border-slate-200 flex items-center justify-center group-hover:border-blue-600">
-                  <div className="w-2.5 h-2.5 rounded-full bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className={cn(
+                  "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors",
+                  selectedGrade === grade ? "border-blue-600 bg-blue-600" : "border-slate-200"
+              )}>
+                  {selectedGrade === grade && <CheckCircle className="w-4 h-4 text-white" />}
               </div>
             </button>
           ))}
         </div>
 
-        {loading && (
-             <p className="mt-4 text-sm text-slate-400">Đang cập nhật hồ sơ...</p>
-        )}
+        <button
+            onClick={handleConfirm}
+            disabled={!selectedGrade || loading}
+            className="w-full h-12 rounded-xl bg-blue-600 text-white font-bold text-base shadow-md shadow-blue-500/20 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+        >
+            {loading ? 'Đang lưu...' : 'Xác nhận'}
+            {!loading && <ChevronRight className="w-5 h-5" />}
+        </button>
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ export interface User {
   displayName: string;
   photoURL: string;
   role: UserRole;
-  grade: string | null; // null for admin/teacher, '10', '11', '12' for student
+  grade: string | null; // null for admin/teacher, '10', '11', '12' for student. Keeping as string for now to avoid massive refactor of user service.
   isWhitelisted: boolean;
   sessionId: string;
   joinedAt: Timestamp;
@@ -18,10 +18,12 @@ export interface User {
 export interface Assignment {
   id?: string;
   title: string;
-  description: string;
-  embedCode: string; // The Azota link
-  targetGrade: string; // '10', '11', '12'
-  createdByTeacherId: string;
+  topic: string; // New: Topic/Chapter
+  description?: string; // Optional/Deprecated
+  embedUrl: string; // Renamed from embedCode
+  coverImageUrl?: string; // New
+  teacherId: string; // Renamed from createdByTeacherId
+  gradeLevel: number; // Changed from targetGrade (string) to number
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

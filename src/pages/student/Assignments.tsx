@@ -1,42 +1,42 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { PageHeader } from '../../components/ui/PageHeader';
-import { StatusBadge } from '../../components/ui/StatusBadge';
 import { useAuth } from '../../hooks/useAuth';
 import { assignmentService } from '../../services/assignment.service';
 import { Assignment } from '../../types';
-import { BookOpen, ChevronRight, AlertCircle, Calendar, Filter, Plus, Clock } from 'lucide-react';
+import { BookOpen, ChevronRight, AlertCircle, Clock, Filter } from 'lucide-react';
 import { formatDate, safeString } from '../../lib/formatters';
 
 export const StudentAssignments: React.FC = () => {
   const { user } = useAuth();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'overdue' | 'completed'>('all');
+  const [filter, setFilter] = useState<'all' | 'pending'>('all');
 
   useEffect(() => {
+    // Only fetch if user has a grade
     if (!user || !user.grade || !user.isWhitelisted) return;
-    const unsubscribe = assignmentService.subscribeToGradeAssignments(user.grade, (data) => {
+
+    // The service now expects a number for gradeLevel, but user.grade is string '10', '11', '12'
+    const gradeNum = parseInt(user.grade, 10);
+    if (isNaN(gradeNum)) return;
+
+    const unsubscribe = assignmentService.subscribeToGradeAssignments(gradeNum, (data) => {
       setAssignments(data);
     });
     return () => unsubscribe();
   }, [user]);
 
-  // Optimized: Use useMemo for filtering to prevent unnecessary re-renders (derived state)
+  // Optimized: Use useMemo for filtering
   const filteredAssignments = useMemo(() => {
-      if (filter === 'all') {
-          return assignments;
-      } else {
-          // Placeholder for future filter logic
-          return assignments;
-      }
+      return assignments; // Placeholder for future filtering logic
   }, [assignments, filter]);
 
   // Handle Detail View
   if (selectedAssignment) {
-    const embed = safeString(selectedAssignment.embedCode);
+    const embed = safeString(selectedAssignment.embedUrl);
     const title = safeString(selectedAssignment.title);
-    const description = safeString(selectedAssignment.description);
-    const targetGrade = safeString(selectedAssignment.targetGrade);
+    const topic = safeString(selectedAssignment.topic); // Replaces description/topic logic
+    const description = safeString(selectedAssignment.description || selectedAssignment.topic);
+    const targetGrade = String(selectedAssignment.gradeLevel);
 
     return (
       <>
@@ -50,14 +50,16 @@ export const StudentAssignments: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
             <div>
                 <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{title}</h1>
-                <p className="text-slate-500 mt-2">Grade {targetGrade} Coursework</p>
+                <p className="text-slate-500 mt-2">Grade {targetGrade} • {topic}</p>
             </div>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 min-h-[600px] flex flex-col">
-           <div className="mb-6">
-               <p className="text-slate-600 leading-relaxed">{description}</p>
-           </div>
+           {description && description !== topic && (
+               <div className="mb-6">
+                   <p className="text-slate-600 leading-relaxed">{description}</p>
+               </div>
+           )}
 
            <div className="flex-1 w-full bg-slate-50 rounded-lg border border-slate-200 relative overflow-hidden">
               {embed.startsWith('<iframe') ? (
@@ -96,7 +98,7 @@ export const StudentAssignments: React.FC = () => {
              <AlertCircle className="w-8 h-8 text-red-600" />
            </div>
            <h2 className="text-xl font-bold text-slate-900 mb-2">Missing Grade Level</h2>
-           <p className="text-slate-500 max-w-md">Please contact your teacher to assign your grade level.</p>
+           <p className="text-slate-500 max-w-md">Please select your grade level to continue.</p>
         </div>
     );
   }
@@ -115,11 +117,6 @@ export const StudentAssignments: React.FC = () => {
                         <Filter className="w-5 h-5" />
                         <span>Filter</span>
                     </button>
-                    {/* Student shouldn't usually submit generic work, but kept for UI match */}
-                    {/* <button className="flex items-center justify-center gap-2 px-4 h-10 rounded-lg bg-blue-600 text-white text-sm font-bold shadow-sm hover:bg-blue-700 transition-colors">
-                        <Plus className="w-5 h-5" />
-                        <span className="hidden sm:inline">Submit Work</span>
-                    </button> */}
                 </div>
             </div>
 
@@ -142,10 +139,10 @@ export const StudentAssignments: React.FC = () => {
                     onClick={() => setSelectedAssignment(assignment)}
                     className="group flex flex-col rounded-xl bg-white shadow-sm border border-slate-200 overflow-hidden hover:shadow-lg hover:border-blue-600/30 transition-all duration-300 cursor-pointer"
                 >
-                    {/* Optimized Image: Use img with loading="lazy" instead of backgroundImage */}
+                    {/* Optimized Image: Use img with loading="lazy" */}
                     <div className="h-44 bg-slate-100 relative overflow-hidden">
                         <img
-                            src={`https://source.unsplash.com/random/800x600?education,book,${index}`}
+                            src={assignment.coverImageUrl || `https://source.unsplash.com/random/800x600?education,book,${index}`}
                             alt="Course cover"
                             loading="lazy"
                             className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
@@ -158,7 +155,7 @@ export const StudentAssignments: React.FC = () => {
                             </span>
                         </div>
                         <div className="absolute bottom-3 left-3">
-                            <p className="text-white text-xs font-medium bg-black/30 px-2 py-1 rounded backdrop-blur-md">Grade {safeString(assignment.targetGrade)}</p>
+                            <p className="text-white text-xs font-medium bg-black/30 px-2 py-1 rounded backdrop-blur-md">Grade {assignment.gradeLevel}</p>
                         </div>
                     </div>
 
@@ -167,9 +164,14 @@ export const StudentAssignments: React.FC = () => {
                             <h3 className="text-lg font-bold text-slate-900 leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">
                                 {safeString(assignment.title)}
                             </h3>
-                            <p className="text-sm text-slate-500 mt-1 line-clamp-2">
-                                {safeString(assignment.description) || 'Complete the exercises attached in the module.'}
+                            <p className="text-sm text-slate-500 mt-1 line-clamp-2 font-medium">
+                                {safeString(assignment.topic)}
                             </p>
+                            {assignment.description && (
+                                <p className="text-xs text-slate-400 mt-1 line-clamp-1">
+                                    {safeString(assignment.description)}
+                                </p>
+                            )}
                         </div>
 
                         <button className="w-full mt-2 h-10 flex items-center justify-center gap-2 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors group-hover:shadow-md mt-auto">

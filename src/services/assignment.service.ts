@@ -8,6 +8,7 @@ import {
   query,
   where,
   Timestamp,
+  orderBy,
   getDocs,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
@@ -44,14 +45,17 @@ class AssignmentService {
     callback: (assignments: Assignment[]) => void,
     onError?: (error: Error) => void
   ): () => void {
-    const q = query(this.collection, where('createdByTeacherId', '==', teacherId));
+    // Note: Querying by 'teacherId' (new field)
+    // If old documents exist with 'createdByTeacherId', they won't appear unless we migrate or query both.
+    // For this task, we assume new schema.
+    const q = query(this.collection, where('teacherId', '==', teacherId));
 
     return onSnapshot(q, (snapshot) => {
       const assignments = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       } as Assignment));
-      // Client-side sort by createdAt desc if index not available yet
+      // Client sort
       assignments.sort((a, b) => {
           const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
           const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
@@ -62,11 +66,11 @@ class AssignmentService {
   }
 
   subscribeToGradeAssignments(
-    grade: string,
+    grade: number, // Changed to number
     callback: (assignments: Assignment[]) => void,
     onError?: (error: Error) => void
   ): () => void {
-    const q = query(this.collection, where('targetGrade', '==', grade));
+    const q = query(this.collection, where('gradeLevel', '==', grade));
 
     return onSnapshot(q, (snapshot) => {
       const assignments = snapshot.docs.map(doc => ({
@@ -78,6 +82,21 @@ class AssignmentService {
           const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
           return timeB - timeA;
       });
+      callback(assignments);
+    }, onError);
+  }
+
+  subscribeToAllAssignments(
+    callback: (assignments: Assignment[]) => void,
+    onError?: (error: Error) => void
+  ): () => void {
+    const q = query(this.collection, orderBy('createdAt', 'desc'));
+
+    return onSnapshot(q, (snapshot) => {
+      const assignments = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Assignment));
       callback(assignments);
     }, onError);
   }

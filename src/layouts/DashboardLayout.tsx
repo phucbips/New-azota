@@ -18,8 +18,8 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
   admin: [
     { label: 'Tổng quan', href: '/admin', icon: <LayoutDashboard className="w-6 h-6" /> },
     { label: 'Quản lý User', href: '/admin/users', icon: <Users className="w-6 h-6" /> },
+    { label: 'Assignments', href: '/admin/assignments', icon: <FileText className="w-6 h-6" /> },
     { label: 'Courses', href: '#', icon: <BookOpen className="w-6 h-6" /> },
-    // { label: 'Analytics', href: '#', icon: <BarChart className="w-6 h-6" /> },
   ],
   teacher: [
     { label: 'Dashboard', href: '/teacher', icon: <LayoutDashboard className="w-6 h-6" /> },
@@ -109,13 +109,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
             let isActive = false;
 
             if (item.href === '/student') {
-                // Exact match for Student Home to prevent overlap with assignments
                 isActive = location.pathname === '/student';
             } else if (item.href === '/admin' || item.href === '/teacher') {
-                // Exact match for other dashboards roots usually
                 isActive = location.pathname === item.href;
             } else {
-                 // Standard prefix match for sub-routes (e.g., /student/assignments)
                  isActive = location.pathname.startsWith(item.href) && item.href !== '#';
             }
 
