@@ -37,11 +37,11 @@ service cloud.firestore {
 
     // --- COLLECTION: ASSIGNMENTS (Bài tập) ---
     match /assignments/{assignmentId} {
-      // Allow read if authenticated and whitelisted (active student/teacher)
-      allow read: if request.auth != null && isWhitelisted();
+      // Allow read if authenticated and (whitelisted OR teacher OR admin)
+      // This ensures Teachers/Admins can always read assignments even if isWhitelisted flag is missing/false
+      allow read: if request.auth != null && (isWhitelisted() || isTeacher() || isAdmin());
 
       // Allow create if user is teacher or admin
-      // Note: Data validation could be added here (e.g. enforcing teacherId == auth.uid)
       allow create: if request.auth != null && (isTeacher() || isAdmin());
 
       // Allow update/delete if:
