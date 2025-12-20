@@ -24,6 +24,7 @@ import { TeacherAssignments } from './pages/teacher/Assignments';
 // Student Pages
 import { StudentHome } from './pages/student/Home';
 import { StudentAssignments } from './pages/student/Assignments';
+import { AssignmentDetail } from './pages/student/AssignmentDetail';
 
 // Component to handle root redirect based on role
 const RootRedirect: React.FC = () => {
@@ -96,6 +97,7 @@ function App() {
           >
             <Route index element={<StudentHome />} />
             <Route path="assignments" element={<StudentAssignments />} />
+            <Route path="assignments/:id" element={<AssignmentDetail />} />
           </Route>
 
           {/* Catch-all */}
