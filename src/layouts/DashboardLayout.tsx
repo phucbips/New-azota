@@ -214,7 +214,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
         </header>
 
         {/* Main Scrollable Area */}
-        <main className="flex-1 overflow-y-auto bg-[#f5f6f8] p-4 sm:p-8 scroll-smooth pb-24">
+        <main className="flex-1 overflow-y-auto bg-[#f5f6f8] p-4 sm:p-8 scroll-smooth pb-24 relative z-0">
             <div className="max-w-7xl mx-auto h-full flex flex-col">
                 {children}
             </div>
