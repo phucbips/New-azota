@@ -46,7 +46,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
   const navItems = NAV_ITEMS[role] || [];
 
   return (
-    <div className="flex h-screen w-full bg-[#f5f6f8] text-slate-900 font-sans overflow-hidden">
+    // Updated to use min-h-dvh for mobile browser address bar support
+    <div className="flex min-h-dvh w-full bg-[#f5f6f8] text-slate-900 font-sans overflow-hidden">
       {/* Mobile Overlay */}
       {isMobileMenuOpen && (
         <div
@@ -213,7 +214,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
         </header>
 
         {/* Main Scrollable Area */}
-        <main className="flex-1 overflow-y-auto bg-[#f5f6f8] p-4 sm:p-8 scroll-smooth">
+        <main className="flex-1 overflow-y-auto bg-[#f5f6f8] p-4 sm:p-8 scroll-smooth pb-24">
             <div className="max-w-7xl mx-auto h-full flex flex-col">
                 {children}
             </div>
