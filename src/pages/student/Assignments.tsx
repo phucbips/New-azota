@@ -4,12 +4,13 @@ import { assignmentService } from '../../services/assignment.service';
 import { Assignment } from '../../types';
 import { BookOpen, ChevronRight, AlertCircle, Clock, Filter } from 'lucide-react';
 import { formatDate, safeString } from '../../lib/formatters';
+import { SubjectFilter } from '../../components/student/SubjectFilter';
 
 export const StudentAssignments: React.FC = () => {
   const { user } = useAuth();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
-  const [filter, setFilter] = useState<'all' | 'pending'>('all');
+  const [selectedSubject, setSelectedSubject] = useState('All');
 
   useEffect(() => {
     // Only fetch if user has a grade
@@ -25,10 +26,17 @@ export const StudentAssignments: React.FC = () => {
     return () => unsubscribe();
   }, [user]);
 
+  // Extract unique subjects
+  const uniqueSubjects = useMemo(() => {
+      const subjects = new Set(assignments.map(a => a.subject || 'General'));
+      return Array.from(subjects).sort();
+  }, [assignments]);
+
   // Optimized: Use useMemo for filtering
   const filteredAssignments = useMemo(() => {
-      return assignments; // Placeholder for future filtering logic
-  }, [assignments, filter]);
+      if (selectedSubject === 'All') return assignments;
+      return assignments.filter(a => (a.subject || 'General') === selectedSubject);
+  }, [assignments, selectedSubject]);
 
   // Handle Detail View
   if (selectedAssignment) {
@@ -37,6 +45,7 @@ export const StudentAssignments: React.FC = () => {
     const topic = safeString(selectedAssignment.topic); // Replaces description/topic logic
     const description = safeString(selectedAssignment.description || selectedAssignment.topic);
     const targetGrade = String(selectedAssignment.gradeLevel);
+    const subject = safeString(selectedAssignment.subject);
 
     return (
       <>
@@ -49,6 +58,11 @@ export const StudentAssignments: React.FC = () => {
 
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
             <div>
+                <div className="flex items-center gap-2 mb-2">
+                    <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wide">
+                        {subject || 'General'}
+                    </span>
+                </div>
                 <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{title}</h1>
                 <p className="text-slate-500 mt-2">Grade {targetGrade} • {topic}</p>
             </div>
@@ -105,32 +119,22 @@ export const StudentAssignments: React.FC = () => {
 
   return (
       <div className="flex flex-col gap-6">
-        {/* Header & Filters */}
-        <div className="flex flex-col gap-6">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                <div className="flex flex-col gap-2">
-                    <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">My Assignments</h1>
-                    <p className="text-slate-500 text-sm md:text-base">Track your progress and manage your upcoming coursework.</p>
-                </div>
-                <div className="flex gap-3">
-                    <button className="flex items-center justify-center gap-2 px-4 h-10 rounded-lg bg-white border border-slate-200 text-slate-900 text-sm font-bold shadow-sm hover:bg-slate-50 transition-colors">
-                        <Filter className="w-5 h-5" />
-                        <span>Filter</span>
-                    </button>
-                </div>
-            </div>
-
-            {/* Filter Chips */}
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                <button
-                    onClick={() => setFilter('all')}
-                    className={`flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full px-4 transition-colors font-medium text-sm ${filter === 'all' ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50'}`}
-                >
-                    All Assignments
-                </button>
-            </div>
+        {/* Header */}
+        <div className="flex flex-col gap-2">
+            <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">My Assignments</h1>
+            <p className="text-slate-500 text-sm md:text-base">Track your progress and manage your upcoming coursework.</p>
         </div>
 
+        {/* Subject Filter Bar */}
+        {assignments.length > 0 && (
+            <SubjectFilter
+                subjects={uniqueSubjects}
+                selectedSubject={selectedSubject}
+                onSelectSubject={setSelectedSubject}
+            />
+        )}
+
+        {/* Assignments Grid */}
         {filteredAssignments.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredAssignments.map((assignment, index) => (
@@ -148,14 +152,19 @@ export const StudentAssignments: React.FC = () => {
                             className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+
+                        {/* Subject Badge on Image */}
+                        <div className="absolute top-3 left-3">
+                            <span className="px-2 py-1 rounded-md bg-white/95 text-blue-700 text-xs font-bold shadow-sm backdrop-blur-sm border border-transparent">
+                                {assignment.subject || 'General'}
+                            </span>
+                        </div>
+
                         <div className="absolute top-3 right-3">
                             <span className="px-2.5 py-1 rounded-md bg-white/95 text-slate-700 text-xs font-bold shadow-sm backdrop-blur-sm border border-transparent flex items-center gap-1">
                                 <Clock className="w-3.5 h-3.5 text-orange-500" />
                                 {formatDate(assignment.createdAt)}
                             </span>
-                        </div>
-                        <div className="absolute bottom-3 left-3">
-                            <p className="text-white text-xs font-medium bg-black/30 px-2 py-1 rounded backdrop-blur-md">Grade {assignment.gradeLevel}</p>
                         </div>
                     </div>
 
@@ -167,11 +176,6 @@ export const StudentAssignments: React.FC = () => {
                             <p className="text-sm text-slate-500 mt-1 line-clamp-2 font-medium">
                                 {safeString(assignment.topic)}
                             </p>
-                            {assignment.description && (
-                                <p className="text-xs text-slate-400 mt-1 line-clamp-1">
-                                    {safeString(assignment.description)}
-                                </p>
-                            )}
                         </div>
 
                         <button className="w-full mt-2 h-10 flex items-center justify-center gap-2 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors group-hover:shadow-md mt-auto">
@@ -187,8 +191,20 @@ export const StudentAssignments: React.FC = () => {
                 <div className="bg-blue-50 rounded-full p-6 mb-6">
                     <BookOpen className="w-16 h-16 text-blue-600" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">No assignments yet</h3>
-                <p className="text-slate-500 max-w-sm mx-auto">You're all caught up! Check back later for new course materials and tasks.</p>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">No assignments found</h3>
+                <p className="text-slate-500 max-w-sm mx-auto">
+                    {assignments.length > 0
+                        ? `No assignments found for "${selectedSubject}". Try selecting another subject.`
+                        : "You're all caught up! Check back later for new course materials and tasks."}
+                </p>
+                {assignments.length > 0 && (
+                    <button
+                        onClick={() => setSelectedSubject('All')}
+                        className="mt-4 text-blue-600 font-bold hover:underline"
+                    >
+                        Clear Filter
+                    </button>
+                )}
             </div>
         )}
       </div>
