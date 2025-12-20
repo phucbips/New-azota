@@ -18,7 +18,8 @@ export interface User {
 export interface Assignment {
   id?: string;
   title: string;
-  topic: string; // New: Topic/Chapter
+  subject: string; // New: Subject (Math, etc.)
+  topic: string; // Topic/Chapter
   description?: string; // Optional/Deprecated
   embedUrl: string; // Renamed from embedCode
   coverImageUrl?: string; // New

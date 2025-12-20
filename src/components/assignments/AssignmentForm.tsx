@@ -4,11 +4,13 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Assignment } from '../../types';
 import CloudinaryUploadWidget from '../ui/CloudinaryUploadWidget';
+import { SubjectSelector } from './SubjectSelector';
 import { Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 
 const assignmentSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
+  subject: z.string().min(1, "Subject is required"),
   topic: z.string().min(2, "Topic is required"),
   gradeLevel: z.coerce.number().min(10).max(12),
   embedUrl: z.string().url("Must be a valid URL"),
@@ -40,6 +42,7 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
     resolver: zodResolver(assignmentSchema),
     defaultValues: {
       title: defaultValues?.title || '',
+      subject: defaultValues?.subject || '',
       topic: defaultValues?.topic || '',
       gradeLevel: defaultValues?.gradeLevel || 10,
       embedUrl: defaultValues?.embedUrl || '',
@@ -47,6 +50,7 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
     }
   });
 
+  const subject = watch('subject');
   const coverImageUrl = watch('coverImageUrl');
 
   const handleFormSubmit = async (data: AssignmentFormData) => {
@@ -71,6 +75,13 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
           />
           {errors.title && <span className="text-xs text-red-500">{errors.title.message}</span>}
         </div>
+
+        {/* Subject Selector */}
+        <SubjectSelector
+            value={subject}
+            onChange={(val) => setValue('subject', val, { shouldValidate: true })}
+            error={errors.subject?.message}
+        />
 
         {/* Topic */}
         <div className="flex flex-col gap-1.5">

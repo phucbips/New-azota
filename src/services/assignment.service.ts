@@ -29,6 +29,7 @@ class AssignmentService {
       embedUrl: data.embedUrl || data.embedCode || '',
       gradeLevel: data.gradeLevel || Number(data.targetGrade) || 10,
       topic: data.topic || data.description || 'Untitled Topic',
+      subject: data.subject || 'General', // Default if missing
     } as Assignment;
   }
 
@@ -59,19 +60,6 @@ class AssignmentService {
     callback: (assignments: Assignment[]) => void,
     onError?: (error: Error) => void
   ): () => void {
-    // Query both legacy and new fields by using two listeners if necessary, but simple approach is robust enough usually.
-    // However, to be 100% sure we catch everything, we can try to query where teacherId == ID OR createdByTeacherId == ID.
-    // Firestore OR requires separate queries merged client-side for "not-in" or complex cases, but simple OR is supported in 'in' queries for same field.
-    // Different fields? No.
-    // Strategy: Listen to NEW field primarily. If empty, maybe legacy?
-    // Better: Just query teacherId. I assume migration or new creation.
-    // But to be super safe given the user report:
-    // I will try to listen to the new field.
-    // AND I will listen to the old field if they differ.
-    // Actually, I'll stick to `teacherId` query but ensure the INDEX exists.
-    // If index is missing, it errors.
-    // I will add an error logger.
-
     const q = query(this.collection, where('teacherId', '==', teacherId));
 
     return onSnapshot(q, (snapshot) => {
