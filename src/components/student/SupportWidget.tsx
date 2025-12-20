@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageCircle, Phone, X, MessageSquare } from 'lucide-react';
+import { Phone, X, MessageSquare, Facebook } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 export const SupportWidget: React.FC = () => {
@@ -55,11 +55,8 @@ export const SupportWidget: React.FC = () => {
                 className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 hover:bg-blue-50 hover:border-blue-200 transition-colors group"
             >
                 <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-600 transition-colors">
-                    {/* Facebook Icon (using Lucide generic) */}
-                    <svg className="w-5 h-5 text-blue-600 group-hover:text-white transition-colors" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036c-2.148 0-2.971.956-2.971 3.059v.913h3.5l-.228 1.71-.328 1.957h-2.943v7.976c1.392-.251 2.669-.943 3.611-1.956 2.195-2.36 2.614-6.041.936-8.829-1.68-2.79-5.13-3.8-7.92-2.317-2.792 1.485-3.959 4.876-2.679 7.785.64 1.454 1.761 2.614 3.123 3.23.23.1.472.181.718.243v.001l-.037.018z" fillRule="evenodd"></path>
-                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"></path>
-                    </svg>
+                    {/* Replaced custom SVG with Lucide Facebook icon */}
+                    <Facebook className="w-5 h-5 text-blue-600 group-hover:text-white transition-colors" />
                 </div>
                 <div className="flex flex-col">
                     <span className="font-bold text-slate-800 text-sm group-hover:text-blue-700">Facebook</span>

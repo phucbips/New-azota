@@ -59,5 +59,17 @@ service cloud.firestore {
         resource.data.createdByTeacherId == request.auth.uid
       );
     }
+
+    // --- COLLECTION: SUBJECTS (Môn học) ---
+    match /subjects/{subjectId} {
+      // Allow read for all authenticated users (to populate dropdowns)
+      allow read: if request.auth != null;
+
+      // Allow create by Teachers or Admins (Dynamic creation from dropdown)
+      allow create: if request.auth != null && (isTeacher() || isAdmin());
+
+      // Allow update/delete only by Admins
+      allow update, delete: if request.auth != null && isAdmin();
+    }
   }
 }
