@@ -9,13 +9,13 @@ import {
   where,
   Timestamp,
   orderBy,
-  getDocs,
+  getDoc,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { COLLECTIONS } from '../config/constants';
 import { Assignment } from '../types';
 
-class AssignmentService {
+export class AssignmentService {
   private collection = collection(db, COLLECTIONS.ASSIGNMENTS);
 
   // Helper to map legacy data
@@ -31,6 +31,17 @@ class AssignmentService {
       topic: data.topic || data.description || 'Untitled Topic',
       subject: data.subject || 'General', // Default if missing
     } as Assignment;
+  }
+
+  async getAssignmentById(id: string): Promise<Assignment | null> {
+    const docRef = doc(db, COLLECTIONS.ASSIGNMENTS, id);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      return this.mapDoc(docSnap);
+    } else {
+      return null;
+    }
   }
 
   async createAssignment(assignment: Omit<Assignment, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
