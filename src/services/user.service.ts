@@ -124,6 +124,21 @@ class UserService {
     return null;
   }
 
+  async findInvitationByEmail(email: string, excludeUid?: string): Promise<User | null> {
+    const normalizedEmail = email.toLowerCase();
+    const q = query(this.collection, where('email', '==', normalizedEmail));
+    const querySnapshot = await getDocs(q);
+
+    for (const doc of querySnapshot.docs) {
+      // Find a document that matches the email but is NOT the current user's UID
+      // This identifies it as an "invitation" or "duplicate" record
+      if (doc.id !== excludeUid) {
+        return { uid: doc.id, ...doc.data() } as User;
+      }
+    }
+    return null;
+  }
+
   subscribeToAllUsers(
       callback: (users: User[]) => void,
       onError?: (error: Error) => void

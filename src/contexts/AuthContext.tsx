@@ -43,42 +43,55 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // First, try to get the user by UID
       let existingUser = await userService.getUser(firebaseUser.uid);
 
-      // If not found by UID, try to find by Email (pre-created by Admin)
       // Normalize email to avoid case sensitivity issues
       const userEmail = firebaseUser.email ? firebaseUser.email.toLowerCase() : null;
 
-      if (!existingUser && userEmail) {
+      // Check for invitations/updates regardless of whether the user exists
+      if (userEmail) {
         try {
-            const userByEmail = await userService.findUserByEmail(userEmail);
-            if (userByEmail) {
-            // Found an invitation document
+            // Look for an invitation (a user doc with the same email but DIFFERENT UID)
+            const invitation = await userService.findInvitationByEmail(userEmail, firebaseUser.uid);
 
-            if (userByEmail.uid !== firebaseUser.uid) {
-                // Migrate the pre-created user data to the correct UID doc
-                const { uid: oldUid, ...userData } = userByEmail;
+            if (invitation) {
+                console.log('Found invitation/upgrade for user:', userEmail);
+                const { uid: oldUid, ...invitationData } = invitation;
 
-                // Create the real user doc
-                await userService.createUser(firebaseUser.uid, {
-                    ...userData,
-                    // Ensure we keep the role and grade set by admin
-                    sessionId: sessionId,
-                    joinedAt: userData.joinedAt || new Date() as any
-                });
+                if (!existingUser) {
+                    // Scenario 1: New User - Migrate invitation to new user doc
+                    await userService.createUser(firebaseUser.uid, {
+                        ...invitationData,
+                        sessionId: sessionId,
+                        joinedAt: invitationData.joinedAt || new Date() as any
+                    });
 
-                // IMPORTANT: Delete the old invitation doc to prevent duplicates in Admin list
+                    // Fetch the newly created user
+                    existingUser = await userService.getUser(firebaseUser.uid);
+                } else {
+                    // Scenario 2: Existing User - Update/Merge invitation data (Role Upgrade)
+                    // We only update specific fields to avoid overwriting user preferences
+                    const updates: Partial<User> = {
+                        role: invitationData.role,
+                        isWhitelisted: invitationData.isWhitelisted,
+                    };
+
+                    // Only update grade if provided in invitation
+                    if (invitationData.grade) {
+                        updates.grade = invitationData.grade;
+                    }
+
+                    await userService.updateUser(firebaseUser.uid, updates);
+
+                    // Update local object
+                    existingUser = { ...existingUser, ...updates };
+                }
+
+                // IMPORTANT: Delete the old invitation doc to prevent duplicates
                 if (oldUid) {
                     await userService.deleteUser(oldUid);
                 }
-
-                existingUser = await userService.getUser(firebaseUser.uid);
-            } else {
-                existingUser = userByEmail;
-            }
             }
         } catch (error: any) {
-            // If we hit a permission error (e.g. non-admin trying to query users),
-            // just ignore the invitation check and proceed to create a new user.
-            console.warn('Error checking for invitation (likely permission issue), creating new user instead:', error);
+            console.warn('Error checking for invitation:', error);
         }
       }
 
