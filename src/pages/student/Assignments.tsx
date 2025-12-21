@@ -6,11 +6,13 @@ import { BookOpen, ChevronRight, AlertCircle, Clock, ArrowLeft } from 'lucide-re
 import { formatDate, safeString } from '../../lib/formatters';
 import { SubjectFilterBar } from '../../components/student/SubjectFilterBar';
 import { StudentSupportWidget } from '../../components/student/StudentSupportWidget';
+import { useDashboardSearch } from '../../contexts/DashboardSearchContext';
 
 export const StudentAssignments: React.FC = () => {
   const { user } = useAuth();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
+  const { searchQuery } = useDashboardSearch();
 
   // Filter States
   const [selectedSubject, setSelectedSubject] = useState('All');
@@ -40,9 +42,19 @@ export const StudentAssignments: React.FC = () => {
 
   // Optimized: Use useMemo for filtering
   const filteredAssignments = useMemo(() => {
-      if (selectedSubject === 'All') return assignments;
-      return assignments.filter(a => a.subject === selectedSubject);
-  }, [assignments, selectedSubject]);
+      const term = searchQuery.trim().toLowerCase();
+      const subjectFiltered = selectedSubject === 'All'
+        ? assignments
+        : assignments.filter(a => a.subject === selectedSubject);
+
+      if (!term) return subjectFiltered;
+
+      return subjectFiltered.filter((assignment) => {
+          const titleMatch = assignment.title?.toLowerCase().includes(term);
+          const subjectMatch = assignment.subject?.toLowerCase().includes(term);
+          return Boolean(titleMatch || subjectMatch);
+      });
+  }, [assignments, searchQuery, selectedSubject]);
 
   // Handle Detail View
   if (selectedAssignment) {

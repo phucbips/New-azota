@@ -12,7 +12,12 @@ type CreateUserForm = {
   grade?: string;
 };
 
-export const UserManagement: React.FC = () => {
+type UserManagementProps = {
+  searchQuery: string;
+  onSearchQueryChange: (value: string) => void;
+};
+
+export const UserManagement: React.FC<UserManagementProps> = ({ searchQuery, onSearchQueryChange }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const { register, handleSubmit, watch, reset } = useForm<CreateUserForm>({
@@ -22,8 +27,6 @@ export const UserManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
   const [isAddMode, setIsAddMode] = useState(false); // Toggle form visibility
-  const [searchTerm, setSearchTerm] = useState('');
-
   // Edit Mode State
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -40,12 +43,12 @@ export const UserManagement: React.FC = () => {
 
   // Filter Logic
   useEffect(() => {
-      const lowerTerm = searchTerm.toLowerCase();
+      const lowerTerm = searchQuery.trim().toLowerCase();
       const results = users.filter(u =>
           (u.email?.toLowerCase().includes(lowerTerm) || u.displayName?.toLowerCase().includes(lowerTerm))
       );
       setFilteredUsers(results);
-  }, [searchTerm, users]);
+  }, [searchQuery, users]);
 
   const onSubmit = async (data: CreateUserForm) => {
     setLoading(true);
@@ -102,8 +105,8 @@ export const UserManagement: React.FC = () => {
                         type="text"
                         className="block w-full pl-10 pr-3 py-2.5 border-slate-200 rounded-lg text-sm bg-slate-50 text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
                         placeholder="Search by name, email or role..."
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
+                        value={searchQuery}
+                        onChange={(event) => onSearchQueryChange(event.target.value)}
                     />
                 </div>
                 <div className="flex items-center gap-3 w-full md:w-auto">
