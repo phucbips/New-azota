@@ -24,7 +24,6 @@ const TeacherAssignments = React.lazy(() => import('./pages/teacher/Assignments'
 // Lazy load Student Pages
 const StudentHome = React.lazy(() => import('./pages/student/Home').then(module => ({ default: module.StudentHome })));
 const StudentAssignments = React.lazy(() => import('./pages/student/Assignments').then(module => ({ default: module.StudentAssignments })));
-const AssignmentDetail = React.lazy(() => import('./pages/student/AssignmentDetail').then(module => ({ default: module.AssignmentDetail })));
 
 // Component to handle root redirect based on role
 const RootRedirect: React.FC = () => {
@@ -98,7 +97,6 @@ function App() {
             >
               <Route index element={<StudentHome />} />
               <Route path="assignments" element={<StudentAssignments />} />
-              <Route path="assignments/:id" element={<AssignmentDetail />} />
             </Route>
 
             {/* Catch-all */}
