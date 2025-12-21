@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { assignmentService } from '../../services/assignment.service';
 import { Assignment } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
-import { Plus, Edit2, Trash2, Search, Filter } from 'lucide-react';
-import { formatDate } from '../../lib/formatters';
+import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { AssignmentForm } from '../../components/assignments/AssignmentForm';
 import { toast } from 'sonner';
+import { useDashboardSearch } from '../../contexts/DashboardSearchContext';
 
 // Reusing the inline Modal from TeacherAssignments for speed/consistency in this turn.
 const Modal: React.FC<{ isOpen: boolean; onClose: () => void; title: string; children: React.ReactNode }> = ({ isOpen, onClose, title, children }) => {
@@ -32,6 +32,7 @@ export const AdminAssignments: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
   const [loading, setLoading] = useState(false);
+  const { searchQuery } = useDashboardSearch();
 
   useEffect(() => {
     // Admin sees ALL assignments
@@ -40,6 +41,16 @@ export const AdminAssignments: React.FC = () => {
     });
     return () => unsubscribe();
   }, []); // Run once on mount
+
+  const filteredAssignments = useMemo(() => {
+      const term = searchQuery.trim().toLowerCase();
+      if (!term) return assignments;
+      return assignments.filter((assignment) => {
+          const titleMatch = assignment.title?.toLowerCase().includes(term);
+          const subjectMatch = assignment.subject?.toLowerCase().includes(term);
+          return Boolean(titleMatch || subjectMatch);
+      });
+  }, [assignments, searchQuery]);
 
   const handleCreate = () => {
       setEditingAssignment(null);
@@ -118,7 +129,7 @@ export const AdminAssignments: React.FC = () => {
                       </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                      {assignments.length > 0 ? assignments.map((assignment) => (
+                      {filteredAssignments.length > 0 ? filteredAssignments.map((assignment) => (
                           <tr key={assignment.id} className="hover:bg-slate-50 transition-colors">
                               <td className="px-6 py-4">
                                   <div className="flex items-center gap-3">

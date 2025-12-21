@@ -3,10 +3,10 @@ import { useAuth } from '../hooks/useAuth';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Menu, X, LogOut, LayoutDashboard, Users, BookOpen,
-  Settings, GraduationCap, FileText, Search, Bell, HelpCircle
+  Settings, GraduationCap, FileText, Search, Bell
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { SaaSButton } from '../components/ui/SaaSButton';
+import { DashboardSearchProvider, useDashboardSearch } from '../contexts/DashboardSearchContext';
 
 interface NavItem {
   label: string;
@@ -39,9 +39,18 @@ interface DashboardLayoutProps {
 }
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role }) => {
+  return (
+    <DashboardSearchProvider>
+      <DashboardLayoutContent role={role}>{children}</DashboardLayoutContent>
+    </DashboardSearchProvider>
+  );
+};
+
+const DashboardLayoutContent: React.FC<DashboardLayoutProps> = ({ children, role }) => {
   const { user, signOut } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { searchQuery, setSearchQuery } = useDashboardSearch();
 
   const navItems = NAV_ITEMS[role] || [];
 
@@ -177,6 +186,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
                             <input
                                 type="text"
                                 placeholder="Search..."
+                                value={searchQuery}
+                                onChange={(event) => setSearchQuery(event.target.value)}
                                 className="block w-full pl-10 pr-3 py-2 border-none bg-slate-100 rounded-lg text-sm focus:ring-0 placeholder-slate-500 text-slate-900"
                             />
                         </div>
