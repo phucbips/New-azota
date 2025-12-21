@@ -2,14 +2,15 @@ import React from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { StatCard } from '../../components/ui/StatCard';
-import { BookOpen, GraduationCap, CheckCircle } from 'lucide-react';
+import { BookOpen, GraduationCap } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { StudentSupportWidget } from '../../components/student/StudentSupportWidget';
 
 export const StudentHome: React.FC = () => {
   const { user } = useAuth();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative min-h-[80vh]">
       <PageHeader
         title={`Welcome back, ${user?.displayName?.split(' ')[0] || 'Student'}!`}
         description="Here is an overview of your learning progress."
@@ -42,6 +43,9 @@ export const StudentHome: React.FC = () => {
             </div>
         </div>
       </div>
+
+      {/* Support Widget */}
+      <StudentSupportWidget />
     </div>
   );
 };
