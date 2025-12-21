@@ -11,6 +11,7 @@ import {
 import { auth } from '../config/firebase';
 import { userService } from '../services/user.service';
 import { User, AuthContextType } from '../types';
+import { TEST_ACCOUNTS } from '../config/test_accounts';
 
 export const AuthContext = createContext<AuthContextType | undefined>(
   undefined
@@ -97,6 +98,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (isSuperAdmin && (existingUser.role !== 'admin' || !existingUser.isWhitelisted)) {
           updates.role = 'admin';
           updates.isWhitelisted = true;
+          needsUpdate = true;
+        }
+
+        // Ensure test accounts have correct roles
+        if (userEmail && TEST_ACCOUNTS.TEACHERS.includes(userEmail) && existingUser.role !== 'teacher') {
+          updates.role = 'teacher';
           needsUpdate = true;
         }
 
