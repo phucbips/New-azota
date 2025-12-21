@@ -46,8 +46,7 @@ class AssignmentService {
     onError?: (error: Error) => void
   ): () => void {
     // Note: Querying by 'teacherId' (new field)
-    // Using orderBy for server-side sorting. May require Composite Index in Firestore.
-    const q = query(this.collection, where('teacherId', '==', teacherId), orderBy('createdAt', 'desc'));
+    const q = query(this.collection, where('teacherId', '==', teacherId));
 
     return onSnapshot(q, (snapshot) => {
       const assignments = snapshot.docs.map(doc => {
@@ -61,6 +60,12 @@ class AssignmentService {
           gradeLevel: data.gradeLevel || data.targetGrade,
         } as Assignment;
       });
+      // Client-side sort to avoid Missing Index error
+      assignments.sort((a, b) => {
+          const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+          const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+          return timeB - timeA;
+      });
       callback(assignments);
     }, onError);
   }
@@ -70,7 +75,7 @@ class AssignmentService {
     callback: (assignments: Assignment[]) => void,
     onError?: (error: Error) => void
   ): () => void {
-    const q = query(this.collection, where('gradeLevel', '==', grade), orderBy('createdAt', 'desc'));
+    const q = query(this.collection, where('gradeLevel', '==', grade));
 
     return onSnapshot(q, (snapshot) => {
       const assignments = snapshot.docs.map(doc => {
@@ -83,6 +88,12 @@ class AssignmentService {
           embedUrl: data.embedUrl || data.embedCode,
           gradeLevel: data.gradeLevel || data.targetGrade,
         } as Assignment;
+      });
+      // Client-side sort to avoid Missing Index error
+      assignments.sort((a, b) => {
+          const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+          const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+          return timeB - timeA;
       });
       callback(assignments);
     }, onError);
