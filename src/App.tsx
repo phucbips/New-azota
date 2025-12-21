@@ -6,6 +6,7 @@ import { LoginPage } from './components/auth/LoginPage';
 import { Loading } from './components/shared/Loading';
 import { RouteMiddleware } from './middleware/RouteMiddleware';
 import './styles/globals.css';
+import { Toaster } from 'sonner';
 
 // Lazy load Layouts
 const AdminLayout = React.lazy(() => import('./layouts/AdminLayout').then(module => ({ default: module.AdminLayout })));
@@ -16,14 +17,23 @@ const StudentLayout = React.lazy(() => import('./layouts/StudentLayout').then(mo
 const AdminOverview = React.lazy(() => import('./pages/admin/Overview').then(module => ({ default: module.AdminOverview })));
 const AdminUsers = React.lazy(() => import('./pages/admin/Users').then(module => ({ default: module.AdminUsers })));
 const AdminAssignments = React.lazy(() => import('./pages/admin/Assignments').then(module => ({ default: module.AdminAssignments })));
+const AdminCourses = React.lazy(() => import('./pages/admin/Courses').then(module => ({ default: module.AdminCourses })));
+const AdminSettings = React.lazy(() => import('./pages/admin/Settings').then(module => ({ default: module.AdminSettings })));
+const AdminProfile = React.lazy(() => import('./pages/admin/Profile').then(module => ({ default: module.AdminProfile })));
 
 // Lazy load Teacher Pages
 const TeacherOverview = React.lazy(() => import('./pages/teacher/Overview').then(module => ({ default: module.TeacherOverview })));
 const TeacherAssignments = React.lazy(() => import('./pages/teacher/Assignments').then(module => ({ default: module.TeacherAssignments })));
+const TeacherCourses = React.lazy(() => import('./pages/teacher/Courses').then(module => ({ default: module.TeacherCourses })));
+const TeacherSettings = React.lazy(() => import('./pages/teacher/Settings').then(module => ({ default: module.TeacherSettings })));
+const TeacherProfile = React.lazy(() => import('./pages/teacher/Profile').then(module => ({ default: module.TeacherProfile })));
 
 // Lazy load Student Pages
 const StudentHome = React.lazy(() => import('./pages/student/Home').then(module => ({ default: module.StudentHome })));
 const StudentAssignments = React.lazy(() => import('./pages/student/Assignments').then(module => ({ default: module.StudentAssignments })));
+const StudentCourses = React.lazy(() => import('./pages/student/Courses').then(module => ({ default: module.StudentCourses })));
+const StudentSettings = React.lazy(() => import('./pages/student/Settings').then(module => ({ default: module.StudentSettings })));
+const StudentProfile = React.lazy(() => import('./pages/student/Profile').then(module => ({ default: module.StudentProfile })));
 
 // Component to handle root redirect based on role
 const RootRedirect: React.FC = () => {
@@ -54,6 +64,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <Toaster richColors position="top-right" />
         <Suspense fallback={<Loading fullScreen />}>
           <Routes>
             <Route path="/" element={<RootRedirect />} />
@@ -71,6 +82,9 @@ function App() {
               <Route index element={<AdminOverview />} />
               <Route path="users" element={<AdminUsers />} />
               <Route path="assignments" element={<AdminAssignments />} />
+              <Route path="courses" element={<AdminCourses />} />
+              <Route path="settings" element={<AdminSettings />} />
+              <Route path="profile" element={<AdminProfile />} />
             </Route>
 
             {/* Teacher Route Group */}
@@ -84,6 +98,9 @@ function App() {
             >
               <Route index element={<TeacherOverview />} />
               <Route path="assignments" element={<TeacherAssignments />} />
+              <Route path="courses" element={<TeacherCourses />} />
+              <Route path="settings" element={<TeacherSettings />} />
+              <Route path="profile" element={<TeacherProfile />} />
             </Route>
 
             {/* Student Route Group */}
@@ -97,6 +114,9 @@ function App() {
             >
               <Route index element={<StudentHome />} />
               <Route path="assignments" element={<StudentAssignments />} />
+              <Route path="courses" element={<StudentCourses />} />
+              <Route path="settings" element={<StudentSettings />} />
+              <Route path="profile" element={<StudentProfile />} />
             </Route>
 
             {/* Catch-all */}

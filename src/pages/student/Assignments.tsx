@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { assignmentService } from '../../services/assignment.service';
 import { Assignment } from '../../types';
@@ -6,11 +7,15 @@ import { BookOpen, ChevronRight, AlertCircle, Clock, ArrowLeft } from 'lucide-re
 import { formatDate, safeString } from '../../lib/formatters';
 import { SubjectFilterBar } from '../../components/student/SubjectFilterBar';
 import { StudentSupportWidget } from '../../components/student/StudentSupportWidget';
+import { Skeleton } from '../../components/shared/Skeleton';
 
 export const StudentAssignments: React.FC = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const searchQuery = (searchParams.get('q') || '').toLowerCase();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
+  const [isFetching, setIsFetching] = useState(true);
 
   // Filter States
   const [selectedSubject, setSelectedSubject] = useState('All');
@@ -25,6 +30,7 @@ export const StudentAssignments: React.FC = () => {
 
     const unsubscribe = assignmentService.subscribeToGradeAssignments(gradeNum, (data) => {
       setAssignments(data);
+      setIsFetching(false);
     });
     return () => unsubscribe();
   }, [user]);
@@ -43,6 +49,22 @@ export const StudentAssignments: React.FC = () => {
       if (selectedSubject === 'All') return assignments;
       return assignments.filter(a => a.subject === selectedSubject);
   }, [assignments, selectedSubject]);
+
+  const searchedAssignments = useMemo(() => {
+      if (!searchQuery) return filteredAssignments;
+      return filteredAssignments.filter((assignment) => {
+        const haystack = [
+          assignment.title,
+          assignment.topic,
+          assignment.subject,
+          assignment.description,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return haystack.includes(searchQuery);
+      });
+  }, [filteredAssignments, searchQuery]);
 
   // Handle Detail View
   if (selectedAssignment) {
@@ -140,9 +162,15 @@ export const StudentAssignments: React.FC = () => {
             />
         </div>
 
-        {filteredAssignments.length > 0 ? (
+        {isFetching ? (
+            <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
+                <Skeleton className="h-6 w-1/3" />
+                <Skeleton className="h-40 w-full" />
+                <Skeleton className="h-40 w-full" />
+            </div>
+        ) : searchedAssignments.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-            {filteredAssignments.map((assignment, index) => (
+            {searchedAssignments.map((assignment, index) => (
                 <div
                     key={assignment.id}
                     onClick={() => setSelectedAssignment(assignment)}
@@ -202,7 +230,7 @@ export const StudentAssignments: React.FC = () => {
                     <BookOpen className="w-16 h-16 text-blue-600" />
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 mb-2">No assignments found</h3>
-                <p className="text-slate-500 max-w-sm mx-auto">Try selecting a different subject or check back later.</p>
+                <p className="text-slate-500 max-w-sm mx-auto">Try adjusting your search or check back later.</p>
             </div>
         )}
 

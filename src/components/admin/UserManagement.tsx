@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { userService } from '../../services/user.service';
 import { User, UserRole } from '../../types';
-import { Trash2, UserPlus, Check, X, Loader2, Edit2, Search, Filter, MoreVertical, Plus } from 'lucide-react';
+import { Trash2, UserPlus, Loader2, Edit2, Search, MoreVertical, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDate } from '../../lib/formatters';
+import { Skeleton } from '../shared/Skeleton';
 
 type CreateUserForm = {
   email: string;
@@ -15,11 +17,13 @@ type CreateUserForm = {
 export const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [searchParams, setSearchParams] = useSearchParams();
   const { register, handleSubmit, watch, reset } = useForm<CreateUserForm>({
       defaultValues: { role: 'student', grade: '10' }
   });
 
   const [loading, setLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
   const [isAddMode, setIsAddMode] = useState(false); // Toggle form visibility
   const [searchTerm, setSearchTerm] = useState('');
@@ -34,9 +38,14 @@ export const UserManagement: React.FC = () => {
     const unsubscribe = userService.subscribeToAllUsers((fetchedUsers) => {
       setUsers(fetchedUsers);
       setFilteredUsers(fetchedUsers);
+      setIsFetching(false);
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+      setSearchTerm(searchParams.get('q') || '');
+  }, [searchParams]);
 
   // Filter Logic
   useEffect(() => {
@@ -103,7 +112,17 @@ export const UserManagement: React.FC = () => {
                         className="block w-full pl-10 pr-3 py-2.5 border-slate-200 rounded-lg text-sm bg-slate-50 text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
                         placeholder="Search by name, email or role..."
                         value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
+                        onChange={e => {
+                          const value = e.target.value;
+                          setSearchTerm(value);
+                          const nextParams = new URLSearchParams(searchParams);
+                          if (value.trim()) {
+                            nextParams.set('q', value);
+                          } else {
+                            nextParams.delete('q');
+                          }
+                          setSearchParams(nextParams, { replace: true });
+                        }}
                     />
                 </div>
                 <div className="flex items-center gap-3 w-full md:w-auto">
@@ -173,6 +192,14 @@ export const UserManagement: React.FC = () => {
 
       {/* Desktop Table View */}
       <div className="hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        {isFetching ? (
+          <div className="p-6 space-y-4">
+            <Skeleton className="h-6 w-1/3" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        ) : (
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-semibold tracking-wider">
@@ -237,37 +264,46 @@ export const UserManagement: React.FC = () => {
                 <button disabled className="px-3 py-1 text-sm rounded border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-50">Next</button>
             </div>
         </div>
+        )}
       </div>
 
       {/* Mobile Card List View */}
       <div className="grid grid-cols-1 gap-4 md:hidden">
-        {filteredUsers.map(u => (
-            <div key={u.uid} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-3">
-                <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                        <img src={u.photoURL} className="h-12 w-12 rounded-full bg-slate-200" />
-                        <div>
-                            <h3 className="font-medium text-slate-900">{u.displayName || u.email.split('@')[0]}</h3>
-                            <p className="text-sm text-slate-500">{u.email}</p>
-                        </div>
-                    </div>
-                    <button onClick={() => handleEdit(u)} className="text-slate-400">
-                        <MoreVertical className="w-5 h-5" />
-                    </button>
-                </div>
-                <div className="flex items-center justify-between pt-2 border-t border-slate-50 mt-1">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
-                        ${u.role === 'admin' ? 'bg-blue-100 text-blue-800' :
-                        u.role === 'teacher' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'}`}>
-                        {u.role === 'teacher' ? 'Instructor' : u.role}
-                    </span>
-                    <div className="flex items-center gap-2">
-                        <div className={`h-2 w-2 rounded-full ${u.isWhitelisted ? 'bg-green-500' : 'bg-slate-300'}`}></div>
-                        <span className="text-sm text-slate-700">{u.isWhitelisted ? 'Active' : 'Inactive'}</span>
-                    </div>
-                </div>
-            </div>
-        ))}
+        {isFetching ? (
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+            <Skeleton className="h-6 w-1/2" />
+            <Skeleton className="h-6 w-full" />
+            <Skeleton className="h-6 w-2/3" />
+          </div>
+        ) : (
+          filteredUsers.map(u => (
+              <div key={u.uid} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-3">
+                  <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                          <img src={u.photoURL} className="h-12 w-12 rounded-full bg-slate-200" />
+                          <div>
+                              <h3 className="font-medium text-slate-900">{u.displayName || u.email.split('@')[0]}</h3>
+                              <p className="text-sm text-slate-500">{u.email}</p>
+                          </div>
+                      </div>
+                      <button onClick={() => handleEdit(u)} className="text-slate-400">
+                          <MoreVertical className="w-5 h-5" />
+                      </button>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-50 mt-1">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
+                          ${u.role === 'admin' ? 'bg-blue-100 text-blue-800' :
+                          u.role === 'teacher' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'}`}>
+                          {u.role === 'teacher' ? 'Instructor' : u.role}
+                      </span>
+                      <div className="flex items-center gap-2">
+                          <div className={`h-2 w-2 rounded-full ${u.isWhitelisted ? 'bg-green-500' : 'bg-slate-300'}`}></div>
+                          <span className="text-sm text-slate-700">{u.isWhitelisted ? 'Active' : 'Inactive'}</span>
+                      </div>
+                  </div>
+              </div>
+          ))
+        )}
       </div>
 
       {/* Edit Modal */}
