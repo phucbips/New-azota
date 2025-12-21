@@ -48,12 +48,24 @@ service cloud.firestore {
       );
 
       // CREATE RULES:
-      allow create: if request.auth != null && (isTeacher() || isAdmin());
+      // Enforce that teachers can only create assignments assigned to themselves
+      allow create: if request.auth != null && (
+        isAdmin() ||
+        (isTeacher() && request.resource.data.teacherId == request.auth.uid)
+      );
 
-      // UPDATE/DELETE RULES:
-      // 1. Admin
-      // 2. Owner (Teacher)
-      allow update, delete: if request.auth != null && (
+      // UPDATE RULES:
+      // Teachers can update their own assignments but usually shouldn't change the owner (teacherId)
+      allow update: if request.auth != null && (
+        isAdmin() ||
+        (
+          (resource.data.teacherId == request.auth.uid || resource.data.createdByTeacherId == request.auth.uid) &&
+          (request.resource.data.teacherId == request.auth.uid || request.resource.data.teacherId == resource.data.teacherId)
+        )
+      );
+
+      // DELETE RULES:
+      allow delete: if request.auth != null && (
         isAdmin() ||
         resource.data.teacherId == request.auth.uid ||
         resource.data.createdByTeacherId == request.auth.uid
