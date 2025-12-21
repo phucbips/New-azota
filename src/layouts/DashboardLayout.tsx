@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import {
   Menu, X, LogOut, LayoutDashboard, Users, BookOpen,
-  Settings, GraduationCap, FileText, Search, Bell, HelpCircle
+  Settings, GraduationCap, FileText, Search, Bell, UserCircle
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { SaaSButton } from '../components/ui/SaaSButton';
 
 interface NavItem {
   label: string;
@@ -19,17 +18,20 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
     { label: 'Tổng quan', href: '/admin', icon: <LayoutDashboard className="w-6 h-6" /> },
     { label: 'Quản lý User', href: '/admin/users', icon: <Users className="w-6 h-6" /> },
     { label: 'Assignments', href: '/admin/assignments', icon: <FileText className="w-6 h-6" /> },
-    { label: 'Courses', href: '#', icon: <BookOpen className="w-6 h-6" /> },
+    { label: 'Courses', href: '/admin/courses', icon: <BookOpen className="w-6 h-6" /> },
+    { label: 'Profile', href: '/admin/profile', icon: <UserCircle className="w-6 h-6" /> },
   ],
   teacher: [
     { label: 'Dashboard', href: '/teacher', icon: <LayoutDashboard className="w-6 h-6" /> },
     { label: 'Assignments', href: '/teacher/assignments', icon: <FileText className="w-6 h-6" /> },
-    { label: 'Classes', href: '#', icon: <BookOpen className="w-6 h-6" /> },
+    { label: 'Courses', href: '/teacher/courses', icon: <BookOpen className="w-6 h-6" /> },
+    { label: 'Profile', href: '/teacher/profile', icon: <UserCircle className="w-6 h-6" /> },
   ],
   student: [
     { label: 'Home', href: '/student', icon: <LayoutDashboard className="w-6 h-6" /> },
     { label: 'My Assignments', href: '/student/assignments', icon: <BookOpen className="w-6 h-6" /> },
-    { label: 'Courses', href: '#', icon: <GraduationCap className="w-6 h-6" /> },
+    { label: 'Courses', href: '/student/courses', icon: <GraduationCap className="w-6 h-6" /> },
+    { label: 'Profile', href: '/student/profile', icon: <UserCircle className="w-6 h-6" /> },
   ],
 };
 
@@ -42,8 +44,25 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
   const { user, signOut } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchValue, setSearchValue] = useState(searchParams.get('q') || '');
 
   const navItems = NAV_ITEMS[role] || [];
+
+  useEffect(() => {
+    setSearchValue(searchParams.get('q') || '');
+  }, [location.pathname, searchParams]);
+
+  const handleSearchChange = (value: string) => {
+    setSearchValue(value);
+    const nextParams = new URLSearchParams(searchParams);
+    if (value.trim()) {
+      nextParams.set('q', value);
+    } else {
+      nextParams.delete('q');
+    }
+    setSearchParams(nextParams, { replace: true });
+  };
 
   return (
     // Updated to use min-h-dvh for mobile browser address bar support
@@ -140,7 +159,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
 
         {/* Bottom Actions */}
         <div className="p-4 border-t border-slate-100 mt-auto">
-          <Link to="#" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors group">
+          <Link
+            to={`/${role}/settings`}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors group"
+          >
             <Settings className="w-5 h-5 text-slate-400 group-hover:text-slate-900" />
             <span className="text-sm font-medium group-hover:text-slate-900">Settings</span>
           </Link>
@@ -167,22 +189,21 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
                 </button>
 
                 {/* Page Title / Search Area */}
-                <div className="hidden md:flex items-center gap-2">
-                    {/* For Admin/Student search bar often goes here */}
-                    {role !== 'teacher' && (
-                        <div className="relative w-full md:w-64 lg:w-96">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Search className="w-5 h-5 text-slate-400" />
-                            </div>
-                            <input
-                                type="text"
-                                placeholder="Search..."
-                                className="block w-full pl-10 pr-3 py-2 border-none bg-slate-100 rounded-lg text-sm focus:ring-0 placeholder-slate-500 text-slate-900"
-                            />
+                <div className="hidden md:flex items-center gap-3">
+                    <div className="relative w-full md:w-64 lg:w-96">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Search className="w-5 h-5 text-slate-400" />
                         </div>
-                    )}
+                        <input
+                            type="text"
+                            placeholder="Search..."
+                            value={searchValue}
+                            onChange={(event) => handleSearchChange(event.target.value)}
+                            className="block w-full pl-10 pr-3 py-2 border-none bg-slate-100 rounded-lg text-sm focus:ring-0 placeholder-slate-500 text-slate-900"
+                        />
+                    </div>
                     {role === 'teacher' && (
-                         <h2 className="text-lg font-bold text-slate-900 tracking-tight">LMS Teacher Pro</h2>
+                         <span className="text-sm font-semibold text-slate-600">Teacher workspace</span>
                     )}
                 </div>
                 <h2 className="md:hidden text-lg font-bold text-slate-900 tracking-tight">LMS</h2>
