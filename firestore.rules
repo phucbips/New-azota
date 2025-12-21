@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- HÀM HỖ TRỢ (HELPER FUNCTIONS) ---
+
+    // Lấy thông tin user hiện tại từ database
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Kiểm tra có phải Admin không
+    function isAdmin() {
+      return getUserData().role == 'admin' || request.auth.token.email == 'thanhphucn06@gmail.com';
+    }
+
+    // Kiểm tra có phải Giáo viên không
+    function isTeacher() {
+      return getUserData().role == 'teacher';
+    }
+
+    // Kiểm tra tài khoản đã được kích hoạt (Student/Teacher)
+    function isWhitelisted() {
+      // Safe check if field exists, though usually it should
+      return getUserData().isWhitelisted == true;
+    }
+
+    // --- COLLECTION: USERS ---
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow delete: if request.auth != null && (isAdmin() || resource.data.email == request.auth.token.email);
+    }
+
+    // --- COLLECTION: ASSIGNMENTS (Bài tập) ---
+    match /assignments/{assignmentId} {
+      // READ RULES (Optimized):
+      // 1. Owner (Teacher) can always read their own assignments (Fast, no DB lookup required for rule).
+      // 2. Admin can read all.
+      // 3. Whitelisted users (Students/Teachers) can read (e.g. filtered by Grade).
+      allow read: if request.auth != null && (
+        resource.data.teacherId == request.auth.uid ||
+        resource.data.createdByTeacherId == request.auth.uid ||
+        isWhitelisted() ||
+        isAdmin() ||
+        isTeacher()
+      );
+
+      // CREATE RULES:
+      allow create: if request.auth != null && (isTeacher() || isAdmin());
+
+      // UPDATE/DELETE RULES:
+      // 1. Admin
+      // 2. Owner (Teacher)
+      allow update, delete: if request.auth != null && (
+        isAdmin() ||
+        resource.data.teacherId == request.auth.uid ||
+        resource.data.createdByTeacherId == request.auth.uid
+      );
+    }
+
+    // --- COLLECTION: SUBJECTS (Môn học) ---
+    match /subjects/{subjectId} {
+      // Allow read for all authenticated users (to populate dropdowns)
+      allow read: if request.auth != null;
+
+      // Allow create by Teachers or Admins (Dynamic creation from dropdown)
+      allow create: if request.auth != null && (isTeacher() || isAdmin());
+
+      // Allow update/delete only by Admins
+      allow update, delete: if request.auth != null && isAdmin();
+    }
+  }
+}

@@ -5,12 +5,13 @@ export const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/
 // Collections
 export const COLLECTIONS = {
   USERS: 'users',
-  LESSONS: 'lessons',
+  ASSIGNMENTS: 'assignments',
 } as const;
 
 // Routes
 export const ROUTES = {
   LOGIN: '/',
   ADMIN: '/admin',
+  TEACHER: '/teacher',
   STUDENT: '/student',
 } as const;

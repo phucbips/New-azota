@@ -9,10 +9,11 @@ import {
   where,
   getDocs,
   Timestamp,
+  deleteDoc,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { COLLECTIONS } from '../config/constants';
-import { User } from '../types';
+import { User, UserRole } from '../types';
 
 class UserService {
   private collection = collection(db, COLLECTIONS.USERS);
@@ -22,8 +23,42 @@ class UserService {
     await setDoc(userRef, {
       uid,
       ...userData,
-      joinedAt: Timestamp.now(),
+      email: userData.email.toLowerCase(),
+      joinedAt: userData.joinedAt || Timestamp.now(),
     });
+  }
+
+  // Pre-creates a user document (invitation) without a UID (uses email as ID initially or a random ID)
+  async createInvitation(email: string, role: UserRole, grade: string | null): Promise<void> {
+    const normalizedEmail = email.toLowerCase();
+    const existing = await this.findUserByEmail(normalizedEmail);
+    if (existing) {
+       throw new Error('User with this email already exists.');
+    }
+
+    const newDocRef = doc(this.collection); // Auto ID
+
+    const userData: Omit<User, 'uid'> = {
+        email: normalizedEmail,
+        displayName: normalizedEmail.split('@')[0],
+        photoURL: `https://ui-avatars.com/api/?name=${normalizedEmail[0]}&background=667eea&color=fff&size=200`,
+        role,
+        grade,
+        isWhitelisted: true, // Auto whitelist invited users
+        sessionId: '',
+        joinedAt: Timestamp.now(),
+        isActive: true,
+    };
+
+    await setDoc(newDocRef, {
+        ...userData,
+        uid: newDocRef.id // Temporary UID until real signup
+    });
+  }
+
+  async deleteUser(uid: string): Promise<void> {
+      const userRef = doc(db, COLLECTIONS.USERS, uid);
+      await deleteDoc(userRef);
   }
 
   async getUser(uid: string): Promise<User | null> {
@@ -31,7 +66,8 @@ class UserService {
     const userSnap = await getDoc(userRef);
 
     if (userSnap.exists()) {
-      return userSnap.data() as User;
+      // Ensure uid is always present even if missing in data
+      return { uid: userSnap.id, ...userSnap.data() } as User;
     }
     return null;
   }
@@ -41,7 +77,12 @@ class UserService {
     userData: Partial<Omit<User, 'uid'>>
   ): Promise<void> {
     const userRef = doc(db, COLLECTIONS.USERS, uid);
-    await updateDoc(userRef, userData);
+    // If email is being updated (rare), normalize it
+    const updates = { ...userData };
+    if (updates.email) {
+        updates.email = updates.email.toLowerCase();
+    }
+    await updateDoc(userRef, updates);
   }
 
   subscribeToUser(
@@ -55,7 +96,8 @@ class UserService {
       userRef,
       (docSnap) => {
         if (docSnap.exists()) {
-          callback(docSnap.data() as User);
+          // SAFEGUARD: Inject uid from docSnap.id to prevent undefined errors
+          callback({ uid: docSnap.id, ...docSnap.data() } as User);
         } else {
           callback(null);
         }
@@ -70,7 +112,8 @@ class UserService {
   }
 
   async findUserByEmail(email: string): Promise<User | null> {
-    const q = query(this.collection, where('email', '==', email));
+    const normalizedEmail = email.toLowerCase();
+    const q = query(this.collection, where('email', '==', normalizedEmail));
     const querySnapshot = await getDocs(q);
 
     if (!querySnapshot.empty) {
@@ -81,52 +124,32 @@ class UserService {
     return null;
   }
 
-  async whitelistStudent(email: string): Promise<boolean> {
-    const user = await this.findUserByEmail(email);
-
-    if (!user) {
-      throw new Error('Không tìm thấy người dùng. Họ phải đăng nhập ít nhất 1 lần.');
-    }
-
-    if (user.isWhitelisted) {
-      throw new Error('Tài khoản đã được kích hoạt trước đó.');
-    }
-
-    // Ensure the user is set as a student and whitelisted
-    await this.updateUser(user.uid, { isWhitelisted: true, role: 'student' });
-    return true;
-  }
-
-  async removeFromWhitelist(uid: string): Promise<void> {
-    // Also consider if you want to change the role back on removal
-    await this.updateUser(uid, { isWhitelisted: false });
-  }
-
-  subscribeToWhitelistedStudents(
-    callback: (students: User[]) => void,
-    onError?: (error: Error) => void
+  subscribeToAllUsers(
+      callback: (users: User[]) => void,
+      onError?: (error: Error) => void
   ): () => void {
-    const q = query(
-      this.collection,
-      where('isWhitelisted', '==', true),
-      where('role', '==', 'student')
-    );
+      const q = query(this.collection);
+      return onSnapshot(q, (snapshot) => {
+          const users = snapshot.docs.map(d => ({ uid: d.id, ...d.data() } as User));
+          // Client-side sort by joinedAt desc
+          users.sort((a, b) => {
+             const timeA = a.joinedAt?.toMillis ? a.joinedAt.toMillis() : 0;
+             const timeB = b.joinedAt?.toMillis ? b.joinedAt.toMillis() : 0;
+             return timeB - timeA;
+          });
+          callback(users);
+      }, onError);
+  }
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const students = snapshot.docs.map(
-          (doc) => ({ uid: doc.id, ...doc.data() } as User)
-        );
-        callback(students);
-      },
-      (error) => {
-        console.error('Error fetching whitelisted students:', error);
-        onError?.(error);
-      }
-    );
+  // Deprecated/Modified methods below to support legacy or specific needs
 
-    return unsubscribe;
+  async whitelistStudent(email: string): Promise<boolean> {
+     // Re-implement if needed, but createInvitation handles new users.
+     // For existing users:
+     const user = await this.findUserByEmail(email);
+     if (!user) return false;
+     await this.updateUser(user.uid, { isWhitelisted: true, role: 'student' });
+     return true;
   }
 }
 
