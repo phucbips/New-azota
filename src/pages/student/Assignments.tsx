@@ -2,9 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { assignmentService } from '../../services/assignment.service';
 import { Assignment } from '../../types';
-import { BookOpen, ChevronRight, AlertCircle, Clock, Filter, ArrowLeft } from 'lucide-react';
+import { BookOpen, ChevronRight, AlertCircle, Clock, ArrowLeft } from 'lucide-react';
 import { formatDate, safeString } from '../../lib/formatters';
-import { SubjectFilter } from '../../components/student/SubjectFilter';
+import { SubjectFilterBar } from '../../components/student/SubjectFilterBar';
+import { StudentSupportWidget } from '../../components/student/StudentSupportWidget';
 
 export const StudentAssignments: React.FC = () => {
   const { user } = useAuth();
@@ -47,7 +48,7 @@ export const StudentAssignments: React.FC = () => {
   if (selectedAssignment) {
     const embed = safeString(selectedAssignment.embedUrl);
     const title = safeString(selectedAssignment.title);
-    const topic = safeString(selectedAssignment.topic); // Replaces description/topic logic
+    const topic = safeString(selectedAssignment.topic);
     const description = safeString(selectedAssignment.description || selectedAssignment.topic);
     const targetGrade = String(selectedAssignment.gradeLevel);
 
@@ -88,6 +89,9 @@ export const StudentAssignments: React.FC = () => {
               )}
            </div>
         </div>
+
+        {/* Support Widget even in detail view */}
+        <StudentSupportWidget />
       </>
     );
   }
@@ -118,7 +122,7 @@ export const StudentAssignments: React.FC = () => {
   }
 
   return (
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6 relative">
         {/* Header & Filters */}
         <div className="flex flex-col gap-6">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -128,8 +132,8 @@ export const StudentAssignments: React.FC = () => {
                 </div>
             </div>
 
-            {/* Subject Filter Component */}
-            <SubjectFilter
+            {/* Subject Filter Bar - Inserted Between Header and Grid */}
+            <SubjectFilterBar
                 subjects={availableSubjects}
                 selectedSubject={selectedSubject}
                 onSelectSubject={setSelectedSubject}
@@ -137,7 +141,7 @@ export const StudentAssignments: React.FC = () => {
         </div>
 
         {filteredAssignments.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
             {filteredAssignments.map((assignment, index) => (
                 <div
                     key={assignment.id}
@@ -201,6 +205,9 @@ export const StudentAssignments: React.FC = () => {
                 <p className="text-slate-500 max-w-sm mx-auto">Try selecting a different subject or check back later.</p>
             </div>
         )}
+
+        {/* Support Widget - Inserted at End of Page Fragment */}
+        <StudentSupportWidget />
       </div>
   );
 };
