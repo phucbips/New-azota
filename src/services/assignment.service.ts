@@ -46,20 +46,20 @@ class AssignmentService {
     onError?: (error: Error) => void
   ): () => void {
     // Note: Querying by 'teacherId' (new field)
-    // If old documents exist with 'createdByTeacherId', they won't appear unless we migrate or query both.
-    // For this task, we assume new schema.
-    const q = query(this.collection, where('teacherId', '==', teacherId));
+    // Using orderBy for server-side sorting. May require Composite Index in Firestore.
+    const q = query(this.collection, where('teacherId', '==', teacherId), orderBy('createdAt', 'desc'));
 
     return onSnapshot(q, (snapshot) => {
-      const assignments = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Assignment));
-      // Client sort
-      assignments.sort((a, b) => {
-          const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
-          const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
-          return timeB - timeA;
+      const assignments = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          // Legacy field mapping fallback
+          teacherId: data.teacherId || data.createdByTeacherId,
+          embedUrl: data.embedUrl || data.embedCode,
+          gradeLevel: data.gradeLevel || data.targetGrade,
+        } as Assignment;
       });
       callback(assignments);
     }, onError);
@@ -70,17 +70,19 @@ class AssignmentService {
     callback: (assignments: Assignment[]) => void,
     onError?: (error: Error) => void
   ): () => void {
-    const q = query(this.collection, where('gradeLevel', '==', grade));
+    const q = query(this.collection, where('gradeLevel', '==', grade), orderBy('createdAt', 'desc'));
 
     return onSnapshot(q, (snapshot) => {
-      const assignments = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Assignment));
-      assignments.sort((a, b) => {
-          const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
-          const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
-          return timeB - timeA;
+      const assignments = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          // Legacy field mapping fallback
+          teacherId: data.teacherId || data.createdByTeacherId,
+          embedUrl: data.embedUrl || data.embedCode,
+          gradeLevel: data.gradeLevel || data.targetGrade,
+        } as Assignment;
       });
       callback(assignments);
     }, onError);
