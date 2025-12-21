@@ -2,14 +2,17 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { assignmentService } from '../../services/assignment.service';
 import { Assignment } from '../../types';
-import { BookOpen, ChevronRight, AlertCircle, Clock, Filter } from 'lucide-react';
+import { BookOpen, ChevronRight, AlertCircle, Clock, Filter, ArrowLeft } from 'lucide-react';
 import { formatDate, safeString } from '../../lib/formatters';
+import { SubjectFilter } from '../../components/student/SubjectFilter';
 
 export const StudentAssignments: React.FC = () => {
   const { user } = useAuth();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
-  const [filter, setFilter] = useState<'all' | 'pending'>('all');
+
+  // Filter States
+  const [selectedSubject, setSelectedSubject] = useState('All');
 
   useEffect(() => {
     // Only fetch if user has a grade
@@ -25,10 +28,20 @@ export const StudentAssignments: React.FC = () => {
     return () => unsubscribe();
   }, [user]);
 
+  // Extract unique subjects
+  const availableSubjects = useMemo(() => {
+      const subjects = new Set<string>();
+      assignments.forEach(a => {
+          if (a.subject) subjects.add(a.subject);
+      });
+      return Array.from(subjects).sort();
+  }, [assignments]);
+
   // Optimized: Use useMemo for filtering
   const filteredAssignments = useMemo(() => {
-      return assignments; // Placeholder for future filtering logic
-  }, [assignments, filter]);
+      if (selectedSubject === 'All') return assignments;
+      return assignments.filter(a => a.subject === selectedSubject);
+  }, [assignments, selectedSubject]);
 
   // Handle Detail View
   if (selectedAssignment) {
@@ -44,7 +57,8 @@ export const StudentAssignments: React.FC = () => {
           onClick={() => setSelectedAssignment(null)}
           className="mb-4 flex items-center gap-2 text-slate-600 hover:text-blue-600 font-medium transition-colors"
         >
-           ← Back to Assignments
+           <ArrowLeft className="w-4 h-4" />
+           Back to Assignments
         </button>
 
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
@@ -112,23 +126,14 @@ export const StudentAssignments: React.FC = () => {
                     <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">My Assignments</h1>
                     <p className="text-slate-500 text-sm md:text-base">Track your progress and manage your upcoming coursework.</p>
                 </div>
-                <div className="flex gap-3">
-                    <button className="flex items-center justify-center gap-2 px-4 h-10 rounded-lg bg-white border border-slate-200 text-slate-900 text-sm font-bold shadow-sm hover:bg-slate-50 transition-colors">
-                        <Filter className="w-5 h-5" />
-                        <span>Filter</span>
-                    </button>
-                </div>
             </div>
 
-            {/* Filter Chips */}
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                <button
-                    onClick={() => setFilter('all')}
-                    className={`flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full px-4 transition-colors font-medium text-sm ${filter === 'all' ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50'}`}
-                >
-                    All Assignments
-                </button>
-            </div>
+            {/* Subject Filter Component */}
+            <SubjectFilter
+                subjects={availableSubjects}
+                selectedSubject={selectedSubject}
+                onSelectSubject={setSelectedSubject}
+            />
         </div>
 
         {filteredAssignments.length > 0 ? (
@@ -161,6 +166,11 @@ export const StudentAssignments: React.FC = () => {
 
                     <div className="p-5 flex flex-col gap-3 flex-1">
                         <div>
+                             <div className="flex items-center gap-2 mb-2">
+                                <span className="text-xs font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 uppercase tracking-wide">
+                                    {assignment.subject || 'Chung'}
+                                </span>
+                             </div>
                             <h3 className="text-lg font-bold text-slate-900 leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">
                                 {safeString(assignment.title)}
                             </h3>
@@ -187,8 +197,8 @@ export const StudentAssignments: React.FC = () => {
                 <div className="bg-blue-50 rounded-full p-6 mb-6">
                     <BookOpen className="w-16 h-16 text-blue-600" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">No assignments yet</h3>
-                <p className="text-slate-500 max-w-sm mx-auto">You're all caught up! Check back later for new course materials and tasks.</p>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">No assignments found</h3>
+                <p className="text-slate-500 max-w-sm mx-auto">Try selecting a different subject or check back later.</p>
             </div>
         )}
       </div>
