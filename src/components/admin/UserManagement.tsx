@@ -200,6 +200,7 @@ export const UserManagement: React.FC = () => {
             <Skeleton className="h-10 w-full" />
           </div>
         ) : (
+        <>
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-semibold tracking-wider">
@@ -264,6 +265,7 @@ export const UserManagement: React.FC = () => {
                 <button disabled className="px-3 py-1 text-sm rounded border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-50">Next</button>
             </div>
         </div>
+        </>
         )}
       </div>
 
