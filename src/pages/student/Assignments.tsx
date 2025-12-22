@@ -101,12 +101,10 @@ export const StudentAssignments: React.FC = () => {
 
            <div className="flex-1 w-full bg-slate-50 rounded-lg border border-slate-200 relative overflow-hidden">
               {/* Security Verification Overlay */}
-              {selectedAssignment.examPassword && (
-                <SecureExamVerify
-                  embedLink={embed}
-                  examPassword={selectedAssignment.examPassword}
-                />
-              )}
+              <SecureExamVerify
+                embedLink={embed}
+                examPassword={selectedAssignment.examPassword || ''}
+              />
 
               {embed.startsWith('<iframe') ? (
                   <div dangerouslySetInnerHTML={{ __html: embed }} className="w-full h-full absolute inset-0 [&>iframe]:w-full [&>iframe]:h-full" />

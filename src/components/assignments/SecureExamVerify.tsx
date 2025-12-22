@@ -81,17 +81,23 @@ export function SecureExamVerify({ embedLink, examPassword }: SecureExamVerifyPr
                 ✅ Xác minh thành công!
               </span>
 
-              <div className="relative group cursor-pointer" onClick={() => navigator.clipboard.writeText(examPassword)}>
-                <div className="bg-slate-100 px-6 py-3 rounded-xl border border-slate-200 flex items-center gap-3 hover:bg-slate-200 transition-colors">
-                  <span className="text-3xl font-mono font-bold text-slate-800 tracking-wider">
-                    {examPassword}
-                  </span>
-                  <Copy className="h-5 w-5 text-slate-400 group-hover:text-slate-600" />
+              {examPassword ? (
+                <div className="relative group cursor-pointer" onClick={() => navigator.clipboard.writeText(examPassword)}>
+                  <div className="bg-slate-100 px-6 py-3 rounded-xl border border-slate-200 flex items-center gap-3 hover:bg-slate-200 transition-colors">
+                    <span className="text-3xl font-mono font-bold text-slate-800 tracking-wider">
+                      {examPassword}
+                    </span>
+                    <Copy className="h-5 w-5 text-slate-400 group-hover:text-slate-600" />
+                  </div>
+                  <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs text-green-600 font-medium opacity-100 transition-opacity">
+                    Đã copy mật khẩu
+                  </div>
                 </div>
-                <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs text-green-600 font-medium opacity-100 transition-opacity">
-                  Đã copy mật khẩu
+              ) : (
+                <div className="bg-slate-50 px-6 py-3 rounded-xl border border-slate-100">
+                  <p className="text-slate-500 font-medium">Đã mở khoá đề thi. Mời bạn làm bài bên dưới 👇</p>
                 </div>
-              </div>
+              )}
             </div>
           </>
         )}
