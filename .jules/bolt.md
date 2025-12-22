@@ -1,0 +1,1 @@
+## 2024-05-23 - Prevent AuthContext Re-renders **Learning:** Context values should always be memoized to prevent unnecessary re-renders in consumers, especially in a root-level provider like AuthProvider. **Action:** Always wrap context values in `useMemo` unless the value is a primitive or stable reference.
