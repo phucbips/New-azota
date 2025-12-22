@@ -40,7 +40,7 @@ export function SecureExamVerify({ embedLink, examPassword }: SecureExamVerifyPr
               <Shield className="h-8 w-8 text-blue-600" />
             </div>
             <h3 className="text-lg font-semibold text-slate-800">
-              Bảo mật bài thi
+              Hệ thống bảo mật lớp VIP
             </h3>
             <p className="text-slate-500 text-sm mb-4">
               Vui lòng xác minh thiết bị để hiển thị mật khẩu làm bài.
