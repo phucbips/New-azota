@@ -7,7 +7,7 @@ interface AzotaEmbedProps {
   debugMode?: boolean;
 }
 
-export function AzotaEmbed({ src, className, debugMode = false }: AzotaEmbedProps) {
+export function AzotaEmbed({ src, className, debugMode = true }: AzotaEmbedProps) {
   return (
     <div className={cn("relative w-full h-full min-h-[500px]", className)}>
       <iframe
