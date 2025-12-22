@@ -22,6 +22,7 @@ export interface Assignment {
   topic: string; // Topic/Chapter
   description?: string; // Optional/Deprecated
   embedUrl: string; // Renamed from embedCode
+  examPassword?: string; // Optional: Password for secure exams
   coverImageUrl?: string; // New
   teacherId: string; // Renamed from createdByTeacherId
   gradeLevel: number; // Changed from targetGrade (string) to number
