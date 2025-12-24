@@ -11,6 +11,7 @@ import {
 import { auth } from '../config/firebase';
 import { userService } from '../services/user.service';
 import { User, AuthContextType } from '../types';
+import { TEST_ACCOUNTS } from '../config/test_accounts';
 
 export const AuthContext = createContext<AuthContextType | undefined>(
   undefined
@@ -83,6 +84,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       const isSuperAdmin = userEmail === SUPER_ADMIN_EMAIL.toLowerCase();
+      const testAccount = TEST_ACCOUNTS.find(acc => acc.email.toLowerCase() === userEmail);
 
       if (existingUser) {
         // User exists, check if an update is needed
@@ -98,6 +100,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           updates.role = 'admin';
           updates.isWhitelisted = true;
           needsUpdate = true;
+        } else if (testAccount) {
+            // Enforce test account roles
+            if (existingUser.role !== testAccount.role || existingUser.isWhitelisted !== testAccount.isWhitelisted) {
+                updates.role = testAccount.role;
+                updates.isWhitelisted = testAccount.isWhitelisted;
+                needsUpdate = true;
+            }
         }
 
         if (needsUpdate) {
@@ -108,13 +117,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return existingUser; // Return existing user data
       } else {
         // User does not exist, and wasn't pre-created. Create a new one.
+        const role = isSuperAdmin ? 'admin' : (testAccount ? testAccount.role : 'student');
+        const isWhitelisted = isSuperAdmin || (testAccount ? testAccount.isWhitelisted : false);
+
         const newUser: Omit<User, 'uid'> = {
           email: userEmail || '',
           displayName: firebaseUser.displayName || userEmail?.split('@')[0] || 'User',
           photoURL: firebaseUser.photoURL || `https://ui-avatars.com/api/?name=${userEmail?.[0]}&background=667eea&color=fff&size=200`,
-          role: isSuperAdmin ? 'admin' : 'student',
+          role,
           grade: null, // Default to null
-          isWhitelisted: isSuperAdmin,
+          isWhitelisted,
           sessionId: sessionId,
           joinedAt: null as any, // Will be set by service
         };
