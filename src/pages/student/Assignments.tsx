@@ -66,9 +66,47 @@ export const StudentAssignments: React.FC = () => {
       });
   }, [filteredAssignments, searchQuery]);
 
+  const embedHtml = useMemo(() => {
+    if (!selectedAssignment) return '';
+    const embed = safeString(selectedAssignment.embedUrl);
+
+    if (!embed.startsWith('<iframe')) return embed;
+
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(embed, 'text/html');
+      const iframe = doc.querySelector('iframe');
+
+      if (!iframe) return embed;
+
+      iframe.setAttribute('allowfullscreen', 'true');
+      iframe.setAttribute('webkitallowfullscreen', 'true');
+      iframe.setAttribute('mozallowfullscreen', 'true');
+
+      const existingAllow = iframe.getAttribute('allow') || '';
+      const allowTokens = new Set(
+        existingAllow
+          .split(';')
+          .map((token) => token.trim())
+          .filter(Boolean),
+      );
+      allowTokens.add('fullscreen');
+      iframe.setAttribute('allow', Array.from(allowTokens).join('; '));
+
+      iframe.removeAttribute('width');
+      iframe.removeAttribute('height');
+      iframe.classList.add('w-full', 'h-full');
+
+      return iframe.outerHTML;
+    } catch (error) {
+      console.error('Failed to normalize embed iframe', error);
+      return embed;
+    }
+  }, [selectedAssignment]);
+
   // Handle Detail View
   if (selectedAssignment) {
-    const embed = safeString(selectedAssignment.embedUrl);
+    const embed = embedHtml;
     const title = safeString(selectedAssignment.title);
     const topic = safeString(selectedAssignment.topic);
     const description = safeString(selectedAssignment.description || selectedAssignment.topic);
@@ -106,6 +144,7 @@ export const StudentAssignments: React.FC = () => {
                     src={embed}
                     className="w-full h-full absolute inset-0"
                     title={title}
+                    allow="fullscreen"
                     allowFullScreen
                   />
               )}
