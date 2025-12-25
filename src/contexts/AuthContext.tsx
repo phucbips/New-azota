@@ -10,6 +10,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { userService } from '../services/user.service';
+import { TEST_ACCOUNTS } from '../config/test_accounts';
 import { User, AuthContextType } from '../types';
 
 export const AuthContext = createContext<AuthContextType | undefined>(
@@ -83,6 +84,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       const isSuperAdmin = userEmail === SUPER_ADMIN_EMAIL.toLowerCase();
+      const testAccountConfig = TEST_ACCOUNTS.find(a => a.email.toLowerCase() === userEmail);
 
       if (existingUser) {
         // User exists, check if an update is needed
@@ -100,6 +102,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           needsUpdate = true;
         }
 
+        if (testAccountConfig) {
+          if (existingUser.role !== testAccountConfig.role || !existingUser.isWhitelisted) {
+            updates.role = testAccountConfig.role;
+            updates.isWhitelisted = testAccountConfig.isWhitelisted;
+            needsUpdate = true;
+          }
+        }
+
         if (needsUpdate) {
           await userService.updateUser(firebaseUser.uid, updates);
           return { ...existingUser, ...updates }; // Return updated user data immediately
@@ -112,9 +122,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           email: userEmail || '',
           displayName: firebaseUser.displayName || userEmail?.split('@')[0] || 'User',
           photoURL: firebaseUser.photoURL || `https://ui-avatars.com/api/?name=${userEmail?.[0]}&background=667eea&color=fff&size=200`,
-          role: isSuperAdmin ? 'admin' : 'student',
+          role: isSuperAdmin ? 'admin' : (testAccountConfig ? testAccountConfig.role : 'student'),
           grade: null, // Default to null
-          isWhitelisted: isSuperAdmin,
+          isWhitelisted: isSuperAdmin || (testAccountConfig ? testAccountConfig.isWhitelisted : false),
           sessionId: sessionId,
           joinedAt: null as any, // Will be set by service
         };
