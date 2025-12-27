@@ -11,6 +11,7 @@ import {
 import { auth } from '../config/firebase';
 import { userService } from '../services/user.service';
 import { User, AuthContextType } from '../types';
+import { TEST_ACCOUNTS } from '../config/test_accounts';
 
 export const AuthContext = createContext<AuthContextType | undefined>(
   undefined
@@ -84,6 +85,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       const isSuperAdmin = userEmail === SUPER_ADMIN_EMAIL.toLowerCase();
 
+      // Check if it's a test account and determine forced role/whitelist
+      let forcedRole = null;
+      let forcedWhitelist = false;
+
+      if (userEmail === TEST_ACCOUNTS.TEACHER.email) {
+          forcedRole = TEST_ACCOUNTS.TEACHER.role;
+          forcedWhitelist = true;
+      } else if (userEmail === TEST_ACCOUNTS.STUDENT.email) {
+          forcedRole = TEST_ACCOUNTS.STUDENT.role;
+          forcedWhitelist = true; // Whitelist test student too
+      }
+
       if (existingUser) {
         // User exists, check if an update is needed
         const updates: Partial<User> = {};
@@ -98,6 +111,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           updates.role = 'admin';
           updates.isWhitelisted = true;
           needsUpdate = true;
+        } else if (forcedRole && (existingUser.role !== forcedRole || (forcedWhitelist && !existingUser.isWhitelisted))) {
+          // Update test accounts to correct role/whitelist status
+          updates.role = forcedRole;
+          if (forcedWhitelist) updates.isWhitelisted = true;
+          needsUpdate = true;
         }
 
         if (needsUpdate) {
@@ -108,13 +126,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return existingUser; // Return existing user data
       } else {
         // User does not exist, and wasn't pre-created. Create a new one.
+        const role = isSuperAdmin ? 'admin' : (forcedRole || 'student');
+        const isWhitelisted = isSuperAdmin || forcedWhitelist;
+
         const newUser: Omit<User, 'uid'> = {
           email: userEmail || '',
           displayName: firebaseUser.displayName || userEmail?.split('@')[0] || 'User',
           photoURL: firebaseUser.photoURL || `https://ui-avatars.com/api/?name=${userEmail?.[0]}&background=667eea&color=fff&size=200`,
-          role: isSuperAdmin ? 'admin' : 'student',
+          role: role,
           grade: null, // Default to null
-          isWhitelisted: isSuperAdmin,
+          isWhitelisted: isWhitelisted,
           sessionId: sessionId,
           joinedAt: null as any, // Will be set by service
         };
