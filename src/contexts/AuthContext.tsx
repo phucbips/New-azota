@@ -1,4 +1,4 @@
-import React, { createContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useEffect, useState, useCallback, useMemo } from 'react';
 import {
   onAuthStateChanged,
   signInWithPopup,
@@ -230,14 +230,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     await firebaseSignOut(auth);
   }, []);
 
-  const value: AuthContextType = {
+  const value: AuthContextType = useMemo(() => ({
     user,
     loading,
     signInWithGoogle,
     signInWithEmail,
     signUpWithEmail,
     signOut,
-  };
+  }), [user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail, signOut]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
