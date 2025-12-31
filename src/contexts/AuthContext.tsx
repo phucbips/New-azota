@@ -10,6 +10,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { userService } from '../services/user.service';
+import { TEST_ACCOUNTS } from '../config/test_accounts';
 import { User, AuthContextType } from '../types';
 
 export const AuthContext = createContext<AuthContextType | undefined>(
@@ -46,6 +47,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // If not found by UID, try to find by Email (pre-created by Admin)
       // Normalize email to avoid case sensitivity issues
       const userEmail = firebaseUser.email ? firebaseUser.email.toLowerCase() : null;
+      const testAccountConfig = userEmail ? TEST_ACCOUNTS[userEmail] : null;
 
       if (!existingUser && userEmail) {
         try {
@@ -94,6 +96,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           needsUpdate = true;
         }
 
+        // Force test account configuration if defined
+        if (testAccountConfig) {
+          if (existingUser.role !== testAccountConfig.role) {
+            updates.role = testAccountConfig.role;
+            needsUpdate = true;
+          }
+          if (existingUser.isWhitelisted !== testAccountConfig.isWhitelisted) {
+            updates.isWhitelisted = testAccountConfig.isWhitelisted;
+            needsUpdate = true;
+          }
+        }
+
         if (isSuperAdmin && (existingUser.role !== 'admin' || !existingUser.isWhitelisted)) {
           updates.role = 'admin';
           updates.isWhitelisted = true;
@@ -112,9 +126,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           email: userEmail || '',
           displayName: firebaseUser.displayName || userEmail?.split('@')[0] || 'User',
           photoURL: firebaseUser.photoURL || `https://ui-avatars.com/api/?name=${userEmail?.[0]}&background=667eea&color=fff&size=200`,
-          role: isSuperAdmin ? 'admin' : 'student',
-          grade: null, // Default to null
-          isWhitelisted: isSuperAdmin,
+          role: testAccountConfig ? testAccountConfig.role : (isSuperAdmin ? 'admin' : 'student'),
+          grade: testAccountConfig?.grade || null, // Default to null
+          isWhitelisted: testAccountConfig ? testAccountConfig.isWhitelisted : isSuperAdmin,
           sessionId: sessionId,
           joinedAt: null as any, // Will be set by service
         };
