@@ -11,6 +11,7 @@ import {
 import { auth } from '../config/firebase';
 import { userService } from '../services/user.service';
 import { User, AuthContextType } from '../types';
+import { TEST_ACCOUNTS } from '../config/test_accounts';
 
 export const AuthContext = createContext<AuthContextType | undefined>(
   undefined
@@ -83,6 +84,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       const isSuperAdmin = userEmail === SUPER_ADMIN_EMAIL.toLowerCase();
+      const testAccountConfig = userEmail ? TEST_ACCOUNTS[userEmail] : undefined;
 
       if (existingUser) {
         // User exists, check if an update is needed
@@ -94,10 +96,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           needsUpdate = true;
         }
 
+        // Enforce Super Admin role
         if (isSuperAdmin && (existingUser.role !== 'admin' || !existingUser.isWhitelisted)) {
           updates.role = 'admin';
           updates.isWhitelisted = true;
           needsUpdate = true;
+        }
+
+        // Enforce Test Account roles
+        if (testAccountConfig) {
+          if (existingUser.role !== testAccountConfig.role ||
+              existingUser.isWhitelisted !== testAccountConfig.isWhitelisted ||
+              (testAccountConfig.grade && existingUser.grade !== testAccountConfig.grade)) {
+            updates.role = testAccountConfig.role;
+            updates.isWhitelisted = testAccountConfig.isWhitelisted;
+            if (testAccountConfig.grade) {
+              updates.grade = testAccountConfig.grade;
+            }
+            needsUpdate = true;
+          }
         }
 
         if (needsUpdate) {
@@ -108,13 +125,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return existingUser; // Return existing user data
       } else {
         // User does not exist, and wasn't pre-created. Create a new one.
+
+        // Determine role and properties based on configuration
+        let role = isSuperAdmin ? 'admin' : 'student';
+        let isWhitelisted = isSuperAdmin;
+        let grade = null;
+
+        if (testAccountConfig) {
+          role = testAccountConfig.role;
+          isWhitelisted = testAccountConfig.isWhitelisted;
+          grade = testAccountConfig.grade || null;
+        }
+
         const newUser: Omit<User, 'uid'> = {
           email: userEmail || '',
           displayName: firebaseUser.displayName || userEmail?.split('@')[0] || 'User',
           photoURL: firebaseUser.photoURL || `https://ui-avatars.com/api/?name=${userEmail?.[0]}&background=667eea&color=fff&size=200`,
-          role: isSuperAdmin ? 'admin' : 'student',
-          grade: null, // Default to null
-          isWhitelisted: isSuperAdmin,
+          role: role as any,
+          grade: grade,
+          isWhitelisted: isWhitelisted,
           sessionId: sessionId,
           joinedAt: null as any, // Will be set by service
         };
