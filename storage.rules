@@ -1,0 +1,41 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Hàm kiểm tra đã đăng nhập chưa
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Hàm kiểm tra có phải Admin không (Cách đơn giản: check email cứng)
+    // Lưu ý: Cách chuẩn là dùng Custom Claims, nhưng cách này nhanh gọn cho dự án của bạn.
+    function isAdmin() {
+       // Using the specific email from the prompt.
+       // Note: Previous prompts said "thanhphucn06@gmail.com".
+       return request.auth.token.email == 'thanhphucn06@gmail.com';
+    }
+
+    // --- KHU VỰC 1: ẢNH BANNER (Chỉ Admin up, Ai cũng xem được) ---
+    match /banners/{imageId} {
+      // Cho phép mọi người (kể cả chưa login) xem banner quảng cáo
+      allow read: if true;
+      // Chỉ Admin được thêm/xóa ảnh
+      allow write: if isAuthenticated() && isAdmin();
+    }
+
+    // --- KHU VỰC 2: ẢNH BÀI TẬP (Giáo viên up, Học sinh xem) ---
+    match /assignments/{teacherId}/{imageId} {
+      // Ai đã login (Học sinh/GV) đều xem được ảnh bài tập
+      allow read: if isAuthenticated();
+
+      // Chỉ upload được nếu UID của người up trùng với tên thư mục
+      // Ví dụ: Giáo viên A chỉ được up vào thư mục assignments/ID_Cua_A/...
+      allow write: if isAuthenticated() && request.auth.uid == teacherId;
+    }
+
+    // Fallback for general usage if needed (optional, but sticking to strict rules provided)
+    // match /{allPaths=**} {
+    //   allow read, write: if false;
+    // }
+  }
+}

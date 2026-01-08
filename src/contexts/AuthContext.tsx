@@ -30,6 +30,8 @@ const getSessionId = () => {
   return sessionId;
 };
 
+const SUPER_ADMIN_EMAIL = 'thanhphucn06@gmail.com';
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,8 +40,49 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // This function handles the one-time operation of fetching or creating a user in Firestore.
   const getOrCreateUser = useCallback(async (firebaseUser: FirebaseUser): Promise<User | null> => {
     try {
-      const existingUser = await userService.getUser(firebaseUser.uid);
-      const isSuperAdmin = firebaseUser.email === import.meta.env.VITE_SUPER_ADMIN_EMAIL;
+      // First, try to get the user by UID
+      let existingUser = await userService.getUser(firebaseUser.uid);
+
+      // If not found by UID, try to find by Email (pre-created by Admin)
+      // Normalize email to avoid case sensitivity issues
+      const userEmail = firebaseUser.email ? firebaseUser.email.toLowerCase() : null;
+
+      if (!existingUser && userEmail) {
+        try {
+            const userByEmail = await userService.findUserByEmail(userEmail);
+            if (userByEmail) {
+            // Found an invitation document
+
+            if (userByEmail.uid !== firebaseUser.uid) {
+                // Migrate the pre-created user data to the correct UID doc
+                const { uid: oldUid, ...userData } = userByEmail;
+
+                // Create the real user doc
+                await userService.createUser(firebaseUser.uid, {
+                    ...userData,
+                    // Ensure we keep the role and grade set by admin
+                    sessionId: sessionId,
+                    joinedAt: userData.joinedAt || new Date() as any
+                });
+
+                // IMPORTANT: Delete the old invitation doc to prevent duplicates in Admin list
+                if (oldUid) {
+                    await userService.deleteUser(oldUid);
+                }
+
+                existingUser = await userService.getUser(firebaseUser.uid);
+            } else {
+                existingUser = userByEmail;
+            }
+            }
+        } catch (error: any) {
+            // If we hit a permission error (e.g. non-admin trying to query users),
+            // just ignore the invitation check and proceed to create a new user.
+            console.warn('Error checking for invitation (likely permission issue), creating new user instead:', error);
+        }
+      }
+
+      const isSuperAdmin = userEmail === SUPER_ADMIN_EMAIL.toLowerCase();
 
       if (existingUser) {
         // User exists, check if an update is needed
@@ -64,12 +107,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         return existingUser; // Return existing user data
       } else {
-        // User does not exist, create a new one
+        // User does not exist, and wasn't pre-created. Create a new one.
         const newUser: Omit<User, 'uid'> = {
-          email: firebaseUser.email || '',
-          displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-          photoURL: firebaseUser.photoURL || `https://ui-avatars.com/api/?name=${firebaseUser.email?.[0]}&background=667eea&color=fff&size=200`,
+          email: userEmail || '',
+          displayName: firebaseUser.displayName || userEmail?.split('@')[0] || 'User',
+          photoURL: firebaseUser.photoURL || `https://ui-avatars.com/api/?name=${userEmail?.[0]}&background=667eea&color=fff&size=200`,
           role: isSuperAdmin ? 'admin' : 'student',
+          grade: null, // Default to null
           isWhitelisted: isSuperAdmin,
           sessionId: sessionId,
           joinedAt: null as any, // Will be set by service
@@ -82,6 +126,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     } catch (error) {
         console.error("Error getting or creating user:", error);
+        // Important: Return null here so we don't crash, but the user state will be null, triggering sign out
         return null;
     }
   }, [sessionId]);
