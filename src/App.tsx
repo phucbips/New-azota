@@ -1,11 +1,19 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './components/auth/LoginPage';
-import { AdminDashboard } from './pages/AdminDashboard';
-import { StudentDashboard } from './pages/StudentDashboard';
 import { Loading } from './components/shared/Loading';
 import './styles/globals.css';
+
+// Lazy load dashboards to improve initial load time
+// Using named export resolution pattern since components are exported as const
+const AdminDashboard = React.lazy(() =>
+  import('./pages/AdminDashboard').then(module => ({ default: module.AdminDashboard }))
+);
+
+const StudentDashboard = React.lazy(() =>
+  import('./pages/StudentDashboard').then(module => ({ default: module.StudentDashboard }))
+);
 
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
@@ -18,11 +26,11 @@ const AppContent: React.FC = () => {
     return <LoginPage />;
   }
 
-  if (user.role === 'admin') {
-    return <AdminDashboard />;
-  }
-
-  return <StudentDashboard />;
+  return (
+    <Suspense fallback={<Loading message="Đang tải giao diện..." fullScreen />}>
+      {user.role === 'admin' ? <AdminDashboard /> : <StudentDashboard />}
+    </Suspense>
+  );
 };
 
 function App() {
