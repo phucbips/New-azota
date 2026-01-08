@@ -200,70 +200,72 @@ export const UserManagement: React.FC = () => {
             <Skeleton className="h-10 w-full" />
           </div>
         ) : (
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-semibold tracking-wider">
-              <th className="px-6 py-4 w-12"><input type="checkbox" className="rounded border-slate-300 text-blue-600 w-4 h-4" /></th>
-              <th className="px-6 py-4">User</th>
-              <th className="px-6 py-4">Role</th>
-              <th className="px-6 py-4">Joined</th>
-              <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filteredUsers.map(u => (
-              <tr key={u.uid} className="group hover:bg-slate-50/50 transition-colors">
-                <td className="px-6 py-4"><input type="checkbox" className="rounded border-slate-300 text-blue-600 w-4 h-4" /></td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <img src={u.photoURL} alt="" className="h-10 w-10 rounded-full bg-slate-200" />
-                    <div>
-                      <div className="font-medium text-slate-900">{u.displayName || u.email.split('@')[0]}</div>
-                      <div className="text-sm text-slate-500">{u.email}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
-                    ${u.role === 'admin' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
-                      u.role === 'teacher' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'}`}>
-                    {u.role === 'teacher' ? 'Instructor' : u.role}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm text-slate-600">
-                  {formatDate(u.joinedAt)}
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    <div className={`h-2 w-2 rounded-full ${u.isWhitelisted ? 'bg-green-500' : 'bg-slate-300'}`}></div>
-                    <span className="text-sm text-slate-700">{u.isWhitelisted ? 'Active' : 'Inactive'}</span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => handleEdit(u)} className="text-slate-400 hover:text-blue-600 p-1"><Edit2 className="w-5 h-5" /></button>
-                    <button onClick={() => handleDelete(u.uid)} className="text-slate-400 hover:text-red-500 p-1"><Trash2 className="w-5 h-5" /></button>
-                  </div>
-                </td>
+        <>
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-semibold tracking-wider">
+                <th className="px-6 py-4 w-12"><input type="checkbox" className="rounded border-slate-300 text-blue-600 w-4 h-4" /></th>
+                <th className="px-6 py-4">User</th>
+                <th className="px-6 py-4">Role</th>
+                <th className="px-6 py-4">Joined</th>
+                <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4 text-right">Actions</th>
               </tr>
-            ))}
-            {filteredUsers.length === 0 && (
-                <tr><td colSpan={6} className="p-8 text-center text-slate-500">No users found.</td></tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredUsers.map(u => (
+                <tr key={u.uid} className="group hover:bg-slate-50/50 transition-colors">
+                  <td className="px-6 py-4"><input type="checkbox" className="rounded border-slate-300 text-blue-600 w-4 h-4" /></td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <img src={u.photoURL} alt="" className="h-10 w-10 rounded-full bg-slate-200" />
+                      <div>
+                        <div className="font-medium text-slate-900">{u.displayName || u.email.split('@')[0]}</div>
+                        <div className="text-sm text-slate-500">{u.email}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
+                      ${u.role === 'admin' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                        u.role === 'teacher' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'}`}>
+                      {u.role === 'teacher' ? 'Instructor' : u.role}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-slate-600">
+                    {formatDate(u.joinedAt)}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <div className={`h-2 w-2 rounded-full ${u.isWhitelisted ? 'bg-green-500' : 'bg-slate-300'}`}></div>
+                      <span className="text-sm text-slate-700">{u.isWhitelisted ? 'Active' : 'Inactive'}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => handleEdit(u)} className="text-slate-400 hover:text-blue-600 p-1"><Edit2 className="w-5 h-5" /></button>
+                      <button onClick={() => handleDelete(u.uid)} className="text-slate-400 hover:text-red-500 p-1"><Trash2 className="w-5 h-5" /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filteredUsers.length === 0 && (
+                  <tr><td colSpan={6} className="p-8 text-center text-slate-500">No users found.</td></tr>
+              )}
+            </tbody>
+          </table>
 
-        {/* Pagination Footer (Static for now) */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 bg-white">
-            <div className="text-sm text-slate-500">
-                Showing <span className="font-medium text-slate-900">1-{filteredUsers.length}</span> of <span className="font-medium text-slate-900">{filteredUsers.length}</span> results
-            </div>
-            <div className="flex gap-2">
-                <button disabled className="px-3 py-1 text-sm rounded border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-50">Previous</button>
-                <button disabled className="px-3 py-1 text-sm rounded border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-50">Next</button>
-            </div>
-        </div>
+          {/* Pagination Footer (Static for now) */}
+          <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 bg-white">
+              <div className="text-sm text-slate-500">
+                  Showing <span className="font-medium text-slate-900">1-{filteredUsers.length}</span> of <span className="font-medium text-slate-900">{filteredUsers.length}</span> results
+              </div>
+              <div className="flex gap-2">
+                  <button disabled className="px-3 py-1 text-sm rounded border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-50">Previous</button>
+                  <button disabled className="px-3 py-1 text-sm rounded border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-50">Next</button>
+              </div>
+          </div>
+        </>
         )}
       </div>
 

@@ -46,16 +46,21 @@ class AssignmentService {
     onError?: (error: Error) => void
   ): () => void {
     // Note: Querying by 'teacherId' (new field)
-    // If old documents exist with 'createdByTeacherId', they won't appear unless we migrate or query both.
-    // For this task, we assume new schema.
     const q = query(this.collection, where('teacherId', '==', teacherId));
 
     return onSnapshot(q, (snapshot) => {
-      const assignments = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Assignment));
-      // Client sort
+      const assignments = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          // Legacy field mapping fallback
+          teacherId: data.teacherId || data.createdByTeacherId,
+          embedUrl: data.embedUrl || data.embedCode,
+          gradeLevel: data.gradeLevel || data.targetGrade,
+        } as Assignment;
+      });
+      // Client-side sort to avoid Missing Index error
       assignments.sort((a, b) => {
           const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
           const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
@@ -73,10 +78,18 @@ class AssignmentService {
     const q = query(this.collection, where('gradeLevel', '==', grade));
 
     return onSnapshot(q, (snapshot) => {
-      const assignments = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Assignment));
+      const assignments = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          // Legacy field mapping fallback
+          teacherId: data.teacherId || data.createdByTeacherId,
+          embedUrl: data.embedUrl || data.embedCode,
+          gradeLevel: data.gradeLevel || data.targetGrade,
+        } as Assignment;
+      });
+      // Client-side sort to avoid Missing Index error
       assignments.sort((a, b) => {
           const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
           const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;

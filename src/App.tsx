@@ -7,6 +7,7 @@ import { Loading } from './components/shared/Loading';
 import { RouteMiddleware } from './middleware/RouteMiddleware';
 import './styles/globals.css';
 import { Toaster } from 'sonner';
+import { Analytics } from "@vercel/analytics/react"
 
 // Lazy load Layouts
 const AdminLayout = React.lazy(() => import('./layouts/AdminLayout').then(module => ({ default: module.AdminLayout })));
@@ -65,6 +66,7 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Toaster richColors position="top-right" />
+        <Analytics />
         <Suspense fallback={<Loading fullScreen />}>
           <Routes>
             <Route path="/" element={<RootRedirect />} />

@@ -1,4 +1,4 @@
-import React, { createContext, useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   onAuthStateChanged,
   signInWithPopup,
@@ -11,10 +11,7 @@ import {
 import { auth } from '../config/firebase';
 import { userService } from '../services/user.service';
 import { User, AuthContextType } from '../types';
-
-export const AuthContext = createContext<AuthContextType | undefined>(
-  undefined
-);
+import { AuthContext } from './AuthContextDefinition';
 
 interface AuthProviderProps {
   children: React.ReactNode;
