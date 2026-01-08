@@ -9,6 +9,7 @@ import {
   User as FirebaseUser,
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
+import { TEST_ACCOUNTS } from '../config/test_accounts';
 import { userService } from '../services/user.service';
 import { User, AuthContextType } from '../types';
 
@@ -83,6 +84,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       const isSuperAdmin = userEmail === SUPER_ADMIN_EMAIL.toLowerCase();
+      const testAccount = userEmail ? TEST_ACCOUNTS[userEmail] : null;
 
       if (existingUser) {
         // User exists, check if an update is needed
@@ -100,6 +102,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           needsUpdate = true;
         }
 
+        if (testAccount) {
+          if (existingUser.role !== testAccount.role) {
+            updates.role = testAccount.role;
+            needsUpdate = true;
+          }
+          if (existingUser.isWhitelisted !== testAccount.isWhitelisted) {
+            updates.isWhitelisted = testAccount.isWhitelisted;
+            needsUpdate = true;
+          }
+          if (testAccount.grade && existingUser.grade !== testAccount.grade) {
+            updates.grade = testAccount.grade;
+            needsUpdate = true;
+          }
+        }
+
         if (needsUpdate) {
           await userService.updateUser(firebaseUser.uid, updates);
           return { ...existingUser, ...updates }; // Return updated user data immediately
@@ -112,9 +129,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           email: userEmail || '',
           displayName: firebaseUser.displayName || userEmail?.split('@')[0] || 'User',
           photoURL: firebaseUser.photoURL || `https://ui-avatars.com/api/?name=${userEmail?.[0]}&background=667eea&color=fff&size=200`,
-          role: isSuperAdmin ? 'admin' : 'student',
-          grade: null, // Default to null
-          isWhitelisted: isSuperAdmin,
+          role: testAccount ? testAccount.role : (isSuperAdmin ? 'admin' : 'student'),
+          grade: testAccount?.grade || null, // Default to null
+          isWhitelisted: testAccount ? testAccount.isWhitelisted : isSuperAdmin,
           sessionId: sessionId,
           joinedAt: null as any, // Will be set by service
         };
