@@ -1,11 +1,21 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './components/auth/LoginPage';
-import { AdminDashboard } from './pages/AdminDashboard';
-import { StudentDashboard } from './pages/StudentDashboard';
+// Static imports removed in favor of dynamic imports below
+// import { AdminDashboard } from './pages/AdminDashboard';
+// import { StudentDashboard } from './pages/StudentDashboard';
 import { Loading } from './components/shared/Loading';
 import './styles/globals.css';
+
+// Lazy load dashboards to split code bundles
+const AdminDashboard = React.lazy(() =>
+  import('./pages/AdminDashboard').then(module => ({ default: module.AdminDashboard }))
+);
+
+const StudentDashboard = React.lazy(() =>
+  import('./pages/StudentDashboard').then(module => ({ default: module.StudentDashboard }))
+);
 
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
@@ -19,10 +29,18 @@ const AppContent: React.FC = () => {
   }
 
   if (user.role === 'admin') {
-    return <AdminDashboard />;
+    return (
+      <Suspense fallback={<Loading message="Đang tải trang quản trị..." fullScreen />}>
+        <AdminDashboard />
+      </Suspense>
+    );
   }
 
-  return <StudentDashboard />;
+  return (
+    <Suspense fallback={<Loading message="Đang tải trang học tập..." fullScreen />}>
+      <StudentDashboard />
+    </Suspense>
+  );
 };
 
 function App() {
