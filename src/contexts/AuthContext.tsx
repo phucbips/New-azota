@@ -10,6 +10,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { userService } from '../services/user.service';
+import { TEST_ACCOUNTS } from '../config/test_accounts';
 import { User, AuthContextType } from '../types';
 
 export const AuthContext = createContext<AuthContextType | undefined>(
@@ -83,6 +84,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       const isSuperAdmin = userEmail === SUPER_ADMIN_EMAIL.toLowerCase();
+      const testAccountConfig = TEST_ACCOUNTS[userEmail || ''];
 
       if (existingUser) {
         // User exists, check if an update is needed
@@ -98,6 +100,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           updates.role = 'admin';
           updates.isWhitelisted = true;
           needsUpdate = true;
+        } else if (testAccountConfig) {
+          // Enforce test account configuration
+          if (existingUser.role !== testAccountConfig.role ||
+              existingUser.isWhitelisted !== testAccountConfig.isWhitelisted ||
+              (testAccountConfig.grade !== undefined && existingUser.grade !== testAccountConfig.grade)) {
+            updates.role = testAccountConfig.role;
+            updates.isWhitelisted = testAccountConfig.isWhitelisted;
+            if (testAccountConfig.grade !== undefined) {
+              updates.grade = testAccountConfig.grade;
+            }
+            needsUpdate = true;
+          }
         }
 
         if (needsUpdate) {
