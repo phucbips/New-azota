@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './components/auth/LoginPage';
 import { Loading } from './components/shared/Loading';
@@ -8,6 +9,7 @@ import { RouteMiddleware } from './middleware/RouteMiddleware';
 import './styles/globals.css';
 import { Toaster } from 'sonner';
 import { Analytics } from "@vercel/analytics/react"
+import { SpeedInsights } from "@vercel/speed-insights/react"
 
 // Lazy load Layouts
 const AdminLayout = React.lazy(() => import('./layouts/AdminLayout').then(module => ({ default: module.AdminLayout })));
@@ -66,8 +68,10 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+       <ThemeProvider>
         <Toaster richColors position="top-right" />
         <Analytics />
+        <SpeedInsights />
         <Suspense fallback={<Loading fullScreen />}>
           <Routes>
             <Route path="/" element={<RootRedirect />} />
@@ -127,6 +131,7 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
+       </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>
   );

@@ -1,0 +1,38 @@
+{
+  "sidebar": {
+    "dashboard": "Bảng điều khiển",
+    "overview": "Tổng quan",
+    "users": "Người dùng",
+    "assignments": "Bài tập",
+    "courses": "Khóa học",
+    "settings": "Cài đặt",
+    "profile": "Hồ sơ",
+    "communication": "Truyền thông",
+    "logout": "Đăng xuất"
+  },
+  "home": {
+    "welcome": "Chào mừng trở lại, {{name}}!",
+    "subtitle": "Đây là tổng quan về tiến độ học tập của bạn.",
+    "grade_level": "Khối lớp",
+    "grade_trend": "Hiện tại",
+    "cta_title": "Sẵn sàng học tập?",
+    "cta_desc": "Kiểm tra danh sách bài tập để xem các nhiệm vụ cho Khối {{grade}}.",
+    "cta_button": "Đến trang Bài tập",
+    "announcements": "Thông báo từ nhà trường"
+  },
+  "admin": {
+    "title": "Quản lý Hệ thống",
+    "subtitle": "Tổng quan và thống kê",
+    "total_users": "Tổng người dùng",
+    "total_assignments": "Tổng bài tập",
+    "device_stats": "Thống kê thiết bị",
+    "pc": "Máy tính / PC",
+    "ios": "iOS (iPhone/iPad)",
+    "android": "Android",
+    "trend_realtime": "Cập nhật real-time",
+    "trend_system": "Toàn hệ thống",
+    "trend_pc": "Máy tính",
+    "trend_apple": "Thiết bị Apple",
+    "trend_android": "Thiết bị Android"
+  }
+}

@@ -4,8 +4,10 @@ import { StatCard } from '../../components/ui/StatCard';
 import { Users, BookOpen, Monitor, Smartphone, Tablet } from 'lucide-react';
 import { userService } from '../../services/user.service';
 import { assignmentService } from '../../services/assignment.service';
+import { useTranslation } from 'react-i18next';
 
 export const AdminOverview: React.FC = () => {
+  const { t } = useTranslation();
   const [totalUsers, setTotalUsers] = useState<number | string>('--');
   const [totalAssignments, setTotalAssignments] = useState<number | string>('--');
   const [deviceStats, setDeviceStats] = useState({ PC: 0, iOS: 0, Android: 0 });
@@ -38,45 +40,45 @@ export const AdminOverview: React.FC = () => {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Quản lý Hệ thống"
-        subtitle="Tổng quan và thống kê"
+        title={t('admin.title')}
+        subtitle={t('admin.subtitle')}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <StatCard
-          title="Tổng người dùng"
+          title={t('admin.total_users')}
           value={totalUsers}
           icon={<Users className="w-6 h-6" />}
-          trend="Cập nhật real-time"
+          trend={t('admin.trend_realtime')}
         />
         <StatCard
-          title="Tổng bài tập"
+          title={t('admin.total_assignments')}
           value={totalAssignments}
           icon={<BookOpen className="w-6 h-6" />}
-          trend="Toàn hệ thống"
+          trend={t('admin.trend_system')}
         />
       </div>
 
       <div className="mt-6">
-        <h3 className="text-lg font-bold text-slate-800 mb-4">Thống kê thiết bị</h3>
+        <h3 className="text-lg font-bold text-slate-800 mb-4">{t('admin.device_stats')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatCard
-                title="PC / Desktop"
+                title={t('admin.pc')}
                 value={deviceStats.PC}
                 icon={<Monitor className="w-6 h-6 text-blue-600" />}
-                trend="Máy tính"
+                trend={t('admin.trend_pc')}
             />
             <StatCard
-                title="iOS (iPhone/iPad)"
+                title={t('admin.ios')}
                 value={deviceStats.iOS}
                 icon={<Smartphone className="w-6 h-6 text-gray-600" />}
-                trend="Apple Mobile"
+                trend={t('admin.trend_apple')}
             />
             <StatCard
-                title="Android"
+                title={t('admin.android')}
                 value={deviceStats.Android}
                 icon={<Smartphone className="w-6 h-6 text-green-600" />}
-                trend="Android Mobile"
+                trend={t('admin.trend_android')}
             />
         </div>
       </div>

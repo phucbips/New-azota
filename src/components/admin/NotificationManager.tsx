@@ -12,6 +12,14 @@ const notificationSchema = z.object({
   type: z.enum(['info', 'warning', 'success']),
   targetAudience: z.enum(['all', 'student', 'teacher', 'specific']),
   receiverId: z.string().optional()
+}).refine(data => {
+  if (data.targetAudience === 'specific' && !data.receiverId) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Vui lòng nhập ID người nhận",
+  path: ["receiverId"]
 });
 
 type NotificationFormData = z.infer<typeof notificationSchema>;
@@ -36,7 +44,11 @@ export const NotificationManager: React.FC = () => {
         message: data.message,
         type: data.type,
         targetAudience: data.targetAudience,
-        receiverId: data.receiverId
+        // Ensure undefined is converted to null or handled by the service if needed,
+        // but Firestore generally dislikes undefined.
+        // If specific audience, use the ID, otherwise undefined is fine IF not in the object,
+        // but cleaner to pass null or omit.
+        receiverId: data.targetAudience === 'specific' && data.receiverId ? data.receiverId : null
       });
       toast.success('Gửi thông báo thành công!');
       reset();
