@@ -1,0 +1,38 @@
+{
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "overview": "Overview",
+    "users": "Users",
+    "assignments": "Assignments",
+    "courses": "Courses",
+    "settings": "Settings",
+    "profile": "Profile",
+    "communication": "Communication",
+    "logout": "Log out"
+  },
+  "home": {
+    "welcome": "Welcome back, {{name}}!",
+    "subtitle": "Here is an overview of your learning progress.",
+    "grade_level": "Grade Level",
+    "grade_trend": "Current",
+    "cta_title": "Ready to start learning?",
+    "cta_desc": "Check your assignments list to see pending tasks and coursework for Grade {{grade}}.",
+    "cta_button": "Go to Assignments",
+    "announcements": "Announcements"
+  },
+  "admin": {
+    "title": "System Management",
+    "subtitle": "Overview and statistics",
+    "total_users": "Total Users",
+    "total_assignments": "Total Assignments",
+    "device_stats": "Device Statistics",
+    "pc": "PC / Desktop",
+    "ios": "iOS (iPhone/iPad)",
+    "android": "Android",
+    "trend_realtime": "Real-time Update",
+    "trend_system": "System-wide",
+    "trend_pc": "Desktop",
+    "trend_apple": "Apple Mobile",
+    "trend_android": "Android Mobile"
+  }
+}

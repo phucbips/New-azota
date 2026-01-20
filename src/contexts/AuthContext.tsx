@@ -27,6 +27,13 @@ const getSessionId = () => {
   return sessionId;
 };
 
+const detectDevice = () => {
+  const ua = navigator.userAgent.toLowerCase();
+  if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod')) return 'iOS';
+  if (ua.includes('android')) return 'Android';
+  return 'PC';
+};
+
 const SUPER_ADMIN_EMAIL = 'thanhphucn06@gmail.com';
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
@@ -80,6 +87,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       const isSuperAdmin = userEmail === SUPER_ADMIN_EMAIL.toLowerCase();
+      const currentDevice = detectDevice();
 
       if (existingUser) {
         // User exists, check if an update is needed
@@ -89,6 +97,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (existingUser.sessionId !== sessionId) {
           updates.sessionId = sessionId;
           needsUpdate = true;
+        }
+
+        if (existingUser.lastDevice !== currentDevice) {
+            updates.lastDevice = currentDevice;
+            needsUpdate = true;
         }
 
         if (isSuperAdmin && (existingUser.role !== 'admin' || !existingUser.isWhitelisted)) {
@@ -114,6 +127,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           isWhitelisted: isSuperAdmin,
           sessionId: sessionId,
           joinedAt: null as any, // Will be set by service
+          lastDevice: currentDevice
         };
 
         await userService.createUser(firebaseUser.uid, newUser);

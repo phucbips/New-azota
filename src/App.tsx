@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './components/auth/LoginPage';
 import { Loading } from './components/shared/Loading';
@@ -8,6 +9,7 @@ import { RouteMiddleware } from './middleware/RouteMiddleware';
 import './styles/globals.css';
 import { Toaster } from 'sonner';
 import { Analytics } from "@vercel/analytics/react"
+import { SpeedInsights } from "@vercel/speed-insights/react"
 
 // Lazy load Layouts
 const AdminLayout = React.lazy(() => import('./layouts/AdminLayout').then(module => ({ default: module.AdminLayout })));
@@ -19,6 +21,7 @@ const AdminOverview = React.lazy(() => import('./pages/admin/Overview').then(mod
 const AdminUsers = React.lazy(() => import('./pages/admin/Users').then(module => ({ default: module.AdminUsers })));
 const AdminAssignments = React.lazy(() => import('./pages/admin/Assignments').then(module => ({ default: module.AdminAssignments })));
 const AdminCourses = React.lazy(() => import('./pages/admin/Courses').then(module => ({ default: module.AdminCourses })));
+const AdminCommunication = React.lazy(() => import('./pages/admin/Communication').then(module => ({ default: module.AdminCommunication })));
 const AdminSettings = React.lazy(() => import('./pages/admin/Settings').then(module => ({ default: module.AdminSettings })));
 const AdminProfile = React.lazy(() => import('./pages/admin/Profile').then(module => ({ default: module.AdminProfile })));
 
@@ -65,8 +68,10 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+       <ThemeProvider>
         <Toaster richColors position="top-right" />
         <Analytics />
+        <SpeedInsights />
         <Suspense fallback={<Loading fullScreen />}>
           <Routes>
             <Route path="/" element={<RootRedirect />} />
@@ -85,6 +90,7 @@ function App() {
               <Route path="users" element={<AdminUsers />} />
               <Route path="assignments" element={<AdminAssignments />} />
               <Route path="courses" element={<AdminCourses />} />
+              <Route path="communication" element={<AdminCommunication />} />
               <Route path="settings" element={<AdminSettings />} />
               <Route path="profile" element={<AdminProfile />} />
             </Route>
@@ -125,6 +131,7 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
+       </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>
   );

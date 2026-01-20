@@ -13,6 +13,32 @@ export interface User {
   sessionId: string;
   joinedAt: Timestamp;
   isActive?: boolean;
+  lastDevice?: string;
+  deviceHistory?: {
+    device: string;
+    timestamp: Timestamp;
+  }[];
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'warning' | 'success';
+  targetAudience: 'all' | 'admin' | 'teacher' | 'student' | 'specific';
+  receiverId?: string; // If specific
+  readBy: string[]; // Array of user UIDs
+  createdAt: Timestamp;
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  imageUrl?: string;
+  authorId: string;
+  createdAt: Timestamp;
+  isActive: boolean;
 }
 
 export interface Assignment {

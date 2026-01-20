@@ -3,9 +3,11 @@ import { useAuth } from '../hooks/useAuth';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import {
   Menu, X, LogOut, LayoutDashboard, Users, BookOpen,
-  Settings, GraduationCap, FileText, Search, Bell, UserCircle
+  Settings, GraduationCap, FileText, Search, UserCircle, MessageSquare
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { NotificationList } from '../components/shared/NotificationList';
+import { useTranslation } from 'react-i18next';
 
 interface NavItem {
   label: string;
@@ -13,26 +15,31 @@ interface NavItem {
   icon: React.ReactNode;
 }
 
-const NAV_ITEMS: Record<string, NavItem[]> = {
-  admin: [
-    { label: 'Tổng quan', href: '/admin', icon: <LayoutDashboard className="w-6 h-6" /> },
-    { label: 'Quản lý User', href: '/admin/users', icon: <Users className="w-6 h-6" /> },
-    { label: 'Assignments', href: '/admin/assignments', icon: <FileText className="w-6 h-6" /> },
-    { label: 'Courses', href: '/admin/courses', icon: <BookOpen className="w-6 h-6" /> },
-    { label: 'Profile', href: '/admin/profile', icon: <UserCircle className="w-6 h-6" /> },
-  ],
-  teacher: [
-    { label: 'Dashboard', href: '/teacher', icon: <LayoutDashboard className="w-6 h-6" /> },
-    { label: 'Assignments', href: '/teacher/assignments', icon: <FileText className="w-6 h-6" /> },
-    { label: 'Courses', href: '/teacher/courses', icon: <BookOpen className="w-6 h-6" /> },
-    { label: 'Profile', href: '/teacher/profile', icon: <UserCircle className="w-6 h-6" /> },
-  ],
-  student: [
-    { label: 'Home', href: '/student', icon: <LayoutDashboard className="w-6 h-6" /> },
-    { label: 'My Assignments', href: '/student/assignments', icon: <BookOpen className="w-6 h-6" /> },
-    { label: 'Courses', href: '/student/courses', icon: <GraduationCap className="w-6 h-6" /> },
-    { label: 'Profile', href: '/student/profile', icon: <UserCircle className="w-6 h-6" /> },
-  ],
+// Helper to get nav items (moved inside component or made functional to support translation)
+const getNavItems = (t: any, role: string): NavItem[] => {
+    const items = {
+        admin: [
+            { label: t('sidebar.overview'), href: '/admin', icon: <LayoutDashboard className="w-6 h-6" /> },
+            { label: t('sidebar.users'), href: '/admin/users', icon: <Users className="w-6 h-6" /> },
+            { label: t('sidebar.assignments'), href: '/admin/assignments', icon: <FileText className="w-6 h-6" /> },
+            { label: t('sidebar.courses'), href: '/admin/courses', icon: <BookOpen className="w-6 h-6" /> },
+            { label: t('sidebar.communication'), href: '/admin/communication', icon: <MessageSquare className="w-6 h-6" /> },
+            { label: t('sidebar.profile'), href: '/admin/profile', icon: <UserCircle className="w-6 h-6" /> },
+        ],
+        teacher: [
+            { label: t('sidebar.dashboard'), href: '/teacher', icon: <LayoutDashboard className="w-6 h-6" /> },
+            { label: t('sidebar.assignments'), href: '/teacher/assignments', icon: <FileText className="w-6 h-6" /> },
+            { label: t('sidebar.courses'), href: '/teacher/courses', icon: <BookOpen className="w-6 h-6" /> },
+            { label: t('sidebar.profile'), href: '/teacher/profile', icon: <UserCircle className="w-6 h-6" /> },
+        ],
+        student: [
+            { label: t('sidebar.dashboard'), href: '/student', icon: <LayoutDashboard className="w-6 h-6" /> },
+            { label: t('sidebar.assignments'), href: '/student/assignments', icon: <BookOpen className="w-6 h-6" /> },
+            { label: t('sidebar.courses'), href: '/student/courses', icon: <GraduationCap className="w-6 h-6" /> },
+            { label: t('sidebar.profile'), href: '/student/profile', icon: <UserCircle className="w-6 h-6" /> },
+        ]
+    };
+    return items[role as keyof typeof items] || [];
 };
 
 interface DashboardLayoutProps {
@@ -41,13 +48,14 @@ interface DashboardLayoutProps {
 }
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role }) => {
+  const { t } = useTranslation();
   const { user, signOut } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchValue, setSearchValue] = useState(searchParams.get('q') || '');
 
-  const navItems = NAV_ITEMS[role] || [];
+  const navItems = getNavItems(t, role);
 
   useEffect(() => {
     setSearchValue(searchParams.get('q') || '');
@@ -164,14 +172,14 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors group"
           >
             <Settings className="w-5 h-5 text-slate-400 group-hover:text-slate-900" />
-            <span className="text-sm font-medium group-hover:text-slate-900">Settings</span>
+            <span className="text-sm font-medium group-hover:text-slate-900">{t('sidebar.settings')}</span>
           </Link>
           <button
             onClick={() => signOut()}
             className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors mt-1"
           >
             <LogOut className="w-5 h-5" />
-            <span className="text-sm font-medium">Log out</span>
+            <span className="text-sm font-medium">{t('sidebar.logout')}</span>
           </button>
         </div>
       </aside>
@@ -211,13 +219,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
 
             {/* Right Actions */}
             <div className="flex items-center gap-3 sm:gap-4">
-                <button className="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors hidden sm:block">
-                    <Search className="w-6 h-6" /> {/* Search icon for mobile/tablet if input hidden */}
-                </button>
-                <button className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors">
-                    <Bell className="w-6 h-6" />
-                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-                </button>
+                <NotificationList />
+
                 {/* User Profile Dropdown / Avatar */}
                 <div className="h-8 w-px bg-slate-200 hidden sm:block"></div>
                 <div className="flex items-center gap-3">
