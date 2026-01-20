@@ -3,9 +3,10 @@ import { useAuth } from '../hooks/useAuth';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import {
   Menu, X, LogOut, LayoutDashboard, Users, BookOpen,
-  Settings, GraduationCap, FileText, Search, Bell, UserCircle
+  Settings, GraduationCap, FileText, Search, UserCircle, MessageSquare
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { NotificationList } from '../components/shared/NotificationList';
 
 interface NavItem {
   label: string;
@@ -19,6 +20,7 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
     { label: 'Quản lý User', href: '/admin/users', icon: <Users className="w-6 h-6" /> },
     { label: 'Assignments', href: '/admin/assignments', icon: <FileText className="w-6 h-6" /> },
     { label: 'Courses', href: '/admin/courses', icon: <BookOpen className="w-6 h-6" /> },
+    { label: 'Truyền thông', href: '/admin/communication', icon: <MessageSquare className="w-6 h-6" /> },
     { label: 'Profile', href: '/admin/profile', icon: <UserCircle className="w-6 h-6" /> },
   ],
   teacher: [
@@ -214,10 +216,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
                 <button className="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors hidden sm:block">
                     <Search className="w-6 h-6" /> {/* Search icon for mobile/tablet if input hidden */}
                 </button>
-                <button className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors">
-                    <Bell className="w-6 h-6" />
-                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-                </button>
+
+                <NotificationList />
+
                 {/* User Profile Dropdown / Avatar */}
                 <div className="h-8 w-px bg-slate-200 hidden sm:block"></div>
                 <div className="flex items-center gap-3">

@@ -5,6 +5,7 @@ import { StatCard } from '../../components/ui/StatCard';
 import { BookOpen, GraduationCap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { StudentSupportWidget } from '../../components/student/StudentSupportWidget';
+import { AnnouncementFeed } from '../../components/student/AnnouncementFeed';
 
 export const StudentHome: React.FC = () => {
   const { user } = useAuth();
@@ -43,6 +44,8 @@ export const StudentHome: React.FC = () => {
             </div>
         </div>
       </div>
+
+      <AnnouncementFeed />
 
       {/* Support Widget */}
       <StudentSupportWidget />
