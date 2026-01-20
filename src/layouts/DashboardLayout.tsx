@@ -7,8 +7,6 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { NotificationList } from '../components/shared/NotificationList';
-import { ThemeToggle } from '../components/shared/ThemeToggle';
-import { LanguageToggle } from '../components/shared/LanguageToggle';
 import { useTranslation } from 'react-i18next';
 
 interface NavItem {
@@ -221,9 +219,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
 
             {/* Right Actions */}
             <div className="flex items-center gap-3 sm:gap-4">
-                <LanguageToggle />
-                <ThemeToggle />
-
                 <NotificationList />
 
                 {/* User Profile Dropdown / Avatar */}
