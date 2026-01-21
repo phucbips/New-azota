@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { userService } from '../../services/user.service';
 import { User, UserRole } from '../../types';
-import { Trash2, UserPlus, Loader2, Edit2, Search, MoreVertical, Plus } from 'lucide-react';
+import { Trash2, UserPlus, Loader2, Edit2, Search, MoreVertical, Plus, Filter, Smartphone, Monitor } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDate } from '../../lib/formatters';
 import { Skeleton } from '../shared/Skeleton';
@@ -32,12 +32,16 @@ export const UserManagement: React.FC = () => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
+  // Filter States
+  const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
+  const [gradeFilter, setGradeFilter] = useState<string | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+
   const selectedRole = watch('role');
 
   useEffect(() => {
     const unsubscribe = userService.subscribeToAllUsers((fetchedUsers) => {
       setUsers(fetchedUsers);
-      setFilteredUsers(fetchedUsers);
       setIsFetching(false);
     });
     return () => unsubscribe();
@@ -49,12 +53,34 @@ export const UserManagement: React.FC = () => {
 
   // Filter Logic
   useEffect(() => {
-      const lowerTerm = searchTerm.toLowerCase();
-      const results = users.filter(u =>
-          (u.email?.toLowerCase().includes(lowerTerm) || u.displayName?.toLowerCase().includes(lowerTerm))
-      );
+      let results = users;
+
+      // Search Term
+      if (searchTerm) {
+          const lowerTerm = searchTerm.toLowerCase();
+          results = results.filter(u =>
+              (u.email?.toLowerCase().includes(lowerTerm) || u.displayName?.toLowerCase().includes(lowerTerm))
+          );
+      }
+
+      // Role Filter
+      if (roleFilter !== 'all') {
+          results = results.filter(u => u.role === roleFilter);
+      }
+
+      // Grade Filter
+      if (gradeFilter !== 'all') {
+           results = results.filter(u => u.grade === gradeFilter);
+      }
+
+      // Status Filter
+      if (statusFilter !== 'all') {
+          const isActive = statusFilter === 'active';
+          results = results.filter(u => u.isWhitelisted === isActive);
+      }
+
       setFilteredUsers(results);
-  }, [searchTerm, users]);
+  }, [searchTerm, users, roleFilter, gradeFilter, statusFilter]);
 
   const onSubmit = async (data: CreateUserForm) => {
     setLoading(true);
@@ -100,8 +126,8 @@ export const UserManagement: React.FC = () => {
   return (
     <div className="flex flex-col gap-6">
         {/* Actions Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-             {/* Search */}
+        <div className="flex flex-col gap-4">
+             {/* Search and Add */}
              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between w-full">
                 <div className="relative w-full md:max-w-md">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -110,7 +136,7 @@ export const UserManagement: React.FC = () => {
                     <input
                         type="text"
                         className="block w-full pl-10 pr-3 py-2.5 border-slate-200 rounded-lg text-sm bg-slate-50 text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
-                        placeholder="Search by name, email or role..."
+                        placeholder="Search by name, email..."
                         value={searchTerm}
                         onChange={e => {
                           const value = e.target.value;
@@ -125,15 +151,54 @@ export const UserManagement: React.FC = () => {
                         }}
                     />
                 </div>
-                <div className="flex items-center gap-3 w-full md:w-auto">
-                    <button
-                        onClick={() => setIsAddMode(!isAddMode)}
-                        className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm shadow-blue-500/20 whitespace-nowrap w-full md:w-auto"
+                <button
+                    onClick={() => setIsAddMode(!isAddMode)}
+                    className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm shadow-blue-500/20 whitespace-nowrap w-full md:w-auto"
+                >
+                    <Plus className="w-5 h-5" />
+                    Thêm người dùng
+                </button>
+            </div>
+
+            {/* Filters Bar */}
+            <div className="flex flex-col sm:flex-row gap-3 items-center">
+                 <div className="flex items-center gap-2 text-sm text-slate-500 min-w-fit">
+                    <Filter className="w-4 h-4" />
+                    <span>Lọc theo:</span>
+                 </div>
+                 <div className="flex flex-wrap gap-2 w-full">
+                    <select
+                        value={roleFilter}
+                        onChange={(e) => setRoleFilter(e.target.value as any)}
+                        className="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                        <Plus className="w-5 h-5" />
-                        Add New User
-                    </button>
-                </div>
+                        <option value="all">Tất cả vai trò</option>
+                        <option value="admin">Admin</option>
+                        <option value="teacher">Giáo viên</option>
+                        <option value="student">Học sinh</option>
+                    </select>
+
+                    <select
+                        value={gradeFilter}
+                        onChange={(e) => setGradeFilter(e.target.value)}
+                        className="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="all">Tất cả khối</option>
+                        <option value="10">Khối 10</option>
+                        <option value="11">Khối 11</option>
+                        <option value="12">Khối 12</option>
+                    </select>
+
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as any)}
+                        className="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="all">Tất cả trạng thái</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                 </div>
             </div>
         </div>
 
@@ -158,8 +223,8 @@ export const UserManagement: React.FC = () => {
                 {...register('role')}
                 className="w-full p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 >
-                <option value="student">Student</option>
-                <option value="teacher">Instructor</option>
+                <option value="student">Học sinh</option>
+                <option value="teacher">Giáo viên</option>
                 <option value="admin">Admin</option>
                 </select>
             </div>
@@ -184,7 +249,7 @@ export const UserManagement: React.FC = () => {
                 className="w-full md:w-auto px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-                {loading ? 'Adding...' : 'Add User'}
+                {loading ? 'Đang thêm...' : 'Mời'}
             </button>
             </form>
         </div>
@@ -205,11 +270,12 @@ export const UserManagement: React.FC = () => {
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-semibold tracking-wider">
                 <th className="px-6 py-4 w-12"><input type="checkbox" className="rounded border-slate-300 text-blue-600 w-4 h-4" /></th>
-                <th className="px-6 py-4">User</th>
-                <th className="px-6 py-4">Role</th>
-                <th className="px-6 py-4">Joined</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-6 py-4">Người dùng</th>
+                <th className="px-6 py-4">Vai trò</th>
+                <th className="px-6 py-4">Tham gia</th>
+                <th className="px-6 py-4">Đăng nhập cuối</th>
+                <th className="px-6 py-4">Trạng thái</th>
+                <th className="px-6 py-4 text-right">Hành động</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -218,10 +284,11 @@ export const UserManagement: React.FC = () => {
                   <td className="px-6 py-4"><input type="checkbox" className="rounded border-slate-300 text-blue-600 w-4 h-4" /></td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <img src={u.photoURL} alt="" className="h-10 w-10 rounded-full bg-slate-200" />
+                      <img src={u.photoURL} alt="" className="h-10 w-10 rounded-full bg-slate-200 object-cover" />
                       <div>
                         <div className="font-medium text-slate-900">{u.displayName || u.email.split('@')[0]}</div>
                         <div className="text-sm text-slate-500">{u.email}</div>
+                         {u.grade && <div className="text-xs text-slate-400">Khối {u.grade}</div>}
                       </div>
                     </div>
                   </td>
@@ -229,11 +296,19 @@ export const UserManagement: React.FC = () => {
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
                       ${u.role === 'admin' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
                         u.role === 'teacher' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'}`}>
-                      {u.role === 'teacher' ? 'Instructor' : u.role}
+                      {u.role === 'teacher' ? 'Giáo viên' : u.role === 'student' ? 'Học sinh' : 'Admin'}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-600">
                     {formatDate(u.joinedAt)}
+                  </td>
+                   <td className="px-6 py-4 text-sm text-slate-600">
+                    {/* Placeholder for Last Login - Using lastDevice as proxy for now */}
+                    <div className="flex items-center gap-1.5">
+                        {u.lastDevice === 'PC' && <Monitor className="w-3.5 h-3.5 text-blue-500" />}
+                        {(u.lastDevice === 'iOS' || u.lastDevice === 'Android') && <Smartphone className="w-3.5 h-3.5 text-green-500" />}
+                        <span>{u.lastDevice || '--'}</span>
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
@@ -250,7 +325,7 @@ export const UserManagement: React.FC = () => {
                 </tr>
               ))}
               {filteredUsers.length === 0 && (
-                  <tr><td colSpan={6} className="p-8 text-center text-slate-500">No users found.</td></tr>
+                  <tr><td colSpan={7} className="p-8 text-center text-slate-500">Không tìm thấy người dùng nào.</td></tr>
               )}
             </tbody>
           </table>
@@ -258,11 +333,11 @@ export const UserManagement: React.FC = () => {
           {/* Pagination Footer (Static for now) */}
           <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 bg-white">
               <div className="text-sm text-slate-500">
-                  Showing <span className="font-medium text-slate-900">1-{filteredUsers.length}</span> of <span className="font-medium text-slate-900">{filteredUsers.length}</span> results
+                  Hiển thị <span className="font-medium text-slate-900">1-{filteredUsers.length}</span> trên <span className="font-medium text-slate-900">{filteredUsers.length}</span> kết quả
               </div>
               <div className="flex gap-2">
-                  <button disabled className="px-3 py-1 text-sm rounded border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-50">Previous</button>
-                  <button disabled className="px-3 py-1 text-sm rounded border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-50">Next</button>
+                  <button disabled className="px-3 py-1 text-sm rounded border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-50">Trước</button>
+                  <button disabled className="px-3 py-1 text-sm rounded border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-50">Sau</button>
               </div>
           </div>
         </>
@@ -282,10 +357,11 @@ export const UserManagement: React.FC = () => {
               <div key={u.uid} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-3">
                   <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
-                          <img src={u.photoURL} className="h-12 w-12 rounded-full bg-slate-200" />
+                          <img src={u.photoURL} className="h-12 w-12 rounded-full bg-slate-200 object-cover" />
                           <div>
                               <h3 className="font-medium text-slate-900">{u.displayName || u.email.split('@')[0]}</h3>
                               <p className="text-sm text-slate-500">{u.email}</p>
+                              {u.grade && <span className="text-xs text-slate-400">Khối {u.grade}</span>}
                           </div>
                       </div>
                       <button onClick={() => handleEdit(u)} className="text-slate-400">
@@ -296,11 +372,15 @@ export const UserManagement: React.FC = () => {
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
                           ${u.role === 'admin' ? 'bg-blue-100 text-blue-800' :
                           u.role === 'teacher' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'}`}>
-                          {u.role === 'teacher' ? 'Instructor' : u.role}
+                          {u.role === 'teacher' ? 'Giáo viên' : u.role === 'student' ? 'Học sinh' : 'Admin'}
                       </span>
                       <div className="flex items-center gap-2">
+                           <div className="flex items-center gap-1.5 text-xs text-slate-500 mr-2">
+                                {u.lastDevice === 'PC' && <Monitor className="w-3.5 h-3.5" />}
+                                {(u.lastDevice === 'iOS' || u.lastDevice === 'Android') && <Smartphone className="w-3.5 h-3.5" />}
+                                <span>{u.lastDevice}</span>
+                            </div>
                           <div className={`h-2 w-2 rounded-full ${u.isWhitelisted ? 'bg-green-500' : 'bg-slate-300'}`}></div>
-                          <span className="text-sm text-slate-700">{u.isWhitelisted ? 'Active' : 'Inactive'}</span>
                       </div>
                   </div>
               </div>
@@ -365,8 +445,8 @@ const EditUserModal: React.FC<{ user: User, onClose: () => void, onUpdate: () =>
                             {...register('role')}
                             className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                         >
-                            <option value="student">Student</option>
-                            <option value="teacher">Instructor</option>
+                            <option value="student">Học sinh</option>
+                            <option value="teacher">Giáo viên</option>
                             <option value="admin">Admin</option>
                         </select>
                     </div>
@@ -378,9 +458,9 @@ const EditUserModal: React.FC<{ user: User, onClose: () => void, onUpdate: () =>
                                 {...register('grade')}
                                 className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                             >
-                                <option value="10">Grade 10</option>
-                                <option value="11">Grade 11</option>
-                                <option value="12">Grade 12</option>
+                                <option value="10">Khối 10</option>
+                                <option value="11">Khối 11</option>
+                                <option value="12">Khối 12</option>
                             </select>
                         </div>
                     )}
