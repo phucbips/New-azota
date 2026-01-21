@@ -35,10 +35,6 @@ service cloud.firestore {
 
     // --- COLLECTION: ASSIGNMENTS (Bài tập) ---
     match /assignments/{assignmentId} {
-      // READ RULES (Optimized):
-      // 1. Owner (Teacher) can always read their own assignments (Fast, no DB lookup required for rule).
-      // 2. Admin can read all.
-      // 3. Whitelisted users (Students/Teachers) can read (e.g. filtered by Grade).
       allow read: if request.auth != null && (
         resource.data.teacherId == request.auth.uid ||
         resource.data.createdByTeacherId == request.auth.uid ||
@@ -47,15 +43,11 @@ service cloud.firestore {
         isTeacher()
       );
 
-      // CREATE RULES:
-      // Enforce that teachers can only create assignments assigned to themselves
       allow create: if request.auth != null && (
         isAdmin() ||
         (isTeacher() && request.resource.data.teacherId == request.auth.uid)
       );
 
-      // UPDATE RULES:
-      // Teachers can update their own assignments but usually shouldn't change the owner (teacherId)
       allow update: if request.auth != null && (
         isAdmin() ||
         (
@@ -64,7 +56,6 @@ service cloud.firestore {
         )
       );
 
-      // DELETE RULES:
       allow delete: if request.auth != null && (
         isAdmin() ||
         resource.data.teacherId == request.auth.uid ||
@@ -74,26 +65,14 @@ service cloud.firestore {
 
     // --- COLLECTION: SUBJECTS (Môn học) ---
     match /subjects/{subjectId} {
-      // Allow read for all authenticated users (to populate dropdowns)
       allow read: if request.auth != null;
-
-      // Allow create by Teachers or Admins (Dynamic creation from dropdown)
       allow create: if request.auth != null && (isTeacher() || isAdmin());
-
-      // Allow update/delete only by Admins
       allow update, delete: if request.auth != null && isAdmin();
     }
 
     // --- COLLECTION: NOTIFICATIONS (Thông báo) ---
     match /notifications/{notificationId} {
-      // Admin can do everything
       allow read, write: if request.auth != null && isAdmin();
-
-      // Users can read notifications if they are authenticated
-      // (Client-side filtering handles the "targetAudience" logic for now)
-      // Ideally, we would strictly enforce reading only "own" notifications here,
-      // but since we query by 'createdAt' desc for the list, we allow read for now.
-      // Update (mark as read) is allowed for authenticated users.
       allow read: if request.auth != null;
       allow update: if request.auth != null &&
                     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']);
@@ -101,11 +80,21 @@ service cloud.firestore {
 
     // --- COLLECTION: ANNOUNCEMENTS (Bảng tin) ---
     match /announcements/{announcementId} {
-      // Admin can do everything
       allow read, write: if request.auth != null && isAdmin();
-
-      // All authenticated users can read announcements
       allow read: if request.auth != null;
+    }
+
+    // --- COLLECTION: ANALYTICS (Thống kê) ---
+    // Allow any authenticated user to write logs (via AnalyticsService)
+    // In strict production, this should be done via Cloud Functions to prevent tampering,
+    // but for this implementation, client-side write with merge is acceptable.
+    match /analytics_daily/{dateId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    match /analytics_aggregates/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
     }
   }
 }

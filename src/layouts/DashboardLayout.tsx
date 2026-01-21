@@ -91,7 +91,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
         {/* Logo */}
         <div className="h-16 flex items-center px-6 border-b border-border">
           <div className="bg-primary/10 rounded-lg p-1.5 mr-3">
-            <GraduationCap className={cn("w-6 h-6 text-primary", theme === 'dark' ? 'text-primary' : '')} />
+            <GraduationCap className={cn("w-6 h-6 text-primary")} />
           </div>
           <h1 className="text-lg font-bold tracking-tight text-foreground">LMS {role === 'admin' ? 'Admin' : role === 'teacher' ? 'Teacher' : 'Student'}</h1>
           <button
