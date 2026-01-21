@@ -138,6 +138,21 @@ class UserService {
       }, onError);
   }
 
+  // Helper to count Online Users (Active in last 10 minutes)
+  // Note: This query requires an index on `lastLoginAt`.
+  // If index is missing, it will throw an error in console with a link to create it.
+  subscribeToOnlineUsers(callback: (count: number) => void): () => void {
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+      const q = query(this.collection, where('lastLoginAt', '>=', Timestamp.fromDate(tenMinutesAgo)));
+
+      return onSnapshot(q, (snapshot) => {
+          callback(snapshot.size);
+      }, (error) => {
+          console.warn("Online users query failed (likely missing index):", error);
+          callback(0); // Fallback to 0 if index missing or permission error
+      });
+  }
+
   // Utility to backfill joinedAt for existing users
   async runMigration(): Promise<void> {
     console.log("Starting user migration...");
@@ -148,11 +163,21 @@ class UserService {
 
     for (const docSnap of snapshot.docs) {
       const data = docSnap.data();
+      const updates: any = {};
+
       if (!data.joinedAt) {
-        console.log(`Migrating user ${docSnap.id} (missing joinedAt)`);
-        await updateDoc(docSnap.ref, {
-          joinedAt: Timestamp.now()
-        });
+        updates.joinedAt = Timestamp.now();
+      }
+      if (!data.lastLoginAt && data.joinedAt) {
+          // Fallback lastLogin to joinedAt if missing
+          updates.lastLoginAt = data.joinedAt;
+      } else if (!data.lastLoginAt) {
+          updates.lastLoginAt = Timestamp.now();
+      }
+
+      if (Object.keys(updates).length > 0) {
+        console.log(`Migrating user ${docSnap.id}`);
+        await updateDoc(docSnap.ref, updates);
         count++;
       }
     }

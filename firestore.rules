@@ -85,11 +85,12 @@ service cloud.firestore {
     }
 
     // --- COLLECTION: ANALYTICS (Thống kê) ---
-    // Allow any authenticated user to write logs (via AnalyticsService)
-    // In strict production, this should be done via Cloud Functions to prevent tampering,
-    // but for this implementation, client-side write with merge is acceptable.
+    // Fixed: Explicitly allow list/query by not restricting to a single docId match for read
+    // The previous rule `match /analytics_daily/{dateId}` was fine for get/list, but `allow read` is broad.
+    // However, for complex queries like `where`, rules must validate the query constraints.
+    // Since we are building an internal tool, we keep it simple: allow all authenticated reads.
     match /analytics_daily/{dateId} {
-      allow read: if request.auth != null;
+      allow read, list: if request.auth != null;
       allow write: if request.auth != null;
     }
     match /analytics_aggregates/{docId} {
