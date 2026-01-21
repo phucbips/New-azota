@@ -8,21 +8,28 @@ import {
   signOut as firebaseSignOut,
   User as FirebaseUser,
 } from 'firebase/auth';
+import { Timestamp } from 'firebase/firestore';
 import { auth } from '../config/firebase';
 import { userService } from '../services/user.service';
 import { User, AuthContextType } from '../types';
 import { AuthContext } from './AuthContextDefinition';
+import { toast } from 'sonner';
 
 interface AuthProviderProps {
   children: React.ReactNode;
 }
 
-// Function to get or create a sessionId from sessionStorage
+// Function to get or create a sessionId from localStorage
 const getSessionId = () => {
-  let sessionId = sessionStorage.getItem('sessionId');
+  let sessionId = localStorage.getItem('sessionId');
   if (!sessionId) {
-    sessionId = crypto.randomUUID();
-    sessionStorage.setItem('sessionId', sessionId);
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+       sessionId = crypto.randomUUID();
+    } else {
+       // Fallback for older browsers
+       sessionId = Date.now().toString(36) + Math.random().toString(36).substring(2);
+    }
+    localStorage.setItem('sessionId', sessionId);
   }
   return sessionId;
 };
@@ -66,7 +73,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     ...userData,
                     // Ensure we keep the role and grade set by admin
                     sessionId: sessionId,
-                    joinedAt: userData.joinedAt || new Date() as any
+                    joinedAt: userData.joinedAt || Timestamp.now()
                 });
 
                 // IMPORTANT: Delete the old invitation doc to prevent duplicates in Admin list
@@ -126,7 +133,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           grade: null, // Default to null
           isWhitelisted: isSuperAdmin,
           sessionId: sessionId,
-          joinedAt: null as any, // Will be set by service
+          joinedAt: Timestamp.now(), // Correctly initialized
           lastDevice: currentDevice
         };
 
@@ -167,16 +174,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               if (updatedUser) {
                 // Enforce single session
                 if (updatedUser.sessionId !== sessionId) {
-                  alert('Tài khoản của bạn đã được đăng nhập từ một thiết bị khác. Phiên này sẽ được đăng xuất.');
-                  sessionStorage.removeItem('sessionId');
+                  toast.error('Tài khoản đã được đăng nhập nơi khác. Đang đăng xuất...');
+                  localStorage.removeItem('sessionId');
                   firebaseSignOut(auth); // This will trigger onAuthStateChanged again
                   return;
                 }
                 
                 // Handle account deactivation
                 if (updatedUser.isActive === false) {
-                  alert('Tài khoản của bạn đã bị vô hiệu hóa.');
-                  sessionStorage.removeItem('sessionId');
+                  toast.error('Tài khoản của bạn đã bị vô hiệu hóa.');
+                  localStorage.removeItem('sessionId');
                   firebaseSignOut(auth); // This will trigger onAuthStateChanged again
                   return;
                 }
@@ -282,7 +289,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   );
 
   const signOut = useCallback(async () => {
-    sessionStorage.removeItem('sessionId');
+    localStorage.removeItem('sessionId');
     await firebaseSignOut(auth);
   }, []);
 

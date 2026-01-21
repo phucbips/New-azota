@@ -10,6 +10,8 @@ import {
   getDocs,
   Timestamp,
   deleteDoc,
+  orderBy,
+  limit,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { COLLECTIONS } from '../config/constants';
@@ -113,7 +115,7 @@ class UserService {
 
   async findUserByEmail(email: string): Promise<User | null> {
     const normalizedEmail = email.toLowerCase();
-    const q = query(this.collection, where('email', '==', normalizedEmail));
+    const q = query(this.collection, where('email', '==', normalizedEmail), limit(1));
     const querySnapshot = await getDocs(q);
 
     if (!querySnapshot.empty) {
@@ -128,17 +130,33 @@ class UserService {
       callback: (users: User[]) => void,
       onError?: (error: Error) => void
   ): () => void {
-      const q = query(this.collection);
+      // Server-side ordering. Requires index if mixed with filters, but plain sort is fine.
+      const q = query(this.collection, orderBy('joinedAt', 'desc'));
       return onSnapshot(q, (snapshot) => {
           const users = snapshot.docs.map(d => ({ uid: d.id, ...d.data() } as User));
-          // Client-side sort by joinedAt desc
-          users.sort((a, b) => {
-             const timeA = a.joinedAt?.toMillis ? a.joinedAt.toMillis() : 0;
-             const timeB = b.joinedAt?.toMillis ? b.joinedAt.toMillis() : 0;
-             return timeB - timeA;
-          });
           callback(users);
       }, onError);
+  }
+
+  // Utility to backfill joinedAt for existing users
+  async runMigration(): Promise<void> {
+    console.log("Starting user migration...");
+    // Get all users (no order)
+    const q = query(this.collection);
+    const snapshot = await getDocs(q);
+    let count = 0;
+
+    for (const docSnap of snapshot.docs) {
+      const data = docSnap.data();
+      if (!data.joinedAt) {
+        console.log(`Migrating user ${docSnap.id} (missing joinedAt)`);
+        await updateDoc(docSnap.ref, {
+          joinedAt: Timestamp.now()
+        });
+        count++;
+      }
+    }
+    console.log(`Migration complete. Updated ${count} users.`);
   }
 
   // Deprecated/Modified methods below to support legacy or specific needs
