@@ -11,6 +11,7 @@ import {
 import { Timestamp } from 'firebase/firestore';
 import { auth } from '../config/firebase';
 import { userService } from '../services/user.service';
+import { analyticsService } from '../services/analytics.service';
 import { User, AuthContextType } from '../types';
 import { AuthContext } from './AuthContextDefinition';
 import { toast } from 'sonner';
@@ -73,7 +74,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     ...userData,
                     // Ensure we keep the role and grade set by admin
                     sessionId: sessionId,
-                    joinedAt: userData.joinedAt || Timestamp.now()
+                    joinedAt: userData.joinedAt || Timestamp.now(),
+                    lastLoginAt: Timestamp.now()
                 });
 
                 // IMPORTANT: Delete the old invitation doc to prevent duplicates in Admin list
@@ -101,6 +103,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const updates: Partial<User> = {};
         let needsUpdate = false;
 
+        // Log analytics visit if it's a new session or different day
+        // For simplicity, we log on every "getOrCreateUser" which happens on page reload/auth init.
+        // The analytics service handles daily counters so duplicates are acceptable for "Page Views" metric,
+        // but for strict "Visits" we might want to check session storage.
+        // Let's rely on analyticsService.logVisit being idempotent per day/user logic if we wanted strictness,
+        // but for now simple logging is enough.
+        analyticsService.logVisit(firebaseUser.uid);
+
         if (existingUser.sessionId !== sessionId) {
           updates.sessionId = sessionId;
           needsUpdate = true;
@@ -110,6 +120,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             updates.lastDevice = currentDevice;
             needsUpdate = true;
         }
+
+        // Always update lastLoginAt on new session initialization
+        updates.lastLoginAt = Timestamp.now();
+        needsUpdate = true;
 
         if (isSuperAdmin && (existingUser.role !== 'admin' || !existingUser.isWhitelisted)) {
           updates.role = 'admin';
@@ -133,11 +147,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           grade: null, // Default to null
           isWhitelisted: isSuperAdmin,
           sessionId: sessionId,
-          joinedAt: Timestamp.now(), // Correctly initialized
-          lastDevice: currentDevice
+          joinedAt: Timestamp.now(),
+          lastDevice: currentDevice,
+          lastLoginAt: Timestamp.now()
         };
 
         await userService.createUser(firebaseUser.uid, newUser);
+        analyticsService.logVisit(firebaseUser.uid);
         
         // Return the full user object including the UID
         return { ...newUser, uid: firebaseUser.uid };

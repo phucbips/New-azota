@@ -4,34 +4,41 @@ import { StatCard } from '../../components/ui/StatCard';
 import { Users, BookOpen, Monitor, Smartphone, AlertCircle, Clock } from 'lucide-react';
 import { userService } from '../../services/user.service';
 import { assignmentService } from '../../services/assignment.service';
+import { analyticsService } from '../../services/analytics.service';
 import { useTranslation } from 'react-i18next';
 import { User, Assignment } from '../../types';
-import { UserActivityChart } from '../../components/charts/UserActivityChart';
-import { AssignmentStatsChart } from '../../components/charts/AssignmentStatsChart';
+import { TrafficChart } from '../../components/charts/TrafficChart';
+import { AnalyticsWidget } from '../../components/charts/AnalyticsWidget';
 
 export const AdminOverview: React.FC = () => {
   const { t } = useTranslation();
   const [users, setUsers] = useState<User[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [deviceStats, setDeviceStats] = useState({ PC: 0, iOS: 0, Android: 0 });
+
+  // Analytics State
+  const [trafficData, setTrafficData] = useState<{ date: string; visitors: number }[]>([]);
+  const [aggStats, setAggStats] = useState<any>({ os: {}, browsers: {}, devices: {}, total_visits: 0 });
 
   useEffect(() => {
+    // 1. Fetch Users (realtime)
     const unsubscribeUsers = userService.subscribeToAllUsers((fetchedUsers) => {
       setUsers(fetchedUsers);
-
-      const stats = { PC: 0, iOS: 0, Android: 0 };
-      fetchedUsers.forEach(u => {
-        const dev = u.lastDevice;
-        if (dev === 'PC') stats.PC++;
-        else if (dev === 'iOS') stats.iOS++;
-        else if (dev === 'Android') stats.Android++;
-      });
-      setDeviceStats(stats);
     });
 
+    // 2. Fetch Assignments (realtime)
     const unsubscribeAssignments = assignmentService.subscribeToAllAssignments((fetchedAssignments) => {
       setAssignments(fetchedAssignments);
     });
+
+    // 3. Fetch Analytics (Once on mount for now, could be realtime with onSnapshot if needed)
+    const loadAnalytics = async () => {
+        const traffic = await analyticsService.getDailyTraffic(7);
+        setTrafficData(traffic.reverse()); // Chart expects chronological
+
+        const aggs = await analyticsService.getAggregatedStats();
+        setAggStats(aggs);
+    };
+    loadAnalytics();
 
     return () => {
       unsubscribeUsers();
@@ -39,8 +46,8 @@ export const AdminOverview: React.FC = () => {
     };
   }, []);
 
-  // Mock "Due Soon" logic (taking latest 3 created assignments as a placeholder for due dates)
-  const recentAssignments = assignments.slice(0, 3);
+  // Helper to transform aggregates map to array for Widget
+  const toArray = (map: Record<string, number>) => Object.entries(map).map(([name, value]) => ({ name, value }));
 
   return (
     <div className="flex flex-col gap-6 pb-10">
@@ -50,7 +57,7 @@ export const AdminOverview: React.FC = () => {
       />
 
       {/* Top Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <StatCard
           title={t('admin.total_users')}
           value={users.length}
@@ -63,66 +70,30 @@ export const AdminOverview: React.FC = () => {
           icon={<BookOpen className="w-6 h-6" />}
           trend={t('admin.trend_system')}
         />
-         <StatCard
-          title="Thiết bị PC"
-          value={deviceStats.PC}
-          icon={<Monitor className="w-6 h-6 text-blue-600" />}
-          trend="Đang hoạt động"
-        />
-         <StatCard
-          title="Thiết bị Mobile"
-          value={deviceStats.iOS + deviceStats.Android}
-          icon={<Smartphone className="w-6 h-6 text-green-600" />}
-          trend="iOS & Android"
-        />
       </div>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2">
-        <UserActivityChart users={users} />
-        <AssignmentStatsChart assignments={assignments} />
+      {/* Main Analytics Section: Traffic Chart */}
+      <div className="w-full">
+         <TrafficChart data={trafficData} />
       </div>
 
-      {/* Bottom Widgets */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2">
-        {/* Recent/Due Soon Widget */}
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-          <div className="flex items-center gap-2 mb-4">
-             <Clock className="w-5 h-5 text-amber-500" />
-             <h3 className="text-lg font-bold text-slate-800">Bài tập mới nhất</h3>
-          </div>
-          {recentAssignments.length > 0 ? (
-            <div className="flex flex-col gap-3">
-              {recentAssignments.map(a => (
-                <div key={a.id} className="p-3 bg-slate-50 rounded-lg flex justify-between items-center">
-                  <div>
-                    <p className="font-medium text-slate-800">{a.title}</p>
-                    <p className="text-xs text-slate-500">{a.subject} - {a.gradeLevel ? `Khối ${a.gradeLevel}` : 'Chung'}</p>
-                  </div>
-                  <span className="text-xs bg-white px-2 py-1 rounded border border-slate-200">Mới</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-slate-500 text-sm italic">Chưa có dữ liệu.</p>
-          )}
-        </div>
-
-        {/* System Health / Alerts Widget */}
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-           <div className="flex items-center gap-2 mb-4">
-             <AlertCircle className="w-5 h-5 text-red-500" />
-             <h3 className="text-lg font-bold text-slate-800">Cần chú ý</h3>
-          </div>
-          <div className="flex flex-col gap-3">
-             <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
-                Không có cảnh báo hệ thống nghiêm trọng.
-             </div>
-             <div className="p-3 bg-blue-50 text-blue-700 rounded-lg text-sm">
-                Hệ thống hoạt động bình thường.
-             </div>
-          </div>
-        </div>
+      {/* Demographics / System Stats (Vercel Style) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <AnalyticsWidget
+            title="Operating Systems"
+            data={toArray(aggStats.os)}
+            total={aggStats.total_visits}
+          />
+          <AnalyticsWidget
+            title="Devices"
+            data={toArray(aggStats.devices)}
+            total={aggStats.total_visits}
+          />
+          <AnalyticsWidget
+            title="Browsers"
+            data={toArray(aggStats.browsers)}
+            total={aggStats.total_visits}
+          />
       </div>
     </div>
   );

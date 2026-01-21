@@ -14,6 +14,7 @@ export interface User {
   joinedAt: Timestamp;
   isActive?: boolean;
   lastDevice?: string;
+  lastLoginAt?: Timestamp; // New field for detailed last login tracking
   deviceHistory?: {
     device: string;
     timestamp: Timestamp;

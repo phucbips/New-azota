@@ -3,10 +3,12 @@ import { useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { userService } from '../../services/user.service';
 import { User, UserRole } from '../../types';
-import { Trash2, UserPlus, Loader2, Edit2, Search, MoreVertical, Plus, Filter, Smartphone, Monitor } from 'lucide-react';
+import { Trash2, UserPlus, Loader2, Edit2, Search, MoreVertical, Plus, Filter, Smartphone, Monitor, Database } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDate } from '../../lib/formatters';
 import { Skeleton } from '../shared/Skeleton';
+import { formatDistanceToNow } from 'date-fns';
+import { vi } from 'date-fns/locale';
 
 type CreateUserForm = {
   email: string;
@@ -27,6 +29,8 @@ export const UserManagement: React.FC = () => {
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
   const [isAddMode, setIsAddMode] = useState(false); // Toggle form visibility
   const [searchTerm, setSearchTerm] = useState('');
+
+  const [migrationLoading, setMigrationLoading] = useState(false);
 
   // Edit Mode State
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -123,6 +127,37 @@ export const UserManagement: React.FC = () => {
       setIsEditModalOpen(true);
   };
 
+  const handleRunMigration = async () => {
+      if (!confirm('Hành động này sẽ cập nhật dữ liệu cho các user cũ (thêm joinedAt nếu thiếu). Bạn có chắc chắn?')) return;
+      setMigrationLoading(true);
+      try {
+          await userService.runMigration();
+          toast.success('Migration hoàn tất!');
+      } catch (error) {
+          console.error(error);
+          toast.error('Có lỗi xảy ra khi migration.');
+      } finally {
+          setMigrationLoading(false);
+      }
+  };
+
+  const formatLastActive = (user: User) => {
+     const device = user.lastDevice || 'Unknown';
+     const timeAgo = user.lastLoginAt ? formatDistanceToNow(user.lastLoginAt.toDate(), { addSuffix: true, locale: vi }) : '';
+
+     if (!user.lastLoginAt) return '--';
+
+     return (
+         <div className="flex flex-col">
+             <span className="text-slate-900">{timeAgo}</span>
+             <span className="text-xs text-slate-500 flex items-center gap-1">
+                 {device === 'PC' ? <Monitor className="w-3 h-3" /> : <Smartphone className="w-3 h-3" />}
+                 {device}
+             </span>
+         </div>
+     );
+  };
+
   return (
     <div className="flex flex-col gap-6">
         {/* Actions Bar */}
@@ -151,13 +186,26 @@ export const UserManagement: React.FC = () => {
                         }}
                     />
                 </div>
-                <button
-                    onClick={() => setIsAddMode(!isAddMode)}
-                    className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm shadow-blue-500/20 whitespace-nowrap w-full md:w-auto"
-                >
-                    <Plus className="w-5 h-5" />
-                    Thêm người dùng
-                </button>
+                <div className="flex gap-2 w-full md:w-auto">
+                    {/* Migration Tool (Only visible if needed or for admins, keeping it always visible here for simplicity as requested) */}
+                    <button
+                        onClick={handleRunMigration}
+                        disabled={migrationLoading}
+                        className="flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                        title="Fix missing joinedAt data"
+                    >
+                         <Database className="w-5 h-5" />
+                         {migrationLoading ? '...' : 'Fix Data'}
+                    </button>
+
+                    <button
+                        onClick={() => setIsAddMode(!isAddMode)}
+                        className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm shadow-blue-500/20 whitespace-nowrap flex-1 md:flex-none"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Thêm người dùng
+                    </button>
+                </div>
             </div>
 
             {/* Filters Bar */}
@@ -303,12 +351,7 @@ export const UserManagement: React.FC = () => {
                     {formatDate(u.joinedAt)}
                   </td>
                    <td className="px-6 py-4 text-sm text-slate-600">
-                    {/* Placeholder for Last Login - Using lastDevice as proxy for now */}
-                    <div className="flex items-center gap-1.5">
-                        {u.lastDevice === 'PC' && <Monitor className="w-3.5 h-3.5 text-blue-500" />}
-                        {(u.lastDevice === 'iOS' || u.lastDevice === 'Android') && <Smartphone className="w-3.5 h-3.5 text-green-500" />}
-                        <span>{u.lastDevice || '--'}</span>
-                    </div>
+                    {formatLastActive(u)}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
@@ -325,7 +368,15 @@ export const UserManagement: React.FC = () => {
                 </tr>
               ))}
               {filteredUsers.length === 0 && (
-                  <tr><td colSpan={7} className="p-8 text-center text-slate-500">Không tìm thấy người dùng nào.</td></tr>
+                  <tr><td colSpan={7} className="p-8 text-center text-slate-500">
+                     <div className="flex flex-col items-center justify-center gap-2">
+                        <span>Không tìm thấy người dùng nào.</span>
+                        {/* Suggest migration if list is empty but might have data */}
+                        <button onClick={handleRunMigration} className="text-blue-600 text-xs hover:underline">
+                            Thử đồng bộ dữ liệu cũ?
+                        </button>
+                     </div>
+                  </td></tr>
               )}
             </tbody>
           </table>
