@@ -38,6 +38,7 @@
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
+    /* Fixed Contrast: Foreground is explicitly almost white */
 
     --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
@@ -52,7 +53,8 @@
     --secondary-foreground: 210 40% 98%;
 
     --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted-foreground: 215 20.2% 75.1%;
+    /* Improved Contrast for muted text in dark mode */
 
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
