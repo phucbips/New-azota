@@ -63,45 +63,45 @@ export const AnnouncementManager: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-50 rounded-lg text-purple-600">
+            <div className="p-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg text-purple-600 dark:text-purple-400">
                 <Megaphone className="w-5 h-5" />
             </div>
-            <h2 className="text-lg font-bold text-slate-900">Quản lý Bảng tin</h2>
+            <h2 className="text-lg font-bold text-foreground">Quản lý Bảng tin</h2>
         </div>
         <button
             onClick={() => setIsCreating(!isCreating)}
-            className="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-bold hover:bg-slate-800 transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-foreground text-background rounded-lg text-sm font-bold hover:bg-foreground/90 transition-colors flex items-center gap-2"
         >
             {isCreating ? 'Hủy' : <><Plus className="w-4 h-4" /> Tạo thông báo mới</>}
         </button>
       </div>
 
       {isCreating && (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 animate-in slide-in-from-top-4">
+        <div className="bg-card rounded-xl border border-border shadow-sm p-6 animate-in slide-in-from-top-4">
              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Tiêu đề</label>
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">Tiêu đề</label>
                     <input
                         {...register('title')}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                        className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                         placeholder="Tiêu đề thông báo..."
                     />
                     {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title.message}</p>}
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Nội dung</label>
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">Nội dung</label>
                     <textarea
                         {...register('content')}
                         rows={4}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                        className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                         placeholder="Nội dung chi tiết..."
                     />
                     {errors.content && <p className="text-xs text-red-500 mt-1">{errors.content.message}</p>}
                 </div>
 
                 <div>
-                     <label className="block text-sm font-medium text-slate-700 mb-1">Hình ảnh đính kèm (Tùy chọn)</label>
+                     <label className="block text-sm font-medium text-muted-foreground mb-1">Hình ảnh đính kèm (Tùy chọn)</label>
                      <div className="max-w-md">
                         <CloudinaryUploadWidget
                             label=""
@@ -111,7 +111,7 @@ export const AnnouncementManager: React.FC = () => {
                 </div>
 
                 <div className="pt-2">
-                    <button type="submit" className="px-6 py-2 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 shadow-lg shadow-purple-500/30 flex items-center gap-2">
+                    <button type="submit" className="px-6 py-2 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 shadow-lg shadow-primary/30 flex items-center gap-2">
                         <Save className="w-4 h-4" /> Đăng tin
                     </button>
                 </div>
@@ -121,38 +121,38 @@ export const AnnouncementManager: React.FC = () => {
 
       <div className="grid grid-cols-1 gap-4">
         {announcements.map(item => (
-            <div key={item.id} className={`bg-white border rounded-xl p-4 flex gap-4 ${!item.isActive ? 'opacity-60 border-dashed' : 'border-slate-200'}`}>
+            <div key={item.id} className={`bg-card border rounded-xl p-4 flex gap-4 ${!item.isActive ? 'opacity-60 border-dashed' : 'border-border'}`}>
                 {item.imageUrl && (
-                    <img src={item.imageUrl} alt="" className="w-24 h-24 object-cover rounded-lg bg-slate-100 flex-shrink-0" />
+                    <img src={item.imageUrl} alt="" className="w-24 h-24 object-cover rounded-lg bg-muted flex-shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
-                        <h3 className="font-bold text-slate-900 truncate">{item.title}</h3>
+                        <h3 className="font-bold text-card-foreground truncate">{item.title}</h3>
                         <div className="flex items-center gap-2">
                              <button
                                 onClick={() => handleToggle(item)}
-                                className={`p-1.5 rounded-md transition-colors ${item.isActive ? 'text-green-600 hover:bg-green-50' : 'text-slate-400 hover:bg-slate-100'}`}
+                                className={`p-1.5 rounded-md transition-colors ${item.isActive ? 'text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20' : 'text-muted-foreground hover:bg-muted'}`}
                                 title={item.isActive ? "Đang hiển thị" : "Đang ẩn"}
                              >
                                 {item.isActive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                              </button>
                              <button
                                 onClick={() => handleDelete(item.id)}
-                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                                className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
                              >
                                 <Trash2 className="w-4 h-4" />
                              </button>
                         </div>
                     </div>
-                    <p className="text-sm text-slate-600 line-clamp-2 mt-1">{item.content}</p>
-                    <p className="text-xs text-slate-400 mt-2">
+                    <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{item.content}</p>
+                    <p className="text-xs text-muted-foreground/60 mt-2">
                         Đăng lúc: {item.createdAt?.toMillis ? format(item.createdAt.toDate(), 'dd/MM/yyyy HH:mm') : 'Unknown'}
                     </p>
                 </div>
             </div>
         ))}
         {announcements.length === 0 && (
-            <div className="text-center py-12 text-slate-500 border-2 border-dashed border-slate-200 rounded-xl">
+            <div className="text-center py-12 text-muted-foreground border-2 border-dashed border-border rounded-xl">
                 Chưa có thông báo nào.
             </div>
         )}
