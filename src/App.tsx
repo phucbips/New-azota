@@ -5,6 +5,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './components/auth/LoginPage';
 import { Loading } from './components/shared/Loading';
+import { PageTracker } from './components/shared/PageTracker';
 import { RouteMiddleware } from './middleware/RouteMiddleware';
 import './styles/globals.css';
 import { Toaster } from 'sonner';
@@ -69,6 +70,7 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
        <ThemeProvider>
+        <PageTracker />
         <Toaster richColors position="top-right" />
         <Analytics />
         <SpeedInsights />

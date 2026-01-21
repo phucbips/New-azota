@@ -35,5 +35,15 @@
     "logout": "Đăng xuất",
     "profile": "Hồ sơ",
     "dashboard": "Bảng điều khiển"
+  },
+  "home": {
+    "welcome": "Chào mừng trở lại, {{name}}!",
+    "subtitle": "Đây là tổng quan tiến độ học tập của bạn.",
+    "grade_level": "Khối lớp",
+    "grade_trend": "Hiện tại",
+    "cta_title": "Sẵn sàng học tập?",
+    "cta_desc": "Kiểm tra danh sách bài tập để xem các nhiệm vụ cần làm cho Lớp {{grade}}.",
+    "cta_button": "Đến bài tập",
+    "announcements": "Thông báo"
   }
 }

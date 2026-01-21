@@ -35,5 +35,15 @@
     "logout": "Logout",
     "profile": "Profile",
     "dashboard": "Dashboard"
+  },
+  "home": {
+    "welcome": "Welcome back, {{name}}!",
+    "subtitle": "Here is an overview of your learning progress.",
+    "grade_level": "Grade Level",
+    "grade_trend": "Current",
+    "cta_title": "Ready to start learning?",
+    "cta_desc": "Check your assignments list to see pending tasks and coursework for Grade {{grade}}.",
+    "cta_button": "Go to Assignments",
+    "announcements": "Announcements"
   }
 }
