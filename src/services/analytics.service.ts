@@ -1,5 +1,5 @@
 import { db } from '../config/firebase';
-import { doc, setDoc, updateDoc, increment, getDoc, Timestamp } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, increment, getDoc, onSnapshot, query, where, collection, orderBy, limit } from 'firebase/firestore';
 import { UAParser } from 'ua-parser-js';
 
 const COLLECTIONS = {
@@ -29,8 +29,7 @@ class AnalyticsService {
       await setDoc(dailyRef, {
         date: today,
         visitors: increment(1),
-        // We could track unique visitors by storing UIDs in a subcollection, but for this simplified dashboard, total visits is fine.
-        // Or strictly: we only increment if this user hasn't logged in today (requires client side check or storing lastLoginDate on user)
+        page_views: increment(1) // Simple page view tracking
       }, { merge: true });
 
       // 2. Update Aggregates (for Pie/List stats)
@@ -42,6 +41,7 @@ class AnalyticsService {
       updates[`browsers.${browserName}`] = increment(1);
       updates[`devices.${deviceType}`] = increment(1);
       updates['total_visits'] = increment(1);
+      updates['total_page_views'] = increment(1);
 
       await setDoc(aggRef, updates, { merge: true });
 
@@ -51,9 +51,26 @@ class AnalyticsService {
     }
   }
 
+  // Real-time listener for Aggregated Stats (OS, Device, Browser)
+  subscribeToAggregates(callback: (data: any) => void) {
+      const docRef = doc(db, COLLECTIONS.AGGREGATES, 'global_stats');
+      return onSnapshot(docRef, (doc) => {
+          if (doc.exists()) {
+              callback(doc.data());
+          } else {
+              callback({ os: {}, browsers: {}, devices: {}, total_visits: 0 });
+          }
+      });
+  }
+
+  // Real-time listener for Daily Traffic (Last 7 days)
+  // Note: Firestore doesn't support "limit from end" easily with dynamic dates in a single query without complex indexes.
+  // For simplicity and cost, we will fetch the specific documents for the last 7 days.
+  // Since we know the IDs (YYYY-MM-DD), we can't easily subscribe to "last 7 docs" dynamically without a range query.
+  // A range query on 'date' field requires the field to exist.
+  // Let's use a query on the collection with range filter if possible, or just document listeners.
+  // Query is better for "last N days".
   async getDailyTraffic(days = 7) {
-    // In a real app, query by date range.
-    // Here we will fetch individual docs for the last 7 days for simplicity given the key structure.
     const stats = [];
     for (let i = days - 1; i >= 0; i--) {
        const d = new Date();
@@ -66,19 +83,33 @@ class AnalyticsService {
        if (snap.exists()) {
            stats.push(snap.data());
        } else {
-           stats.push({ date: dateStr, visitors: 0 });
+           stats.push({ date: dateStr, visitors: 0, page_views: 0 });
        }
     }
     return stats;
   }
 
-  async getAggregatedStats() {
-      const docRef = doc(db, COLLECTIONS.AGGREGATES, 'global_stats');
-      const snap = await getDoc(docRef);
-      if (snap.exists()) {
-          return snap.data();
-      }
-      return { os: {}, browsers: {}, devices: {}, total_visits: 0 };
+  // Real-time version using query (Requires 'date' field in docs which we added)
+  subscribeToDailyTraffic(days = 7, callback: (data: any[]) => void) {
+      // Calculate start date
+      const d = new Date();
+      d.setDate(d.getDate() - days);
+      const startDate = d.toISOString().split('T')[0];
+
+      // Query: date >= startDate
+      // Note: This requires the 'date' field to be stored in the doc (we added it in logVisit)
+      const q = query(
+          collection(db, COLLECTIONS.DAILY),
+          where('date', '>=', startDate),
+          orderBy('date', 'asc')
+      );
+
+      return onSnapshot(q, (snapshot) => {
+          const data = snapshot.docs.map(doc => doc.data());
+          // Fill in missing days if needed (gap filling), strictly the query returns what exists.
+          // For a perfect chart, we might want to merge with a complete date list client-side.
+          callback(data);
+      });
   }
 }
 
