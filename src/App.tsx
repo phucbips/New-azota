@@ -2,6 +2,8 @@ import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ThemeSettingsProvider } from './contexts/ThemeSettingsContext';
+import { DashboardConfigProvider } from './contexts/DashboardConfigContext';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './components/auth/LoginPage';
 import { Loading } from './components/shared/Loading';
@@ -70,11 +72,13 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
        <ThemeProvider>
-        <PageTracker />
-        <Toaster richColors position="top-right" />
-        <Analytics />
-        <SpeedInsights />
-        <Suspense fallback={<Loading fullScreen />}>
+        <ThemeSettingsProvider>
+         <DashboardConfigProvider>
+          <PageTracker />
+          <Toaster richColors position="top-right" />
+          <Analytics />
+          <SpeedInsights />
+          <Suspense fallback={<Loading fullScreen />}>
           <Routes>
             <Route path="/" element={<RootRedirect />} />
             <Route path="/login" element={<LoginWrapper />} />
@@ -133,6 +137,8 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
+         </DashboardConfigProvider>
+        </ThemeSettingsProvider>
        </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>

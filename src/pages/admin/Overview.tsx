@@ -7,10 +7,15 @@ import { analyticsService } from '../../services/analytics.service';
 import { userService } from '../../services/user.service';
 import { assignmentService } from '../../services/assignment.service';
 import { useTranslation } from 'react-i18next';
-import { Calendar, MoreHorizontal } from 'lucide-react';
+import { Calendar, MoreHorizontal, Layout, CheckSquare, Square } from 'lucide-react';
+import { useDashboardConfig } from '../../contexts/DashboardConfigContext';
+import { cn } from '../../lib/utils';
+import * as Popover from '@radix-ui/react-popover';
 
 export const AdminOverview: React.FC = () => {
   const { t } = useTranslation();
+  const { widgets, toggleWidget } = useDashboardConfig();
+
   const [trafficData, setTrafficData] = useState<{ date: string; visitors: number; page_views: number }[]>([]);
   const [aggStats, setAggStats] = useState<any>({ os: {}, browsers: {}, devices: {}, total_visits: 0, total_page_views: 0 });
   const [totalUsers, setTotalUsers] = useState(0);
@@ -59,6 +64,8 @@ export const AdminOverview: React.FC = () => {
       visitors: activeMetric === 'visitors' ? item.visitors : item.page_views,
   }));
 
+  const isVisible = (id: string) => widgets.find(w => w.id === id)?.visible;
+
   return (
     <div className="flex flex-col gap-8 pb-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -66,7 +73,7 @@ export const AdminOverview: React.FC = () => {
             <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('analytics.title')}</h1>
             <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                 <span>azota.vercel.app</span>
-                <span className="w-1 h-1 rounded-full bg-slate-400"></span>
+                <span className="w-1 h-1 rounded-full bg-muted-foreground/30"></span>
                 <div className="flex items-center gap-1.5">
                     <span className="relative flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -81,49 +88,86 @@ export const AdminOverview: React.FC = () => {
             <div className="hidden sm:flex items-center px-3 py-1.5 bg-card border border-border rounded-md text-sm font-medium text-foreground shadow-sm">
                 Production
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-card border border-border rounded-md text-sm font-medium text-foreground shadow-sm cursor-pointer hover:bg-accent/50 transition-colors">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
-                <span>{t('analytics.last_7_days')}</span>
-            </div>
-            <button className="p-1.5 hover:bg-accent rounded-md transition-colors text-muted-foreground">
-                <MoreHorizontal className="w-5 h-5" />
-            </button>
+
+            {/* Dashboard Config Popover */}
+            <Popover.Root>
+                <Popover.Trigger asChild>
+                    <button className="p-2 bg-card border border-border hover:bg-accent rounded-md transition-colors text-muted-foreground hover:text-foreground flex items-center gap-2">
+                        <Layout className="w-5 h-5" />
+                        <span className="hidden sm:inline text-sm font-medium">Customize</span>
+                    </button>
+                </Popover.Trigger>
+                <Popover.Portal>
+                    <Popover.Content className="z-50 min-w-[200px] bg-popover rounded-md border border-border shadow-md p-3 animate-in fade-in zoom-in-95 duration-200" sideOffset={5}>
+                        <h4 className="font-medium text-sm text-foreground mb-2">Visible Widgets</h4>
+                        <div className="space-y-1">
+                            {widgets.map(widget => (
+                                <button
+                                    key={widget.id}
+                                    onClick={() => toggleWidget(widget.id)}
+                                    className="flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-sm hover:bg-muted transition-colors text-left"
+                                >
+                                    {widget.visible ?
+                                        <CheckSquare className="w-4 h-4 text-primary" /> :
+                                        <Square className="w-4 h-4 text-muted-foreground" />
+                                    }
+                                    <span className={widget.visible ? "text-foreground" : "text-muted-foreground"}>{widget.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </Popover.Content>
+                </Popover.Portal>
+            </Popover.Root>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div onClick={() => setActiveMetric('visitors')} className="cursor-pointer transition-transform hover:scale-[1.01]">
-            <AnalyticsStatCard
-                label={t('analytics.visitors')}
-                value={visitorsCount}
-                trend={visitorsTrend}
-                className={activeMetric === 'visitors' ? "border-t-2 border-t-foreground shadow-md" : ""}
-            />
-        </div>
-        <div onClick={() => setActiveMetric('page_views')} className="cursor-pointer transition-transform hover:scale-[1.01]">
-            <AnalyticsStatCard
-                label={t('analytics.page_views')}
-                value={pageViewsCount}
-                trend={pageViewsTrend}
-                className={activeMetric === 'page_views' ? "border-t-2 border-t-foreground shadow-md" : ""}
-            />
-        </div>
-        <div>
-            <AnalyticsStatCard
-                label={t('admin.total_users')}
-                value={totalUsers}
-            />
-        </div>
+        {isVisible('visitors') && (
+            <div onClick={() => setActiveMetric('visitors')} className="cursor-pointer transition-transform hover:scale-[1.01]">
+                <AnalyticsStatCard
+                    label={t('analytics.visitors')}
+                    value={visitorsCount}
+                    trend={visitorsTrend}
+                    className={activeMetric === 'visitors' ? "border-t-2 border-t-primary shadow-md" : ""}
+                />
+            </div>
+        )}
+        {isVisible('page_views') && (
+            <div onClick={() => setActiveMetric('page_views')} className="cursor-pointer transition-transform hover:scale-[1.01]">
+                <AnalyticsStatCard
+                    label={t('analytics.page_views')}
+                    value={pageViewsCount}
+                    trend={pageViewsTrend}
+                    className={activeMetric === 'page_views' ? "border-t-2 border-t-primary shadow-md" : ""}
+                />
+            </div>
+        )}
+        {isVisible('total_users') && (
+            <div>
+                <AnalyticsStatCard
+                    label={t('admin.total_users')}
+                    value={totalUsers}
+                />
+            </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[400px]">
-         <AnalyticsChart data={chartData} />
-         <AnalyticsTabs
-            osData={toArray(aggStats.os)}
-            deviceData={toArray(aggStats.devices)}
-            browserData={toArray(aggStats.browsers)}
-            totalVisits={aggStats.total_visits}
-         />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+         {isVisible('traffic_chart') && (
+             <div className="h-[400px]">
+                <AnalyticsChart data={chartData} />
+             </div>
+         )}
+         {isVisible('device_stats') && (
+             <div className="h-[400px]">
+                <AnalyticsTabs
+                    osData={toArray(aggStats.os)}
+                    deviceData={toArray(aggStats.devices)}
+                    browserData={toArray(aggStats.browsers)}
+                    totalVisits={aggStats.total_visits}
+                />
+             </div>
+         )}
       </div>
     </div>
   );

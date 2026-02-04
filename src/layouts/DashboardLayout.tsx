@@ -2,45 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import {
-  Menu, X, LogOut, LayoutDashboard, Users, BookOpen,
-  Settings, GraduationCap, FileText, Search, UserCircle, MessageSquare
+  Menu, X, LogOut, GraduationCap, Settings, Search
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { NotificationList } from '../components/shared/NotificationList';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
-
-interface NavItem {
-  label: string;
-  href: string;
-  icon: React.ReactNode;
-}
-
-const getNavItems = (t: any, role: string): NavItem[] => {
-    const items = {
-        admin: [
-            { label: t('sidebar.overview'), href: '/admin', icon: <LayoutDashboard className="w-6 h-6" /> },
-            { label: t('sidebar.users'), href: '/admin/users', icon: <Users className="w-6 h-6" /> },
-            { label: t('sidebar.assignments'), href: '/admin/assignments', icon: <FileText className="w-6 h-6" /> },
-            { label: t('sidebar.courses'), href: '/admin/courses', icon: <BookOpen className="w-6 h-6" /> },
-            { label: t('sidebar.communication'), href: '/admin/communication', icon: <MessageSquare className="w-6 h-6" /> },
-            { label: t('sidebar.profile'), href: '/admin/profile', icon: <UserCircle className="w-6 h-6" /> },
-        ],
-        teacher: [
-            { label: t('sidebar.dashboard'), href: '/teacher', icon: <LayoutDashboard className="w-6 h-6" /> },
-            { label: t('sidebar.assignments'), href: '/teacher/assignments', icon: <FileText className="w-6 h-6" /> },
-            { label: t('sidebar.courses'), href: '/teacher/courses', icon: <BookOpen className="w-6 h-6" /> },
-            { label: t('sidebar.profile'), href: '/teacher/profile', icon: <UserCircle className="w-6 h-6" /> },
-        ],
-        student: [
-            { label: t('sidebar.dashboard'), href: '/student', icon: <LayoutDashboard className="w-6 h-6" /> },
-            { label: t('sidebar.assignments'), href: '/student/assignments', icon: <BookOpen className="w-6 h-6" /> },
-            { label: t('sidebar.courses'), href: '/student/courses', icon: <GraduationCap className="w-6 h-6" /> },
-            { label: t('sidebar.profile'), href: '/student/profile', icon: <UserCircle className="w-6 h-6" /> },
-        ]
-    };
-    return items[role as keyof typeof items] || [];
-};
+import { NAVIGATION_CONFIG } from '../config/navigation';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -50,13 +18,13 @@ interface DashboardLayoutProps {
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role }) => {
   const { t } = useTranslation();
   const { user, signOut } = useAuth();
-  const { theme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchValue, setSearchValue] = useState(searchParams.get('q') || '');
 
-  const navItems = getNavItems(t, role);
+  // Fetch nav items from config
+  const navItems = NAVIGATION_CONFIG[role] || [];
 
   useEffect(() => {
     setSearchValue(searchParams.get('q') || '');
@@ -129,7 +97,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
 
             return (
               <Link
-                key={item.label}
+                key={item.href}
                 to={item.href}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={cn(
@@ -142,7 +110,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
                 <span className={cn("transition-colors", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")}>
                     {item.icon}
                 </span>
-                {item.label}
+                {t(item.labelKey)}
               </Link>
             );
           })}
