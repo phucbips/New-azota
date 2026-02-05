@@ -16,9 +16,15 @@ import {
 import { db } from '../config/firebase';
 import { COLLECTIONS } from '../config/constants';
 import { User, UserRole } from '../types';
+import { auditService } from './audit.service';
+import { auth } from '../config/firebase'; // Direct auth import for current user tracking
 
 class UserService {
   private collection = collection(db, COLLECTIONS.USERS);
+
+  private get currentAdmin() {
+      return auth.currentUser;
+  }
 
   async createUser(uid: string, userData: Omit<User, 'uid'>): Promise<void> {
     const userRef = doc(db, COLLECTIONS.USERS, uid);
@@ -28,6 +34,7 @@ class UserService {
       email: userData.email.toLowerCase(),
       joinedAt: userData.joinedAt || Timestamp.now(),
     });
+    // System action, usually no admin involved unless manual
   }
 
   // Pre-creates a user document (invitation) without a UID (uses email as ID initially or a random ID)
@@ -56,11 +63,32 @@ class UserService {
         ...userData,
         uid: newDocRef.id // Temporary UID until real signup
     });
+
+    if (this.currentAdmin) {
+        auditService.logAction(
+            'invite_user',
+            normalizedEmail,
+            this.currentAdmin.uid,
+            this.currentAdmin.email || 'unknown',
+            { role, grade }
+        );
+    }
   }
 
   async deleteUser(uid: string): Promise<void> {
       const userRef = doc(db, COLLECTIONS.USERS, uid);
+      const user = await this.getUser(uid);
       await deleteDoc(userRef);
+
+      if (this.currentAdmin) {
+        auditService.logAction(
+            'delete_user',
+            user?.email || uid,
+            this.currentAdmin.uid,
+            this.currentAdmin.email || 'unknown',
+            { uid }
+        );
+    }
   }
 
   async getUser(uid: string): Promise<User | null> {
@@ -85,6 +113,21 @@ class UserService {
         updates.email = updates.email.toLowerCase();
     }
     await updateDoc(userRef, updates);
+
+    // Only log significant admin updates (e.g. role change), avoid logging self-updates (lastLogin) if possible
+    // Checking if current user is admin and different from target or if critical fields changed
+    const sensitiveFields = ['role', 'isWhitelisted', 'grade'];
+    const hasSensitiveUpdate = sensitiveFields.some(field => Object.keys(updates).includes(field));
+
+    if (this.currentAdmin && hasSensitiveUpdate) {
+         auditService.logAction(
+            'update_user',
+            uid,
+            this.currentAdmin.uid,
+            this.currentAdmin.email || 'unknown',
+            updates
+        );
+    }
   }
 
   subscribeToUser(

@@ -25,6 +25,7 @@ const AdminUsers = React.lazy(() => import('./pages/admin/Users').then(module =>
 const AdminAssignments = React.lazy(() => import('./pages/admin/Assignments').then(module => ({ default: module.AdminAssignments })));
 const AdminCourses = React.lazy(() => import('./pages/admin/Courses').then(module => ({ default: module.AdminCourses })));
 const AdminCommunication = React.lazy(() => import('./pages/admin/Communication').then(module => ({ default: module.AdminCommunication })));
+const AdminAuditLogs = React.lazy(() => import('./pages/admin/AuditLogs').then(module => ({ default: module.AuditLogs })));
 const AdminSettings = React.lazy(() => import('./pages/admin/Settings').then(module => ({ default: module.AdminSettings })));
 const AdminProfile = React.lazy(() => import('./pages/admin/Profile').then(module => ({ default: module.AdminProfile })));
 
@@ -97,6 +98,7 @@ function App() {
               <Route path="assignments" element={<AdminAssignments />} />
               <Route path="courses" element={<AdminCourses />} />
               <Route path="communication" element={<AdminCommunication />} />
+              <Route path="audit-logs" element={<AdminAuditLogs />} />
               <Route path="settings" element={<AdminSettings />} />
               <Route path="profile" element={<AdminProfile />} />
             </Route>

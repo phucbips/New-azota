@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
 import { userService } from '../../services/user.service';
 import { User, UserRole } from '../../types';
-import { Trash2, UserPlus, Loader2, Edit2, Search, MoreVertical, Plus, Filter, Smartphone, Monitor, Database } from 'lucide-react';
+import { Trash2, UserPlus, Loader2, Edit2, MoreVertical, Plus, Filter, Smartphone, Monitor, Database } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDate } from '../../lib/formatters';
-import { Skeleton } from '../shared/Skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import { DataTable } from '../../components/ui/DataTable';
+import { ColumnDef } from '@tanstack/react-table';
+import { useForm } from 'react-hook-form';
 
 type CreateUserForm = {
   email: string;
@@ -18,28 +19,23 @@ type CreateUserForm = {
 
 export const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
-  const [searchParams, setSearchParams] = useSearchParams();
   const { register, handleSubmit, watch, reset } = useForm<CreateUserForm>({
       defaultValues: { role: 'student', grade: '10' }
   });
 
   const [loading, setLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
-  const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
-  const [isAddMode, setIsAddMode] = useState(false); // Toggle form visibility
-  const [searchTerm, setSearchTerm] = useState('');
-
+  const [isAddMode, setIsAddMode] = useState(false);
   const [migrationLoading, setMigrationLoading] = useState(false);
 
   // Edit Mode State
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  // Filter States
-  const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
-  const [gradeFilter, setGradeFilter] = useState<string | 'all'>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  // Filter States - Simplified as Table handles search, but we might want advanced filtering later
+  // For now, let's pass all users to the table and let it handle search if we want client side search.
+  // But wait, the previous implementation had server-side subscription but client-side filtering?
+  // Yes, `userService.subscribeToAllUsers` gets all users.
 
   const selectedRole = watch('role');
 
@@ -50,41 +46,6 @@ export const UserManagement: React.FC = () => {
     });
     return () => unsubscribe();
   }, []);
-
-  useEffect(() => {
-      setSearchTerm(searchParams.get('q') || '');
-  }, [searchParams]);
-
-  // Filter Logic
-  useEffect(() => {
-      let results = users;
-
-      // Search Term
-      if (searchTerm) {
-          const lowerTerm = searchTerm.toLowerCase();
-          results = results.filter(u =>
-              (u.email?.toLowerCase().includes(lowerTerm) || u.displayName?.toLowerCase().includes(lowerTerm))
-          );
-      }
-
-      // Role Filter
-      if (roleFilter !== 'all') {
-          results = results.filter(u => u.role === roleFilter);
-      }
-
-      // Grade Filter
-      if (gradeFilter !== 'all') {
-           results = results.filter(u => u.grade === gradeFilter);
-      }
-
-      // Status Filter
-      if (statusFilter !== 'all') {
-          const isActive = statusFilter === 'active';
-          results = results.filter(u => u.isWhitelisted === isActive);
-      }
-
-      setFilteredUsers(results);
-  }, [searchTerm, users, roleFilter, gradeFilter, statusFilter]);
 
   const onSubmit = async (data: CreateUserForm) => {
     setLoading(true);
@@ -111,14 +72,21 @@ export const UserManagement: React.FC = () => {
 
   const handleDelete = async (uid: string) => {
       if(!confirm('Bạn có chắc chắn muốn xóa người dùng này?')) return;
-      setDeleteLoading(uid);
       try {
           await userService.deleteUser(uid);
           toast.success('Đã xóa người dùng');
       } catch (error) {
           toast.error('Lỗi khi xóa người dùng');
-      } finally {
-          setDeleteLoading(null);
+      }
+  };
+
+  const handleBulkDelete = async (selectedUsers: User[]) => {
+      if(!confirm(`Bạn có chắc chắn muốn xóa ${selectedUsers.length} người dùng đã chọn?`)) return;
+      try {
+          await Promise.all(selectedUsers.map(u => userService.deleteUser(u.uid)));
+          toast.success(`Đã xóa ${selectedUsers.length} người dùng`);
+      } catch (error) {
+          toast.error('Lỗi khi xóa người dùng');
       }
   };
 
@@ -158,36 +126,98 @@ export const UserManagement: React.FC = () => {
      );
   };
 
+  // Define Columns for DataTable
+  const columns: ColumnDef<User>[] = useMemo(() => [
+    {
+        id: "select",
+        header: ({ table }) => (
+          <input
+            type="checkbox"
+            className="rounded border-input text-primary w-4 h-4"
+            checked={table.getIsAllPageRowsSelected()}
+            onChange={(e) => table.toggleAllPageRowsSelected(!!e.target.checked)}
+          />
+        ),
+        cell: ({ row }) => (
+          <input
+            type="checkbox"
+            className="rounded border-input text-primary w-4 h-4"
+            checked={row.getIsSelected()}
+            onChange={(e) => row.toggleSelected(!!e.target.checked)}
+          />
+        ),
+        enableSorting: false,
+        enableHiding: false,
+    },
+    {
+        accessorKey: "email",
+        header: "Người dùng",
+        cell: ({ row }) => {
+            const u = row.original;
+            return (
+                <div className="flex items-center gap-3">
+                    <img src={u.photoURL} alt="" className="h-10 w-10 rounded-full bg-muted object-cover" />
+                    <div>
+                    <div className="font-medium text-foreground">{u.displayName || u.email.split('@')[0]}</div>
+                    <div className="text-sm text-muted-foreground">{u.email}</div>
+                        {u.grade && <div className="text-xs text-muted-foreground/80">Khối {u.grade}</div>}
+                    </div>
+                </div>
+            )
+        }
+    },
+    {
+        accessorKey: "role",
+        header: "Vai trò",
+        cell: ({ row }) => {
+            const role = row.original.role;
+            return (
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
+                    ${role === 'admin' ? 'bg-primary/10 text-primary border border-primary/20' :
+                    role === 'teacher' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'}`}>
+                    {role === 'teacher' ? 'Giáo viên' : role === 'student' ? 'Học sinh' : 'Admin'}
+                </span>
+            )
+        }
+    },
+    {
+        accessorKey: "joinedAt",
+        header: "Tham gia",
+        cell: ({ row }) => <span className="text-muted-foreground">{formatDate(row.original.joinedAt)}</span>
+    },
+    {
+        id: "lastActive",
+        header: "Đăng nhập cuối",
+        cell: ({ row }) => formatLastActive(row.original)
+    },
+    {
+        accessorKey: "isWhitelisted",
+        header: "Trạng thái",
+        cell: ({ row }) => (
+            <div className="flex items-center gap-2">
+                <div className={`h-2 w-2 rounded-full ${row.original.isWhitelisted ? 'bg-green-500' : 'bg-slate-300'}`}></div>
+                <span className="text-sm text-muted-foreground">{row.original.isWhitelisted ? 'Active' : 'Inactive'}</span>
+            </div>
+        )
+    },
+    {
+        id: "actions",
+        cell: ({ row }) => (
+            <div className="flex items-center justify-end gap-2">
+                <button onClick={() => handleEdit(row.original)} className="text-muted-foreground hover:text-primary p-1"><Edit2 className="w-5 h-5" /></button>
+                <button onClick={() => handleDelete(row.original.uid)} className="text-muted-foreground hover:text-destructive p-1"><Trash2 className="w-5 h-5" /></button>
+            </div>
+        )
+    }
+  ], []);
+
   return (
     <div className="flex flex-col gap-6">
         {/* Actions Bar */}
         <div className="flex flex-col gap-4">
-             {/* Search and Add */}
-             <div className="bg-card p-4 rounded-xl border border-border shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between w-full">
-                <div className="relative w-full md:max-w-md">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Search className="text-muted-foreground w-5 h-5" />
-                    </div>
-                    <input
-                        type="text"
-                        className="block w-full pl-10 pr-3 py-2.5 border-input rounded-lg text-sm bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                        placeholder="Search by name, email..."
-                        value={searchTerm}
-                        onChange={e => {
-                          const value = e.target.value;
-                          setSearchTerm(value);
-                          const nextParams = new URLSearchParams(searchParams);
-                          if (value.trim()) {
-                            nextParams.set('q', value);
-                          } else {
-                            nextParams.delete('q');
-                          }
-                          setSearchParams(nextParams, { replace: true });
-                        }}
-                    />
-                </div>
-                <div className="flex gap-2 w-full md:w-auto">
-                    {/* Migration Tool */}
+             {/* Header with Add Button */}
+             <div className="flex items-center justify-between">
+                <div className="flex gap-2">
                     <button
                         onClick={handleRunMigration}
                         disabled={migrationLoading}
@@ -197,56 +227,15 @@ export const UserManagement: React.FC = () => {
                          <Database className="w-5 h-5" />
                          {migrationLoading ? '...' : 'Fix Data'}
                     </button>
-
-                    <button
-                        onClick={() => setIsAddMode(!isAddMode)}
-                        className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm shadow-primary/20 whitespace-nowrap flex-1 md:flex-none"
-                    >
-                        <Plus className="w-5 h-5" />
-                        Thêm người dùng
-                    </button>
                 </div>
-            </div>
 
-            {/* Filters Bar */}
-            <div className="flex flex-col sm:flex-row gap-3 items-center">
-                 <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-fit">
-                    <Filter className="w-4 h-4" />
-                    <span>Lọc theo:</span>
-                 </div>
-                 <div className="flex flex-wrap gap-2 w-full">
-                    <select
-                        value={roleFilter}
-                        onChange={(e) => setRoleFilter(e.target.value as any)}
-                        className="text-sm border border-input rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:ring-2 focus:ring-primary"
-                    >
-                        <option value="all">Tất cả vai trò</option>
-                        <option value="admin">Admin</option>
-                        <option value="teacher">Giáo viên</option>
-                        <option value="student">Học sinh</option>
-                    </select>
-
-                    <select
-                        value={gradeFilter}
-                        onChange={(e) => setGradeFilter(e.target.value)}
-                        className="text-sm border border-input rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:ring-2 focus:ring-primary"
-                    >
-                        <option value="all">Tất cả khối</option>
-                        <option value="10">Khối 10</option>
-                        <option value="11">Khối 11</option>
-                        <option value="12">Khối 12</option>
-                    </select>
-
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value as any)}
-                        className="text-sm border border-input rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:ring-2 focus:ring-primary"
-                    >
-                        <option value="all">Tất cả trạng thái</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
-                 </div>
+                <button
+                    onClick={() => setIsAddMode(!isAddMode)}
+                    className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm shadow-primary/20 whitespace-nowrap"
+                >
+                    <Plus className="w-5 h-5" />
+                    Thêm người dùng
+                </button>
             </div>
         </div>
 
@@ -303,141 +292,15 @@ export const UserManagement: React.FC = () => {
         </div>
       )}
 
-      {/* Desktop Table View */}
-      <div className="hidden md:block bg-card rounded-xl border border-border shadow-sm overflow-hidden">
-        {isFetching ? (
-          <div className="p-6 space-y-4">
-            <Skeleton className="h-6 w-1/3" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-        ) : (
-        <>
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-muted/50 border-b border-border text-xs uppercase text-muted-foreground font-semibold tracking-wider">
-                <th className="px-6 py-4 w-12"><input type="checkbox" className="rounded border-input text-primary w-4 h-4" /></th>
-                <th className="px-6 py-4">Người dùng</th>
-                <th className="px-6 py-4">Vai trò</th>
-                <th className="px-6 py-4">Tham gia</th>
-                <th className="px-6 py-4">Đăng nhập cuối</th>
-                <th className="px-6 py-4">Trạng thái</th>
-                <th className="px-6 py-4 text-right">Hành động</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filteredUsers.map(u => (
-                <tr key={u.uid} className="group hover:bg-muted/20 transition-colors">
-                  <td className="px-6 py-4"><input type="checkbox" className="rounded border-input text-primary w-4 h-4" /></td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <img src={u.photoURL} alt="" className="h-10 w-10 rounded-full bg-muted object-cover" />
-                      <div>
-                        <div className="font-medium text-foreground">{u.displayName || u.email.split('@')[0]}</div>
-                        <div className="text-sm text-muted-foreground">{u.email}</div>
-                         {u.grade && <div className="text-xs text-muted-foreground/80">Khối {u.grade}</div>}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
-                      ${u.role === 'admin' ? 'bg-primary/10 text-primary border border-primary/20' :
-                        u.role === 'teacher' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'}`}>
-                      {u.role === 'teacher' ? 'Giáo viên' : u.role === 'student' ? 'Học sinh' : 'Admin'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-muted-foreground">
-                    {formatDate(u.joinedAt)}
-                  </td>
-                   <td className="px-6 py-4 text-sm text-muted-foreground">
-                    {formatLastActive(u)}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <div className={`h-2 w-2 rounded-full ${u.isWhitelisted ? 'bg-green-500' : 'bg-slate-300'}`}></div>
-                      <span className="text-sm text-muted-foreground">{u.isWhitelisted ? 'Active' : 'Inactive'}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => handleEdit(u)} className="text-muted-foreground hover:text-primary p-1"><Edit2 className="w-5 h-5" /></button>
-                      <button onClick={() => handleDelete(u.uid)} className="text-muted-foreground hover:text-destructive p-1"><Trash2 className="w-5 h-5" /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filteredUsers.length === 0 && (
-                  <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">
-                     <div className="flex flex-col items-center justify-center gap-2">
-                        <span>Không tìm thấy người dùng nào.</span>
-                        {/* Suggest migration if list is empty but might have data */}
-                        <button onClick={handleRunMigration} className="text-primary text-xs hover:underline">
-                            Thử đồng bộ dữ liệu cũ?
-                        </button>
-                     </div>
-                  </td></tr>
-              )}
-            </tbody>
-          </table>
-
-          {/* Pagination Footer (Static for now) */}
-          <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-card">
-              <div className="text-sm text-muted-foreground">
-                  Hiển thị <span className="font-medium text-foreground">1-{filteredUsers.length}</span> trên <span className="font-medium text-foreground">{filteredUsers.length}</span> kết quả
-              </div>
-              <div className="flex gap-2">
-                  <button disabled className="px-3 py-1 text-sm rounded border border-input text-muted-foreground hover:bg-muted disabled:opacity-50">Trước</button>
-                  <button disabled className="px-3 py-1 text-sm rounded border border-input text-muted-foreground hover:bg-muted disabled:opacity-50">Sau</button>
-              </div>
-          </div>
-        </>
-        )}
-      </div>
-
-      {/* Mobile Card List View */}
-      <div className="grid grid-cols-1 gap-4 md:hidden">
-        {isFetching ? (
-          <div className="bg-card p-4 rounded-xl border border-border shadow-sm space-y-3">
-            <Skeleton className="h-6 w-1/2" />
-            <Skeleton className="h-6 w-full" />
-            <Skeleton className="h-6 w-2/3" />
-          </div>
-        ) : (
-          filteredUsers.map(u => (
-              <div key={u.uid} className="bg-card p-4 rounded-xl border border-border shadow-sm flex flex-col gap-3">
-                  <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                          <img src={u.photoURL} className="h-12 w-12 rounded-full bg-muted object-cover" />
-                          <div>
-                              <h3 className="font-medium text-foreground">{u.displayName || u.email.split('@')[0]}</h3>
-                              <p className="text-sm text-muted-foreground">{u.email}</p>
-                              {u.grade && <span className="text-xs text-muted-foreground/80">Khối {u.grade}</span>}
-                          </div>
-                      </div>
-                      <button onClick={() => handleEdit(u)} className="text-muted-foreground">
-                          <MoreVertical className="w-5 h-5" />
-                      </button>
-                  </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-border mt-1">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
-                          ${u.role === 'admin' ? 'bg-primary/10 text-primary' :
-                          u.role === 'teacher' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'}`}>
-                          {u.role === 'teacher' ? 'Giáo viên' : u.role === 'student' ? 'Học sinh' : 'Admin'}
-                      </span>
-                      <div className="flex items-center gap-2">
-                           <div className="flex items-center gap-1.5 text-xs text-muted-foreground mr-2">
-                                {u.lastDevice === 'PC' && <Monitor className="w-3.5 h-3.5" />}
-                                {(u.lastDevice === 'iOS' || u.lastDevice === 'Android') && <Smartphone className="w-3.5 h-3.5" />}
-                                <span>{u.lastDevice}</span>
-                            </div>
-                          <div className={`h-2 w-2 rounded-full ${u.isWhitelisted ? 'bg-green-500' : 'bg-slate-300'}`}></div>
-                      </div>
-                  </div>
-              </div>
-          ))
-        )}
-      </div>
+      {/* Replaced Manual Table with DataTable */}
+      <DataTable
+        columns={columns}
+        data={users}
+        searchColumn="email"
+        searchPlaceholder="Tìm kiếm theo email..."
+        isLoading={isFetching}
+        onBulkDelete={handleBulkDelete}
+      />
 
       {/* Edit Modal */}
       {isEditModalOpen && editingUser && (

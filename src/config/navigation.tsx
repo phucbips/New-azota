@@ -23,6 +23,7 @@ export const NAVIGATION_CONFIG: Record<string, NavItem[]> = {
     { labelKey: 'sidebar.assignments', href: '/admin/assignments', icon: <FileText className="w-6 h-6" /> },
     { labelKey: 'sidebar.courses', href: '/admin/courses', icon: <BookOpen className="w-6 h-6" /> },
     { labelKey: 'sidebar.communication', href: '/admin/communication', icon: <MessageSquare className="w-6 h-6" /> },
+    { labelKey: 'Audit Logs', href: '/admin/audit-logs', icon: <FileText className="w-6 h-6" /> }, // Key needs translation update
     { labelKey: 'sidebar.profile', href: '/admin/profile', icon: <UserCircle className="w-6 h-6" /> },
   ],
   teacher: [
