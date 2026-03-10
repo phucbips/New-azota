@@ -56,6 +56,16 @@ export interface Assignment {
   updatedAt: Timestamp;
 }
 
+export interface CourseReview {
+  id?: string;
+  courseId: string;
+  studentId: string;
+  studentName: string;
+  rating: number; // 1-5
+  comment: string;
+  createdAt: Timestamp;
+}
+
 export interface AuthContextType {
   user: User | null;
   loading: boolean;

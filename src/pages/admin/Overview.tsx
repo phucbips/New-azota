@@ -6,9 +6,11 @@ import { AnalyticsTabs } from '../../components/analytics/AnalyticsTabs';
 import { analyticsService } from '../../services/analytics.service';
 import { userService } from '../../services/user.service';
 import { enrollmentService } from '../../services/enrollment.service';
-import { Enrollment } from '../../types';
+import { courseService } from '../../services/course.service';
+import { reviewService } from '../../services/review.service';
+import { Enrollment, Course, CourseReview } from '../../types';
 import { useTranslation } from 'react-i18next';
-import { Calendar, MoreHorizontal, Layout, CheckSquare, Square, DollarSign, Users, CreditCard, TrendingUp } from 'lucide-react';
+import { Calendar, MoreHorizontal, Layout, CheckSquare, Square, DollarSign, Users, CreditCard, TrendingUp, Loader2 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, BarChart, Bar
@@ -26,6 +28,11 @@ export const AdminOverview: React.FC = () => {
   const [totalUsers, setTotalUsers] = useState(0);
   const [onlineUsers, setOnlineUsers] = useState(0);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loadingTop, setLoadingTop] = useState(true);
+  const [feedbacks, setFeedbacks] = useState<CourseReview[]>([]);
+  const [loadingFeedbacks, setLoadingFeedbacks] = useState(true);
+  const [ratingFilter, setRatingFilter] = useState<number>(0);
 
   const [activeMetric, setActiveMetric] = useState<'visitors' | 'page_views'>('visitors');
 
@@ -41,6 +48,14 @@ export const AdminOverview: React.FC = () => {
     const unsubscribeUsers = userService.subscribeToAllUsers((users) => setTotalUsers(users.length));
     const unsubscribeOnline = userService.subscribeToOnlineUsers((count) => setOnlineUsers(count));
     const unsubscribeEnrollments = enrollmentService.subscribeToAllEnrollments((data) => setEnrollments(data));
+    const unsubscribeCourses = courseService.subscribeToAllCourses((data) => {
+        setCourses(data);
+        setLoadingTop(false);
+    });
+    const unsubscribeReviews = reviewService.subscribeToAllReviews((data) => {
+        setFeedbacks(data);
+        setLoadingFeedbacks(false);
+    });
 
     return () => {
         unsubscribeTraffic();
@@ -48,6 +63,8 @@ export const AdminOverview: React.FC = () => {
         unsubscribeUsers();
         unsubscribeOnline();
         unsubscribeEnrollments();
+        unsubscribeCourses();
+        unsubscribeReviews();
     };
   }, []);
 
@@ -65,17 +82,62 @@ export const AdminOverview: React.FC = () => {
 
   const revenueChartData = React.useMemo(() => {
     const paid = enrollments.filter(e => e.status === 'paid');
-    const map: Record<string, number> = {};
+    const map: Record<string, { revenue: number, timestamp: number }> = {};
     paid.forEach(e => {
       const date = e.createdAt.toDate();
       const day = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
-      map[day] = (map[day] || 0) + e.amount;
+      // Use start of day for accurate sorting
+      const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+
+      if (!map[day]) {
+          map[day] = { revenue: 0, timestamp: startOfDay };
+      }
+      map[day].revenue += e.amount;
     });
-    // Sort by date basic (assuming within same year for simplicity in this demo)
+
     return Object.entries(map)
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([date, revenue]) => ({ date, revenue }));
+      .sort((a, b) => a[1].timestamp - b[1].timestamp)
+      .map(([date, data]) => ({ date, revenue: data.revenue }));
   }, [enrollments]);
+
+  // Top Courses Calculation (Equivalent to Supabase RPC 'get_top_cookies')
+  const { topCoursesMonth, topCoursesAll } = React.useMemo(() => {
+    const paidEnrollments = enrollments.filter(e => e.status === 'paid');
+    const now = new Date();
+
+    // Calculate for all time
+    const allTimeCounts: Record<string, number> = {};
+    paidEnrollments.forEach(e => {
+        allTimeCounts[e.courseId] = (allTimeCounts[e.courseId] || 0) + 1;
+    });
+
+    // Calculate for this month
+    const thisMonthCounts: Record<string, number> = {};
+    paidEnrollments.forEach(e => {
+        const date = e.createdAt.toDate();
+        if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
+            thisMonthCounts[e.courseId] = (thisMonthCounts[e.courseId] || 0) + 1;
+        }
+    });
+
+    const formatTop = (counts: Record<string, number>) => {
+        return Object.entries(counts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([courseId, total_sold]) => {
+                const course = courses.find(c => c.id === courseId);
+                return {
+                    course_name: course ? course.title : 'Khóa học đã xóa',
+                    total_sold
+                };
+            });
+    };
+
+    return {
+        topCoursesAll: formatTop(allTimeCounts),
+        topCoursesMonth: formatTop(thisMonthCounts)
+    };
+  }, [enrollments, courses]);
 
   const visitorsCount = trafficData.reduce((acc, curr) => acc + (curr.visitors || 0), 0);
   const pageViewsCount = trafficData.reduce((acc, curr) => acc + (curr.page_views || 0), 0);
@@ -192,6 +254,66 @@ export const AdminOverview: React.FC = () => {
           </div>
       </div>
 
+      {/* Top Products Section (Nova Cookie Style) */}
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <h3 className="mb-4 font-display text-lg font-bold text-foreground">🏆 Top khóa học bán chạy</h3>
+        {loadingTop ? (
+          <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* This month */}
+            <div>
+              <p className="mb-3 text-sm font-semibold text-muted-foreground">📅 Tháng này</p>
+              {topCoursesMonth.length > 0 ? (
+                <div className={`grid gap-3 ${topCoursesMonth.length === 1 ? "grid-cols-1 max-w-xs" : topCoursesMonth.length === 2 ? "grid-cols-2" : "grid-cols-1"}`}>
+                  {topCoursesMonth.map((c, i) => {
+                    const medals = ["🥇", "🥈", "🥉"];
+                    return (
+                      <div key={c.course_name + i} className="flex items-center gap-3 rounded-xl border border-border bg-background p-3 hover:border-primary/50 transition-colors shadow-sm">
+                        <span className="text-xl">{medals[i]}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-foreground truncate" title={c.course_name}>{c.course_name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {c.total_sold} lượt đăng ký
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Chưa có dữ liệu tháng này</p>
+              )}
+            </div>
+
+            {/* All time */}
+            <div>
+              <p className="mb-3 text-sm font-semibold text-muted-foreground">📊 Toàn thời gian</p>
+              {topCoursesAll.length > 0 ? (
+                <div className={`grid gap-3 ${topCoursesAll.length === 1 ? "grid-cols-1 max-w-xs" : topCoursesAll.length === 2 ? "grid-cols-2" : "grid-cols-1"}`}>
+                  {topCoursesAll.map((c, i) => {
+                    const medals = ["🥇", "🥈", "🥉"];
+                    return (
+                      <div key={c.course_name + i} className="flex items-center gap-3 rounded-xl border border-border bg-background p-3 hover:border-primary/50 transition-colors shadow-sm">
+                        <span className="text-xl">{medals[i]}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-foreground truncate" title={c.course_name}>{c.course_name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {c.total_sold} lượt đăng ký
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Chưa có dữ liệu</p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Revenue Chart */}
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
@@ -222,6 +344,110 @@ export const AdminOverview: React.FC = () => {
                </div>
             </div>
         )}
+      </div>
+
+      {/* Customer Ratings - CH Play style */}
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <h3 className="mb-4 font-display text-lg font-bold text-foreground">⭐ Đánh giá khách hàng</h3>
+        {loadingFeedbacks ? (
+          <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+        ) : feedbacks.length === 0 ? (
+          <p className="text-center text-sm text-muted-foreground py-8">Chưa có đánh giá nào</p>
+        ) : (() => {
+          const avgRating = feedbacks.reduce((s, f) => s + f.rating, 0) / feedbacks.length;
+          const ratingCounts = [5, 4, 3, 2, 1].map((star) => ({
+            star,
+            count: feedbacks.filter((f) => f.rating === star).length,
+          }));
+          const filteredFeedbacks = ratingFilter === 0
+            ? feedbacks
+            : feedbacks.filter((f) => f.rating === ratingFilter);
+
+          return (
+            <div className="space-y-6">
+              {/* Summary */}
+              <div className="flex gap-6 items-start">
+                <div className="text-center">
+                  <p className="font-display text-5xl font-extrabold text-foreground">{avgRating.toFixed(1)}</p>
+                  <div className="mt-1 flex justify-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <span key={star} className={`text-lg ${star <= Math.round(avgRating) ? "text-primary" : "text-muted-foreground/30"}`}>★</span>
+                    ))}
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">{feedbacks.length} đánh giá</p>
+                </div>
+                <div className="flex-1 space-y-1.5">
+                  {ratingCounts.map(({ star, count }) => {
+                    const pct = feedbacks.length ? Math.round((count / feedbacks.length) * 100) : 0;
+                    return (
+                      <div key={star} className="flex items-center gap-2 text-sm">
+                        <span className="w-4 text-right font-semibold text-foreground">{star}</span>
+                        <span className="text-primary">★</span>
+                        <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="w-8 text-right text-xs text-muted-foreground">{count}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Filter tabs */}
+              <div className="flex gap-2 flex-wrap">
+                {[{ label: "Tất cả", value: 0 }, ...([5, 4, 3, 2, 1].map((s) => ({ label: `${s} ★`, value: s })))].map((f) => (
+                  <button
+                    key={f.value}
+                    onClick={() => setRatingFilter(f.value)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      ratingFilter === f.value
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    }`}
+                  >
+                    {f.label}
+                    {f.value > 0 && (
+                      <span className="ml-1 opacity-70">({ratingCounts.find((r) => r.star === f.value)?.count || 0})</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Reviews list */}
+              <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                {filteredFeedbacks.length === 0 ? (
+                  <p className="text-center text-sm text-muted-foreground py-4">Không có đánh giá {ratingFilter} sao</p>
+                ) : (
+                  filteredFeedbacks.map((f) => (
+                    <div key={f.id} className="rounded-xl border border-border bg-background p-4 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                            {(f.studentName || "?").charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-foreground">{f.studentName || "Ẩn danh"}</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {f.createdAt.toDate().toLocaleDateString("vi-VN")} · Khóa học: {courses.find(c => c.id === f.courseId)?.title || "Đã xóa"}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-0.5">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <span key={star} className={`text-sm ${star <= f.rating ? "text-primary" : "text-muted-foreground/30"}`}>★</span>
+                          ))}
+                        </div>
+                      </div>
+                      {f.comment && (
+                        <p className="text-sm text-foreground leading-relaxed mt-2">{f.comment}</p>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
