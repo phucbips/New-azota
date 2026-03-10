@@ -11,14 +11,14 @@ interface StatCardProps {
 
 export const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, className }) => {
   return (
-    <div className={cn("bg-card rounded-xl shadow-sm border border-border p-6 flex items-start justify-between", className)}>
+    <div className={cn("bg-card rounded-2xl shadow-sm border border-border p-6 flex items-start justify-between hover:shadow-md transition-shadow", className)}>
       <div>
-        <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
-        <h3 className="text-2xl font-bold text-card-foreground">{value}</h3>
+        <p className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wide">{title}</p>
+        <h3 className="text-3xl font-bold text-card-foreground">{value}</h3>
         {trend && <p className="text-xs text-green-600 mt-1">{trend}</p>}
       </div>
       {icon && (
-        <div className="p-3 bg-primary/10 text-primary rounded-lg">
+        <div className="p-3 bg-primary/10 text-primary rounded-2xl">
           {icon}
         </div>
       )}

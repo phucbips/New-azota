@@ -53,16 +53,16 @@ export const AdminSettings: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-5xl pb-10">
-      <div className="flex justify-between items-center">
-        <PageHeader
-          title={t('sidebar.settings')}
-          subtitle="Configure system preferences and public information."
-        />
+    <div className="flex flex-col gap-6 max-w-6xl mx-auto pb-10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card p-6 rounded-2xl border border-border shadow-sm">
+        <div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('sidebar.settings')}</h1>
+            <p className="text-sm text-muted-foreground mt-2 font-medium">Cấu hình hệ thống, liên hệ và thanh toán</p>
+        </div>
         <SaaSButton
             onClick={handleSave}
             disabled={isSaving}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 rounded-xl px-6 py-2.5 shadow-md hover:shadow-lg transition-all"
         >
             <Save className="w-4 h-4" />
             {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
@@ -78,17 +78,17 @@ export const AdminSettings: React.FC = () => {
             <SettingsContent />
 
             {/* General Features */}
-            <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-border flex items-center gap-3">
-                    <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400">
-                        <Settings className="w-5 h-5" />
+            <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                <div className="p-6 border-b border-border flex items-center gap-4">
+                    <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl text-blue-600 dark:text-blue-400">
+                        <Settings className="w-6 h-6" />
                     </div>
                     <div>
                         <h3 className="text-lg font-bold text-card-foreground">Cấu hình chung</h3>
-                        <p className="text-sm text-muted-foreground">Tùy chỉnh các tính năng cốt lõi</p>
+                        <p className="text-sm font-medium text-muted-foreground mt-1">Tùy chỉnh các tính năng cốt lõi</p>
                     </div>
                 </div>
-                <div className="p-6 space-y-4">
+                <div className="p-6 space-y-6">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="font-medium text-foreground">Cho phép Đăng ký</p>
@@ -129,17 +129,17 @@ export const AdminSettings: React.FC = () => {
         <div className="flex flex-col gap-6">
 
             {/* Contact Info */}
-            <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-border flex items-center gap-3">
-                    <div className="p-2 bg-green-50 dark:bg-green-900/30 rounded-lg text-green-600 dark:text-green-400">
-                        <MessageSquare className="w-5 h-5" />
+            <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                <div className="p-6 border-b border-border flex items-center gap-4">
+                    <div className="p-3 bg-green-50 dark:bg-green-900/30 rounded-xl text-green-600 dark:text-green-400">
+                        <MessageSquare className="w-6 h-6" />
                     </div>
                     <div>
                         <h3 className="text-lg font-bold text-card-foreground">Thông tin Liên hệ</h3>
-                        <p className="text-sm text-muted-foreground">Thông tin hiển thị cho học viên</p>
+                        <p className="text-sm font-medium text-muted-foreground mt-1">Thông tin hiển thị cho học viên</p>
                     </div>
                 </div>
-                <div className="p-6 space-y-4">
+                <div className="p-6 space-y-5">
 
                     <div>
                         <label className="block text-sm font-medium text-foreground mb-1">
@@ -197,17 +197,17 @@ export const AdminSettings: React.FC = () => {
             </div>
 
             {/* Integrations */}
-            <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-border flex items-center gap-3">
-                    <div className="p-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg text-purple-600 dark:text-purple-400">
-                        <CreditCard className="w-5 h-5" />
+            <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                <div className="p-6 border-b border-border flex items-center gap-4">
+                    <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-xl text-purple-600 dark:text-purple-400">
+                        <CreditCard className="w-6 h-6" />
                     </div>
                     <div>
                         <h3 className="text-lg font-bold text-card-foreground">Thanh toán PayOS</h3>
-                        <p className="text-sm text-muted-foreground">Cấu hình cổng thanh toán tự động</p>
+                        <p className="text-sm font-medium text-muted-foreground mt-1">Cấu hình cổng thanh toán tự động</p>
                     </div>
                 </div>
-                <div className="p-6 space-y-4">
+                <div className="p-6 space-y-5">
 
                     <div>
                         <label className="block text-sm font-medium text-foreground mb-1">

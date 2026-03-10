@@ -43,19 +43,7 @@ const StudentAssignments = React.lazy(() => import('./pages/student/Assignments'
 const StudentCourses = React.lazy(() => import('./pages/student/Courses').then(module => ({ default: module.StudentCourses })));
 const StudentSettings = React.lazy(() => import('./pages/student/Settings').then(module => ({ default: module.StudentSettings })));
 const StudentProfile = React.lazy(() => import('./pages/student/Profile').then(module => ({ default: module.StudentProfile })));
-
-// Component to handle root redirect based on role
-const RootRedirect: React.FC = () => {
-  const { user, loading } = useAuth();
-
-  if (loading) return <Loading message="Checking session..." fullScreen />;
-
-  if (!user) return <Navigate to="/login" replace />;
-
-  if (user.role === 'admin') return <Navigate to="/admin" replace />;
-  if (user.role === 'teacher') return <Navigate to="/teacher" replace />;
-  return <Navigate to="/student" replace />;
-};
+const LandingPage = React.lazy(() => import('./pages/public/Landing').then(module => ({ default: module.LandingPage })));
 
 // Specialized Login Wrapper to redirect if already logged in
 const LoginWrapper: React.FC = () => {
@@ -83,7 +71,7 @@ function App() {
           <SpeedInsights />
           <Suspense fallback={<Loading fullScreen />}>
           <Routes>
-            <Route path="/" element={<RootRedirect />} />
+            <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginWrapper />} />
 
             {/* Admin Route Group */}

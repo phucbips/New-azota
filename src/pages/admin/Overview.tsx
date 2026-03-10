@@ -67,8 +67,8 @@ export const AdminOverview: React.FC = () => {
   const isVisible = (id: string) => widgets.find(w => w.id === id)?.visible;
 
   return (
-    <div className="flex flex-col gap-8 pb-10">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card p-6 rounded-2xl border border-border shadow-sm">
         <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('analytics.title')}</h1>
             <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
@@ -84,17 +84,17 @@ export const AdminOverview: React.FC = () => {
             </div>
         </div>
 
-        <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center px-3 py-1.5 bg-card border border-border rounded-md text-sm font-medium text-foreground shadow-sm">
-                Production
+        <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center px-4 py-2 bg-primary/10 text-primary rounded-xl text-sm font-bold">
+                Môi trường: Production
             </div>
 
             {/* Dashboard Config Popover */}
             <Popover.Root>
                 <Popover.Trigger asChild>
-                    <button className="p-2 bg-card border border-border hover:bg-accent rounded-md transition-colors text-muted-foreground hover:text-foreground flex items-center gap-2">
-                        <Layout className="w-5 h-5" />
-                        <span className="hidden sm:inline text-sm font-medium">Customize</span>
+                    <button className="p-2.5 bg-background border border-border hover:bg-accent hover:text-accent-foreground rounded-xl transition-all shadow-sm flex items-center gap-2 group">
+                        <Layout className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                        <span className="hidden sm:inline text-sm font-semibold">Tùy chỉnh</span>
                     </button>
                 </Popover.Trigger>
                 <Popover.Portal>
