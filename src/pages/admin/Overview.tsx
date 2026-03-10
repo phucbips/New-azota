@@ -7,15 +7,19 @@ import { analyticsService } from '../../services/analytics.service';
 import { userService } from '../../services/user.service';
 import { assignmentService } from '../../services/assignment.service';
 import { useTranslation } from 'react-i18next';
-import { Calendar, MoreHorizontal, Layout, CheckSquare, Square } from 'lucide-react';
+import { Calendar, MoreHorizontal, Layout, CheckSquare, Square, TrendingUp, Users } from 'lucide-react';
 import { useDashboardConfig } from '../../contexts/DashboardConfigContext';
 import { cn } from '../../lib/utils';
 import * as Popover from '@radix-ui/react-popover';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { FinanceTab } from '../../components/admin/FinanceTab';
+import { StatsTab } from '../../components/admin/StatsTab';
 
 export const AdminOverview: React.FC = () => {
   const { t } = useTranslation();
   const { widgets, toggleWidget } = useDashboardConfig();
 
+  const [activeTab, setActiveTab] = useState<string>("overview");
   const [trafficData, setTrafficData] = useState<{ date: string; visitors: number; page_views: number }[]>([]);
   const [aggStats, setAggStats] = useState<any>({ os: {}, browsers: {}, devices: {}, total_visits: 0, total_page_views: 0 });
   const [totalUsers, setTotalUsers] = useState(0);
@@ -84,8 +88,16 @@ export const AdminOverview: React.FC = () => {
             </div>
         </div>
 
-        <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center px-4 py-2 bg-primary/10 text-primary rounded-xl text-sm font-bold">
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
+                <TabsList className="grid w-full grid-cols-3 sm:w-auto bg-muted/50 p-1 rounded-xl">
+                    <TabsTrigger value="overview" className="rounded-lg text-sm font-semibold">Tổng quan</TabsTrigger>
+                    <TabsTrigger value="finance" className="rounded-lg text-sm font-semibold">Tài chính</TabsTrigger>
+                    <TabsTrigger value="stats" className="rounded-lg text-sm font-semibold">Thống kê</TabsTrigger>
+                </TabsList>
+            </Tabs>
+
+            <div className="hidden lg:flex items-center px-4 py-2 bg-primary/10 text-primary rounded-xl text-sm font-bold">
                 Môi trường: Production
             </div>
 
@@ -121,54 +133,61 @@ export const AdminOverview: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {isVisible('visitors') && (
-            <div onClick={() => setActiveMetric('visitors')} className="cursor-pointer transition-transform hover:scale-[1.01]">
-                <AnalyticsStatCard
-                    label={t('analytics.visitors')}
-                    value={visitorsCount}
-                    trend={visitorsTrend}
-                    className={activeMetric === 'visitors' ? "border-t-2 border-t-primary shadow-md" : ""}
-                />
-            </div>
-        )}
-        {isVisible('page_views') && (
-            <div onClick={() => setActiveMetric('page_views')} className="cursor-pointer transition-transform hover:scale-[1.01]">
-                <AnalyticsStatCard
-                    label={t('analytics.page_views')}
-                    value={pageViewsCount}
-                    trend={pageViewsTrend}
-                    className={activeMetric === 'page_views' ? "border-t-2 border-t-primary shadow-md" : ""}
-                />
-            </div>
-        )}
-        {isVisible('total_users') && (
-            <div>
-                <AnalyticsStatCard
-                    label={t('admin.total_users')}
-                    value={totalUsers}
-                />
-            </div>
-        )}
-      </div>
+      {activeTab === "overview" && (
+          <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {isVisible('visitors') && (
+                    <div onClick={() => setActiveMetric('visitors')} className="cursor-pointer transition-transform hover:scale-[1.01]">
+                        <AnalyticsStatCard
+                            label={t('analytics.visitors')}
+                            value={visitorsCount}
+                            trend={visitorsTrend}
+                            className={activeMetric === 'visitors' ? "border-2 border-primary shadow-md" : ""}
+                        />
+                    </div>
+                )}
+                {isVisible('page_views') && (
+                    <div onClick={() => setActiveMetric('page_views')} className="cursor-pointer transition-transform hover:scale-[1.01]">
+                        <AnalyticsStatCard
+                            label={t('analytics.page_views')}
+                            value={pageViewsCount}
+                            trend={pageViewsTrend}
+                            className={activeMetric === 'page_views' ? "border-2 border-primary shadow-md" : ""}
+                        />
+                    </div>
+                )}
+                {isVisible('total_users') && (
+                    <div>
+                        <AnalyticsStatCard
+                            label={t('admin.total_users')}
+                            value={totalUsers}
+                        />
+                    </div>
+                )}
+              </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-         {isVisible('traffic_chart') && (
-             <div className="h-[400px]">
-                <AnalyticsChart data={chartData} />
-             </div>
-         )}
-         {isVisible('device_stats') && (
-             <div className="h-[400px]">
-                <AnalyticsTabs
-                    osData={toArray(aggStats.os)}
-                    deviceData={toArray(aggStats.devices)}
-                    browserData={toArray(aggStats.browsers)}
-                    totalVisits={aggStats.total_visits}
-                />
-             </div>
-         )}
-      </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                 {isVisible('traffic_chart') && (
+                     <div className="h-[400px]">
+                        <AnalyticsChart data={chartData} />
+                     </div>
+                 )}
+                 {isVisible('device_stats') && (
+                     <div className="h-[400px]">
+                        <AnalyticsTabs
+                            osData={toArray(aggStats.os)}
+                            deviceData={toArray(aggStats.devices)}
+                            browserData={toArray(aggStats.browsers)}
+                            totalVisits={aggStats.total_visits}
+                        />
+                     </div>
+                 )}
+              </div>
+          </div>
+      )}
+
+      {activeTab === "finance" && <FinanceTab />}
+      {activeTab === "stats" && <StatsTab />}
     </div>
   );
 };
