@@ -56,6 +56,16 @@ export interface Assignment {
   updatedAt: Timestamp;
 }
 
+export interface CourseReview {
+  id?: string;
+  courseId: string;
+  studentId: string;
+  studentName: string;
+  rating: number; // 1-5
+  comment: string;
+  createdAt: Timestamp;
+}
+
 export interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -69,4 +79,27 @@ export interface AIMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+}
+
+export interface Course {
+  id?: string;
+  title: string;
+  description: string;
+  price: number;
+  teacherId: string;
+  coverImageUrl?: string;
+  isActive: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export interface Enrollment {
+  id?: string;
+  courseId: string;
+  studentId: string;
+  status: 'pending' | 'paid' | 'cancelled';
+  amount: number;
+  paymentMethod?: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
