@@ -70,3 +70,26 @@ export interface AIMessage {
   content: string;
   timestamp: Date;
 }
+
+export interface Course {
+  id?: string;
+  title: string;
+  description: string;
+  price: number;
+  teacherId: string;
+  coverImageUrl?: string;
+  isActive: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export interface Enrollment {
+  id?: string;
+  courseId: string;
+  studentId: string;
+  status: 'pending' | 'paid' | 'cancelled';
+  amount: number;
+  paymentMethod?: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
