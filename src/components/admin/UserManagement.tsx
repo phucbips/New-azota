@@ -221,7 +221,7 @@ export const UserManagement: React.FC = () => {
                     <button
                         onClick={handleRunMigration}
                         disabled={migrationLoading}
-                        className="flex items-center justify-center gap-2 bg-muted hover:bg-muted/80 text-muted-foreground px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                        className="flex items-center justify-center gap-2 bg-muted hover:bg-muted/80 text-muted-foreground px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
                         title="Fix missing joinedAt data"
                     >
                          <Database className="w-5 h-5" />
@@ -231,7 +231,7 @@ export const UserManagement: React.FC = () => {
 
                 <button
                     onClick={() => setIsAddMode(!isAddMode)}
-                    className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm shadow-primary/20 whitespace-nowrap"
+                    className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md shadow-primary/20 hover:shadow-lg hover:-translate-y-0.5 whitespace-nowrap"
                 >
                     <Plus className="w-5 h-5" />
                     Thêm người dùng
@@ -241,24 +241,24 @@ export const UserManagement: React.FC = () => {
 
       {/* Add User Form (Collapsible) */}
       {isAddMode && (
-          <div className="bg-card p-6 rounded-xl border border-border shadow-sm animate-fadeIn">
-            <h3 className="text-lg font-bold mb-4 text-card-foreground">Mời người dùng mới</h3>
+          <div className="bg-card p-6 rounded-2xl border border-border shadow-sm animate-fadeIn">
+            <h3 className="text-xl font-display font-bold mb-4 text-card-foreground">Mời người dùng mới</h3>
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col md:flex-row gap-4 items-end">
             <div className="flex-1 w-full">
-                <label className="block text-sm font-medium mb-1 text-muted-foreground">Email</label>
+                <label className="block text-sm font-semibold mb-2 text-muted-foreground uppercase tracking-wide">Email</label>
                 <input
                 {...register('email', { required: 'Vui lòng nhập email' })}
                 type="email"
-                className="w-full p-2.5 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-primary outline-none"
+                className="w-full p-3 border border-input bg-background text-foreground rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all shadow-sm"
                 placeholder="user@example.com"
                 />
             </div>
 
             <div className="w-full md:w-40">
-                <label className="block text-sm font-medium mb-1 text-muted-foreground">Vai trò</label>
+                <label className="block text-sm font-semibold mb-2 text-muted-foreground uppercase tracking-wide">Vai trò</label>
                 <select
                 {...register('role')}
-                className="w-full p-2.5 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-primary outline-none"
+                className="w-full p-3 border border-input bg-background text-foreground rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all shadow-sm"
                 >
                 <option value="student">Học sinh</option>
                 <option value="teacher">Giáo viên</option>
@@ -268,10 +268,10 @@ export const UserManagement: React.FC = () => {
 
             {selectedRole === 'student' && (
                 <div className="w-full md:w-40 animate-fadeIn">
-                <label className="block text-sm font-medium mb-1 text-muted-foreground">Khối</label>
+                <label className="block text-sm font-semibold mb-2 text-muted-foreground uppercase tracking-wide">Khối</label>
                 <select
                     {...register('grade')}
-                    className="w-full p-2.5 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-primary outline-none"
+                    className="w-full p-3 border border-input bg-background text-foreground rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all shadow-sm"
                 >
                     <option value="10">Khối 10</option>
                     <option value="11">Khối 11</option>
@@ -283,9 +283,9 @@ export const UserManagement: React.FC = () => {
             <button
                 type="submit"
                 disabled={loading}
-                className="w-full md:w-auto px-6 py-2.5 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full md:w-auto px-6 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
             >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserPlus className="w-5 h-5" />}
                 {loading ? 'Đang thêm...' : 'Mời'}
             </button>
             </form>
@@ -347,17 +347,17 @@ const EditUserModal: React.FC<{ user: User, onClose: () => void, onUpdate: () =>
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn px-4">
-            <div className="bg-card p-6 rounded-xl w-full max-w-md shadow-2xl border border-border">
-                <h3 className="text-xl font-bold mb-4 text-card-foreground">Edit User</h3>
-                <p className="text-sm text-muted-foreground mb-4">{user.email}</p>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200 px-4">
+            <div className="bg-card p-8 rounded-2xl w-full max-w-md shadow-2xl border border-border animate-in zoom-in-95 duration-200">
+                <h3 className="text-2xl font-display font-bold mb-1 text-card-foreground">Chỉnh sửa người dùng</h3>
+                <p className="text-sm font-medium text-muted-foreground mb-6">{user.email}</p>
 
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
                     <div>
-                        <label className="block text-sm font-medium mb-1 text-muted-foreground">Role</label>
+                        <label className="block text-sm font-semibold mb-2 text-muted-foreground uppercase tracking-wide">Role</label>
                         <select
                             {...register('role')}
-                            className="w-full p-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary outline-none"
+                            className="w-full p-3 border border-input rounded-xl bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all shadow-sm"
                         >
                             <option value="student">Học sinh</option>
                             <option value="teacher">Giáo viên</option>
@@ -367,10 +367,10 @@ const EditUserModal: React.FC<{ user: User, onClose: () => void, onUpdate: () =>
 
                     {selectedRole === 'student' && (
                         <div>
-                            <label className="block text-sm font-medium mb-1 text-muted-foreground">Grade Level</label>
+                            <label className="block text-sm font-semibold mb-2 text-muted-foreground uppercase tracking-wide">Grade Level</label>
                             <select
                                 {...register('grade')}
-                                className="w-full p-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary outline-none"
+                                className="w-full p-3 border border-input rounded-xl bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all shadow-sm"
                             >
                                 <option value="10">Khối 10</option>
                                 <option value="11">Khối 11</option>
@@ -379,30 +379,30 @@ const EditUserModal: React.FC<{ user: User, onClose: () => void, onUpdate: () =>
                         </div>
                     )}
 
-                    <div className="flex items-center gap-2 pt-2">
+                    <div className="flex items-center gap-3 p-4 border border-border/50 rounded-xl bg-muted/30">
                         <input
                             type="checkbox"
                             id="isWhitelisted"
                             {...register('isWhitelisted')}
-                            className="w-4 h-4 text-primary rounded focus:ring-primary"
+                            className="w-5 h-5 text-primary rounded focus:ring-primary"
                         />
-                        <label htmlFor="isWhitelisted" className="text-sm font-medium text-muted-foreground">Active Account (Whitelisted)</label>
+                        <label htmlFor="isWhitelisted" className="text-sm font-bold text-foreground">Kích hoạt tài khoản (Active)</label>
                     </div>
 
                     <div className="flex justify-end gap-3 pt-4">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 text-muted-foreground hover:bg-muted rounded-lg transition-colors"
+                            className="px-5 py-2.5 text-muted-foreground hover:bg-muted font-semibold rounded-xl transition-colors"
                         >
-                            Cancel
+                            Hủy
                         </button>
                         <button
                             type="submit"
                             disabled={loading}
-                            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+                            className="px-5 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all shadow-md disabled:opacity-50"
                         >
-                            {loading ? 'Saving...' : 'Save Changes'}
+                            {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
                         </button>
                     </div>
                 </form>
