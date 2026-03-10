@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ThemeSettingsProvider } from './contexts/ThemeSettingsContext';
 import { DashboardConfigProvider } from './contexts/DashboardConfigContext';
+import { AppSettingsProvider } from './contexts/AppSettingsContext';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './components/auth/LoginPage';
 import { Loading } from './components/shared/Loading';
@@ -74,6 +75,7 @@ function App() {
       <AuthProvider>
        <ThemeProvider>
         <ThemeSettingsProvider>
+         <AppSettingsProvider>
          <DashboardConfigProvider>
           <PageTracker />
           <Toaster richColors position="top-right" />
@@ -140,6 +142,7 @@ function App() {
           </Routes>
         </Suspense>
          </DashboardConfigProvider>
+         </AppSettingsProvider>
         </ThemeSettingsProvider>
        </ThemeProvider>
       </AuthProvider>

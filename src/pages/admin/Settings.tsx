@@ -1,18 +1,258 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { SettingsContent } from '../../components/shared/SettingsContent';
 import { useTranslation } from 'react-i18next';
+import { useAppSettings } from '../../contexts/AppSettingsContext';
+import { AppSettings } from '../../services/appSettings.service';
+import { toast } from 'sonner';
+import { Phone, Mail, MessageSquare, Facebook, Link as LinkIcon, Save, Settings, ShieldCheck, CreditCard } from 'lucide-react';
+import { SaaSButton } from '../../components/ui/SaaSButton';
+import { Loading } from '../../components/shared/Loading';
 
 export const AdminSettings: React.FC = () => {
   const { t } = useTranslation();
+  const { settings, loading, updateSettings } = useAppSettings();
+  const [formData, setFormData] = useState<AppSettings | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Sync state when settings are loaded
+  useEffect(() => {
+    if (settings && !formData) {
+      setFormData(settings);
+    }
+  }, [settings, formData]);
+
+  if (loading || !formData) {
+    return <Loading />;
+  }
+
+  const handleChange = (section: keyof AppSettings, field: string, value: string | boolean) => {
+    setFormData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        [section]: {
+          ...(prev[section] as any),
+          [field]: value,
+        },
+      };
+    });
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await updateSettings(formData);
+      toast.success(t('messages.success'));
+    } catch (error) {
+      console.error(error);
+      toast.error(t('messages.error'));
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        title={t('sidebar.settings')}
-        subtitle="Configure system preferences."
-      />
-      <SettingsContent />
+    <div className="flex flex-col gap-6 max-w-5xl pb-10">
+      <div className="flex justify-between items-center">
+        <PageHeader
+          title={t('sidebar.settings')}
+          subtitle="Configure system preferences and public information."
+        />
+        <SaaSButton
+            onClick={handleSave}
+            disabled={isSaving}
+            className="flex items-center gap-2"
+        >
+            <Save className="w-4 h-4" />
+            {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
+        </SaaSButton>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* Left Column */}
+        <div className="flex flex-col gap-6">
+
+            {/* System Preferences (Theme/Lang) */}
+            <SettingsContent />
+
+            {/* General Features */}
+            <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-border flex items-center gap-3">
+                    <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400">
+                        <Settings className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-card-foreground">Cấu hình chung</h3>
+                        <p className="text-sm text-muted-foreground">Tùy chỉnh các tính năng cốt lõi</p>
+                    </div>
+                </div>
+                <div className="p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="font-medium text-foreground">Cho phép Đăng ký</p>
+                            <p className="text-sm text-muted-foreground">Mở hoặc đóng chức năng đăng ký tài khoản mới.</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                className="sr-only peer"
+                                checked={formData.features.enableRegistration}
+                                onChange={(e) => handleChange('features', 'enableRegistration', e.target.checked)}
+                            />
+                            <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        </label>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="font-medium text-foreground">Chế độ Bảo trì</p>
+                            <p className="text-sm text-muted-foreground">Khóa truy cập hệ thống đối với học viên.</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                className="sr-only peer"
+                                checked={formData.features.maintenanceMode}
+                                onChange={(e) => handleChange('features', 'maintenanceMode', e.target.checked)}
+                            />
+                            <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        {/* Right Column */}
+        <div className="flex flex-col gap-6">
+
+            {/* Contact Info */}
+            <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-border flex items-center gap-3">
+                    <div className="p-2 bg-green-50 dark:bg-green-900/30 rounded-lg text-green-600 dark:text-green-400">
+                        <MessageSquare className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-card-foreground">Thông tin Liên hệ</h3>
+                        <p className="text-sm text-muted-foreground">Thông tin hiển thị cho học viên</p>
+                    </div>
+                </div>
+                <div className="p-6 space-y-4">
+
+                    <div>
+                        <label className="block text-sm font-medium text-foreground mb-1">
+                            <div className="flex items-center gap-2"><Phone className="w-4 h-4"/> Hotline</div>
+                        </label>
+                        <input
+                            type="text"
+                            value={formData.contact.hotline}
+                            onChange={(e) => handleChange('contact', 'hotline', e.target.value)}
+                            className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-input bg-background text-foreground"
+                            placeholder="Nhập số điện thoại hotline..."
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-foreground mb-1">
+                            <div className="flex items-center gap-2"><Mail className="w-4 h-4"/> Email Hỗ trợ</div>
+                        </label>
+                        <input
+                            type="email"
+                            value={formData.contact.email}
+                            onChange={(e) => handleChange('contact', 'email', e.target.value)}
+                            className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-input bg-background text-foreground"
+                            placeholder="Nhập email hỗ trợ..."
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-foreground mb-1">
+                            <div className="flex items-center gap-2"><LinkIcon className="w-4 h-4"/> Link Zalo Group</div>
+                        </label>
+                        <input
+                            type="text"
+                            value={formData.contact.zaloUrl}
+                            onChange={(e) => handleChange('contact', 'zaloUrl', e.target.value)}
+                            className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-input bg-background text-foreground"
+                            placeholder="Nhập link nhóm Zalo..."
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-foreground mb-1">
+                            <div className="flex items-center gap-2"><Facebook className="w-4 h-4"/> Fanpage Facebook</div>
+                        </label>
+                        <input
+                            type="text"
+                            value={formData.contact.facebookUrl}
+                            onChange={(e) => handleChange('contact', 'facebookUrl', e.target.value)}
+                            className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-input bg-background text-foreground"
+                            placeholder="Nhập link fanpage facebook..."
+                        />
+                    </div>
+
+                </div>
+            </div>
+
+            {/* Integrations */}
+            <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-border flex items-center gap-3">
+                    <div className="p-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg text-purple-600 dark:text-purple-400">
+                        <CreditCard className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-card-foreground">Thanh toán PayOS</h3>
+                        <p className="text-sm text-muted-foreground">Cấu hình cổng thanh toán tự động</p>
+                    </div>
+                </div>
+                <div className="p-6 space-y-4">
+
+                    <div>
+                        <label className="block text-sm font-medium text-foreground mb-1">
+                            Client ID
+                        </label>
+                        <input
+                            type="text"
+                            value={formData.integrations.payosClientId}
+                            onChange={(e) => handleChange('integrations', 'payosClientId', e.target.value)}
+                            className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-input bg-background text-foreground font-mono text-sm"
+                            placeholder="Nhập Client ID..."
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-foreground mb-1">
+                            API Key
+                        </label>
+                        <input
+                            type="password"
+                            value={formData.integrations.payosApiKey}
+                            onChange={(e) => handleChange('integrations', 'payosApiKey', e.target.value)}
+                            className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-input bg-background text-foreground font-mono text-sm"
+                            placeholder="Nhập API Key..."
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-foreground mb-1">
+                            Checksum Key
+                        </label>
+                        <input
+                            type="password"
+                            value={formData.integrations.payosChecksumKey}
+                            onChange={(e) => handleChange('integrations', 'payosChecksumKey', e.target.value)}
+                            className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-input bg-background text-foreground font-mono text-sm"
+                            placeholder="Nhập Checksum Key..."
+                        />
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+      </div>
     </div>
   );
 };

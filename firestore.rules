@@ -84,6 +84,12 @@ service cloud.firestore {
       allow read: if request.auth != null;
     }
 
+    // --- COLLECTION: APP SETTINGS ---
+    match /app_settings/{settingId} {
+      allow read: if request.auth != null; // Mọi người dùng đều có quyền đọc cấu hình
+      allow write: if request.auth != null && isAdmin(); // Chỉ Admin có quyền ghi/sửa cấu hình
+    }
+
     // --- COLLECTION: ANALYTICS (Thống kê) ---
     // Fixed: Explicitly allow list/query by not restricting to a single docId match for read
     // The previous rule `match /analytics_daily/{dateId}` was fine for get/list, but `allow read` is broad.
