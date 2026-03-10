@@ -4,7 +4,7 @@ import useEmblaCarousel from "embla-carousel-react";
 import { BookOpen, TrendingUp, Star, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export const HeroSection = () => {
+export const HeroSection = ({ title = "Học Tập Không Giới Hạn", subtitle = "Khám phá hàng ngàn khóa học chất lượng từ các chuyên gia hàng đầu. Nâng cao kỹ năng của bạn ngay hôm nay." }) => {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -48,8 +48,8 @@ export const HeroSection = () => {
                 <div className="h-20 w-20 bg-white rounded-full flex items-center justify-center shadow-2xl ring-4 ring-white/30 md:h-28 md:w-28 mb-4">
                      <BookOpen className="w-10 h-10 text-primary md:w-14 md:h-14" />
                 </div>
-                <h1 className="font-display text-4xl font-extrabold leading-none text-white md:text-6xl lg:text-7xl px-4">
-                  Học Tập Không Giới Hạn
+                <h1 className="font-display text-4xl font-extrabold leading-none text-white md:text-6xl lg:text-7xl px-4 whitespace-pre-wrap">
+                  {title}
                 </h1>
               </motion.div>
 
@@ -59,8 +59,8 @@ export const HeroSection = () => {
                 transition={{ duration: 0.8, delay: 0.2 }}
                 className="px-4 mt-8"
               >
-                <p className="mb-8 text-lg font-medium text-white/90 md:text-xl max-w-2xl mx-auto">
-                  Khám phá hàng ngàn khóa học chất lượng từ các chuyên gia hàng đầu. Nâng cao kỹ năng của bạn ngay hôm nay.
+                <p className="mb-8 text-lg font-medium text-white/90 md:text-xl max-w-2xl mx-auto whitespace-pre-wrap">
+                  {subtitle}
                 </p>
                 <div className="flex gap-4 justify-center flex-wrap">
                     <Link

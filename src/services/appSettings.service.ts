@@ -17,6 +17,15 @@ export interface AppSettings {
     enableRegistration: boolean;
     maintenanceMode: boolean;
   };
+  homepage: {
+    heroTitle: string;
+    heroSubtitle: string;
+    showHero: boolean;
+    showCourses: boolean;
+    showStats: boolean;
+    showAbout: boolean;
+    showTestimonials: boolean;
+  };
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -34,6 +43,15 @@ const DEFAULT_SETTINGS: AppSettings = {
   features: {
     enableRegistration: true,
     maintenanceMode: false,
+  },
+  homepage: {
+    heroTitle: 'Học Tập Không Giới Hạn',
+    heroSubtitle: 'Khám phá hàng ngàn khóa học chất lượng từ các chuyên gia hàng đầu. Nâng cao kỹ năng của bạn ngay hôm nay.',
+    showHero: true,
+    showCourses: true,
+    showStats: true,
+    showAbout: true,
+    showTestimonials: true,
   },
 };
 

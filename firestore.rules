@@ -63,6 +63,19 @@ service cloud.firestore {
       );
     }
 
+    // --- COLLECTION: COURSES (Khóa học) ---
+    match /courses/{courseId} {
+      allow read: if request.auth != null || true; // Public can read courses
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // --- COLLECTION: ORDERS (Đơn hàng) ---
+    match /orders/{orderId} {
+      allow read: if request.auth != null && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if request.auth != null; // Any logged in user can create an order
+      allow update, delete: if request.auth != null && isAdmin();
+    }
+
     // --- COLLECTION: SUBJECTS (Môn học) ---
     match /subjects/{subjectId} {
       allow read: if request.auth != null;

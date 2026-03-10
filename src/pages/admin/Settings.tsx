@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
 import { AppSettings } from '../../services/appSettings.service';
 import { toast } from 'sonner';
-import { Phone, Mail, MessageSquare, Facebook, Link as LinkIcon, Save, Settings, ShieldCheck, CreditCard } from 'lucide-react';
+import { Phone, Mail, MessageSquare, Facebook, Link as LinkIcon, Save, Settings, ShieldCheck, CreditCard, LayoutTemplate } from 'lucide-react';
 import { SaaSButton } from '../../components/ui/SaaSButton';
 import { Loading } from '../../components/shared/Loading';
 
@@ -119,6 +119,65 @@ export const AdminSettings: React.FC = () => {
                             />
                             <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                         </label>
+                    </div>
+                </div>
+            </div>
+
+            {/* Homepage Customization */}
+            <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                <div className="p-6 border-b border-border flex items-center gap-4">
+                    <div className="p-3 bg-pink-50 dark:bg-pink-900/30 rounded-xl text-pink-600 dark:text-pink-400">
+                        <LayoutTemplate className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-card-foreground">Giao diện Trang chủ</h3>
+                        <p className="text-sm font-medium text-muted-foreground mt-1">Tùy chỉnh các khối hiển thị và nội dung</p>
+                    </div>
+                </div>
+                <div className="p-6 space-y-6">
+                    <div>
+                        <label className="block text-sm font-semibold text-foreground mb-2">Tiêu đề Hero</label>
+                        <input
+                            type="text"
+                            value={formData.homepage.heroTitle}
+                            onChange={(e) => handleChange('homepage', 'heroTitle', e.target.value)}
+                            className="w-full px-4 py-3 border border-input rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background text-foreground transition-all shadow-sm"
+                            placeholder="VD: Học Tập Không Giới Hạn"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold text-foreground mb-2">Mô tả Hero</label>
+                        <textarea
+                            value={formData.homepage.heroSubtitle}
+                            onChange={(e) => handleChange('homepage', 'heroSubtitle', e.target.value)}
+                            rows={3}
+                            className="w-full px-4 py-3 border border-input rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background text-foreground transition-all shadow-sm resize-none"
+                            placeholder="Nhập mô tả ngắn cho trang chủ..."
+                        />
+                    </div>
+                    <div className="space-y-4 pt-4 border-t border-border">
+                        <h4 className="font-semibold text-sm text-foreground uppercase tracking-wide">Bật/Tắt các khối</h4>
+
+                        {[
+                            { id: 'showHero', label: 'Khối Hero (Banner chính)' },
+                            { id: 'showCourses', label: 'Khối Danh sách Khóa học' },
+                            { id: 'showStats', label: 'Khối Thống kê (Con số)' },
+                            { id: 'showAbout', label: 'Khối Về chúng tôi' },
+                            { id: 'showTestimonials', label: 'Khối Đánh giá học viên' }
+                        ].map((item) => (
+                            <div key={item.id} className="flex items-center justify-between">
+                                <span className="font-medium text-foreground">{item.label}</span>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={(formData.homepage as any)[item.id]}
+                                        onChange={(e) => handleChange('homepage', item.id, e.target.checked)}
+                                    />
+                                    <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                </label>
+                            </div>
+                        ))}
                     </div>
                 </div>
             </div>

@@ -25,6 +25,7 @@ const AdminOverview = React.lazy(() => import('./pages/admin/Overview').then(mod
 const AdminUsers = React.lazy(() => import('./pages/admin/Users').then(module => ({ default: module.AdminUsers })));
 const AdminAssignments = React.lazy(() => import('./pages/admin/Assignments').then(module => ({ default: module.AdminAssignments })));
 const AdminCourses = React.lazy(() => import('./pages/admin/Courses').then(module => ({ default: module.AdminCourses })));
+const AdminOrders = React.lazy(() => import('./pages/admin/Orders').then(module => ({ default: module.AdminOrders })));
 const AdminCommunication = React.lazy(() => import('./pages/admin/Communication').then(module => ({ default: module.AdminCommunication })));
 const AdminAuditLogs = React.lazy(() => import('./pages/admin/AuditLogs').then(module => ({ default: module.AuditLogs })));
 const AdminSettings = React.lazy(() => import('./pages/admin/Settings').then(module => ({ default: module.AdminSettings })));
@@ -87,6 +88,7 @@ function App() {
               <Route path="users" element={<AdminUsers />} />
               <Route path="assignments" element={<AdminAssignments />} />
               <Route path="courses" element={<AdminCourses />} />
+              <Route path="orders" element={<AdminOrders />} />
               <Route path="communication" element={<AdminCommunication />} />
               <Route path="audit-logs" element={<AdminAuditLogs />} />
               <Route path="settings" element={<AdminSettings />} />

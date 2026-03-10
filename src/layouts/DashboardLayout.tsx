@@ -53,45 +53,42 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed lg:static inset-y-0 left-0 z-40 w-64 bg-card/80 backdrop-blur-xl border-r border-border flex flex-col transition-transform duration-300 ease-in-out lg:transform-none shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)]",
+        "fixed lg:static inset-y-0 left-0 z-40 w-64 bg-card border-r border-border flex flex-col transition-transform duration-300 ease-in-out lg:transform-none",
         isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         {/* Logo */}
-        <div className="h-20 flex items-center px-6 border-b border-border/50">
-          <div className="bg-primary rounded-xl p-2 mr-3 shadow-md shadow-primary/20">
-            <GraduationCap className={cn("w-5 h-5 text-primary-foreground")} />
+        <div className="h-16 flex items-center px-6 border-b border-border">
+          <div className="bg-primary/10 rounded-lg p-1.5 mr-3">
+            <GraduationCap className={cn("w-6 h-6 text-primary")} />
           </div>
-          <h1 className="text-xl font-display font-extrabold tracking-tight text-foreground">EduPlatform</h1>
+          <h1 className="text-lg font-bold tracking-tight text-foreground">LMS {role === 'admin' ? 'Admin' : role === 'teacher' ? 'Teacher' : 'Student'}</h1>
           <button
-            className="ml-auto lg:hidden text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted"
+            className="ml-auto lg:hidden text-muted-foreground hover:text-foreground"
             onClick={() => setIsMobileMenuOpen(false)}
           >
-            <X className="w-5 h-5" />
+            <X className="w-6 h-6" />
           </button>
         </div>
 
         {/* User Profile Summary */}
         {role === 'student' && (
-            <div className="p-6 pb-2 flex flex-col gap-6">
-                <div className="flex gap-4 items-center bg-background rounded-2xl p-3 border border-border/50 shadow-sm">
+            <div className="p-4 flex flex-col gap-6">
+                <div className="flex gap-3 items-center px-2">
                     <img
                         src={user?.photoURL}
                         alt="Profile"
-                        className="w-10 h-10 rounded-full object-cover shadow-sm bg-muted ring-2 ring-primary/10"
+                        className="w-12 h-12 rounded-full object-cover shadow-sm bg-muted"
                     />
                     <div className="flex flex-col">
-                        <h1 className="text-sm font-bold leading-tight text-foreground truncate">{user?.displayName}</h1>
-                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{role}</p>
+                        <h1 className="text-base font-bold leading-tight text-foreground">{user?.displayName}</h1>
+                        <p className="text-xs font-medium text-muted-foreground capitalize">{role} Account</p>
                     </div>
                 </div>
             </div>
         )}
 
         {/* Navigation */}
-        <nav className={cn("flex-1 px-4 py-6 space-y-1.5 overflow-y-auto scrollbar-hide", role !== 'student' ? 'flex flex-col gap-1.5' : 'flex flex-col gap-1.5')}>
-          <div className="px-3 mb-2">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Menu</p>
-          </div>
+        <nav className={cn("flex-1 px-4 py-4 space-y-1 overflow-y-auto scrollbar-hide", role !== 'student' ? 'flex flex-col gap-1' : 'flex flex-col gap-2')}>
           {navItems.map((item) => {
             let isActive = false;
             if (item.href === '/student') isActive = location.pathname === '/student';
@@ -104,13 +101,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
                 to={item.href}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all group",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors group",
                   isActive
-                    ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
-                    : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
-                <span className={cn("transition-colors", isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground")}>
+                <span className={cn("transition-colors", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")}>
                     {item.icon}
                 </span>
                 {t(item.labelKey)}
@@ -120,20 +117,20 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
         </nav>
 
         {/* Bottom Actions */}
-        <div className="p-4 border-t border-border/50 mt-auto bg-muted/10">
+        <div className="p-4 border-t border-border mt-auto">
           <Link
             to={`/${role}/settings`}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-all group mb-1"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-muted transition-colors group"
           >
-            <Settings className="w-5 h-5" />
-            <span className="text-sm font-semibold">Cài đặt</span>
+            <Settings className="w-5 h-5 text-muted-foreground group-hover:text-foreground" />
+            <span className="text-sm font-medium group-hover:text-foreground">{t('sidebar.settings')}</span>
           </Link>
           <button
             onClick={() => signOut()}
-            className="flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-destructive hover:bg-destructive/10 transition-all"
+            className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-destructive hover:bg-destructive/10 transition-colors mt-1"
           >
             <LogOut className="w-5 h-5" />
-            <span className="text-sm font-semibold">Đăng xuất</span>
+            <span className="text-sm font-medium">{t('sidebar.logout')}</span>
           </button>
         </div>
       </aside>
@@ -141,10 +138,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
       {/* Main Content Wrapper */}
       <div className="flex-1 flex flex-col h-full relative min-w-0">
         {/* Sticky Header */}
-        <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-border/50 px-4 sm:px-8 h-20 flex items-center justify-between shrink-0">
+        <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-border px-4 sm:px-8 h-16 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-4 w-full max-w-xl">
                 <button
-                    className="lg:hidden text-muted-foreground hover:text-foreground p-2 rounded-xl hover:bg-muted transition-colors"
+                    className="lg:hidden text-muted-foreground hover:text-foreground p-1.5 rounded-md hover:bg-muted"
                     onClick={() => setIsMobileMenuOpen(true)}
                 >
                     <Menu className="w-6 h-6" />
@@ -152,46 +149,44 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
 
                 {/* Page Title / Search Area */}
                 <div className="hidden md:flex items-center gap-3">
-                    <div className="relative w-full md:w-64 lg:w-96 group">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <Search className="w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <div className="relative w-full md:w-64 lg:w-96">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Search className="w-5 h-5 text-muted-foreground" />
                         </div>
                         <input
                             type="text"
-                            placeholder="Tìm kiếm..."
+                            placeholder="Search..."
                             value={searchValue}
                             onChange={(event) => handleSearchChange(event.target.value)}
-                            className="block w-full pl-11 pr-4 py-2.5 border border-border/50 bg-card hover:bg-accent/50 rounded-2xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder-muted-foreground text-foreground transition-all shadow-sm"
+                            className="block w-full pl-10 pr-3 py-2 border-none bg-muted/50 rounded-lg text-sm focus:ring-1 focus:ring-primary placeholder-muted-foreground text-foreground"
                         />
                     </div>
                 </div>
-                <h2 className="md:hidden text-xl font-display font-bold text-foreground tracking-tight">EduPlatform</h2>
+                <h2 className="md:hidden text-lg font-bold text-foreground tracking-tight">LMS</h2>
             </div>
 
             {/* Right Actions */}
-            <div className="flex items-center gap-4 sm:gap-6">
-                <div className="bg-card rounded-2xl border border-border/50 p-1 shadow-sm">
-                   <NotificationList />
-                </div>
+            <div className="flex items-center gap-3 sm:gap-4">
+                <NotificationList />
 
                 {/* User Profile Dropdown / Avatar */}
-                <div className="h-8 w-px bg-border/50 hidden sm:block"></div>
-                <div className="flex items-center gap-3 bg-card rounded-full p-1.5 pr-4 border border-border/50 shadow-sm cursor-pointer hover:bg-accent/50 transition-colors">
+                <div className="h-8 w-px bg-border hidden sm:block"></div>
+                <div className="flex items-center gap-3">
+                    <div className="text-right hidden sm:block">
+                        <p className="text-sm font-semibold text-foreground leading-none">{user?.displayName}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 capitalize">{user?.role}</p>
+                    </div>
                     <img
                         src={user?.photoURL}
                         alt="Avatar"
-                        className="w-8 h-8 rounded-full bg-muted object-cover border border-border"
+                        className="w-9 h-9 rounded-full bg-muted object-cover border border-border"
                     />
-                    <div className="text-left hidden sm:block">
-                        <p className="text-sm font-bold text-foreground leading-none">{user?.displayName}</p>
-                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mt-1">{user?.role}</p>
-                    </div>
                 </div>
             </div>
         </header>
 
         {/* Main Scrollable Area */}
-        <main className="flex-1 overflow-y-auto bg-muted/10 p-4 sm:p-8 scroll-smooth pb-24 relative z-0">
+        <main className="flex-1 overflow-y-auto bg-background p-4 sm:p-8 scroll-smooth pb-24 relative z-0">
             <div className="max-w-7xl mx-auto h-full flex flex-col">
                 {children}
             </div>
