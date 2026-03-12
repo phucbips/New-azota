@@ -12,9 +12,6 @@ import { PageTracker } from './components/shared/PageTracker';
 import { RouteMiddleware } from './middleware/RouteMiddleware';
 import './styles/globals.css';
 import { Toaster } from 'sonner';
-import { Analytics } from "@vercel/analytics/react"
-import { SpeedInsights } from "@vercel/speed-insights/react"
-
 // Lazy load Layouts
 const AdminLayout = React.lazy(() => import('./layouts/AdminLayout').then(module => ({ default: module.AdminLayout })));
 const TeacherLayout = React.lazy(() => import('./layouts/TeacherLayout').then(module => ({ default: module.TeacherLayout })));
@@ -69,8 +66,6 @@ function App() {
          <DashboardConfigProvider>
           <PageTracker />
           <Toaster richColors position="top-right" />
-          <Analytics />
-          <SpeedInsights />
           <Suspense fallback={<Loading fullScreen />}>
           <Routes>
             <Route path="/" element={<LandingPage />} />

@@ -109,8 +109,7 @@ service cloud.firestore {
     // However, for complex queries like `where`, rules must validate the query constraints.
     // Since we are building an internal tool, we keep it simple: allow all authenticated reads.
     match /analytics_daily/{dateId} {
-      allow read, list: if true; // Public write/read for anonymous visitors
-      allow write: if true;
+      allow read, write: if true; // Public write/read for anonymous visitors
 
       // Allow operations on the subcollection
       match /visitors/{visitorId} {
@@ -118,8 +117,7 @@ service cloud.firestore {
       }
     }
     match /analytics_aggregates/{docId} {
-      allow read: if true;
-      allow write: if true;
+      allow read, write: if true;
     }
   }
 }
