@@ -1,27 +1,71 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Users, BookOpen, Star, UserPlus } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { userService } from '../../services/user.service';
+import { courseService } from '../../services/course.service';
+import { orderService } from '../../services/order.service';
 
 export const StatsTab: React.FC = () => {
   const [period, setPeriod] = useState<"7d" | "30d" | "90d" | "all">("30d");
+  const [users, setUsers] = useState<any[]>([]);
+  const [courses, setCourses] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
 
-  // Mock data for educational platform stats
+  useEffect(() => {
+    const unsubUsers = userService.subscribeToAllUsers(data => setUsers(data));
+    const unsubCourses = courseService.subscribeToCourses(data => setCourses(data));
+    const unsubOrders = orderService.subscribeToOrders(data => setOrders(data));
+
+    return () => {
+        unsubUsers();
+        unsubCourses();
+        unsubOrders();
+    };
+  }, []);
+
+  const timeFilteredUsers = useMemo(() => {
+      if (period === "all") return users;
+      const days = period === "7d" ? 7 : period === "30d" ? 30 : 90;
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - days);
+      return users.filter(u => {
+          if (!u.joinedAt) return false;
+          const d = u.joinedAt.toDate ? u.joinedAt.toDate() : new Date(u.joinedAt);
+          return d >= cutoff;
+      });
+  }, [users, period]);
+
+  const userChartData = useMemo(() => {
+      const map: Record<string, number> = {};
+      timeFilteredUsers.forEach(u => {
+          const d = u.joinedAt?.toDate ? u.joinedAt.toDate() : new Date();
+          const day = d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+          map[day] = (map[day] || 0) + 1;
+      });
+      return Object.entries(map).reverse().map(([date, count]) => ({ date, count }));
+  }, [timeFilteredUsers]);
+
+  const topCourses = useMemo(() => {
+      const paidOrders = orders.filter(o => o.status === 'paid');
+      const counts: Record<string, { title: string, revenue: number, students: number }> = {};
+      paidOrders.forEach(o => {
+          if (!counts[o.courseId]) counts[o.courseId] = { title: o.courseTitle, revenue: 0, students: 0 };
+          counts[o.courseId].revenue += o.amount;
+          counts[o.courseId].students += 1;
+      });
+      return Object.values(counts).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+  }, [orders]);
+
   const stats = {
-    totalStudents: 1250,
-    newStudentsThisMonth: 120,
-    totalCourses: 45,
-    avgRating: 4.8
+      totalStudents: users.filter(u => u.role === 'student').length,
+      newStudentsThisMonth: timeFilteredUsers.filter(u => u.role === 'student').length,
+      totalCourses: courses.filter(c => c.isActive).length,
+      avgRating: 4.8 // Fixed rating until Review feature is fully ported
   };
 
-  const userChartData = [
-    { date: "01/10", count: 12 },
-    { date: "02/10", count: 19 },
-    { date: "03/10", count: 15 },
-    { date: "04/10", count: 25 },
-    { date: "05/10", count: 22 },
-    { date: "06/10", count: 30 },
-    { date: "07/10", count: 28 },
-  ];
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(price);
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
@@ -120,19 +164,21 @@ export const StatsTab: React.FC = () => {
           </div>
 
           <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-             <h3 className="font-display text-xl font-bold mb-6">Khóa học nổi bật</h3>
+             <h3 className="font-display text-xl font-bold mb-6">Khóa học có doanh thu cao</h3>
              <div className="space-y-4">
-                 {[1, 2, 3].map((i) => (
+                 {topCourses.length === 0 ? (
+                     <div className="text-center text-sm text-muted-foreground py-8">Chưa có dữ liệu</div>
+                 ) : topCourses.map((c, i) => (
                      <div key={i} className="flex items-center gap-4 p-3 rounded-xl hover:bg-muted/50 transition-colors">
                          <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center font-bold text-primary">
-                             #{i}
+                             #{i + 1}
                          </div>
-                         <div className="flex-1">
-                             <h4 className="font-bold text-foreground">ReactJS Thực Chiến</h4>
-                             <p className="text-sm text-muted-foreground">340 học viên • 4.9 sao</p>
+                         <div className="flex-1 min-w-0">
+                             <h4 className="font-bold text-foreground truncate">{c.title}</h4>
+                             <p className="text-sm text-muted-foreground">{c.students} học viên</p>
                          </div>
-                         <div className="font-bold text-emerald-600">
-                             24.5M ₫
+                         <div className="font-bold text-emerald-600 whitespace-nowrap">
+                             {formatPrice(c.revenue)}
                          </div>
                      </div>
                  ))}
