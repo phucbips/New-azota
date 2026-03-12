@@ -20,9 +20,15 @@ export const LandingPage: React.FC = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main>
-        {settings.homepage.showHero && <HeroSection title={settings.homepage.heroTitle} subtitle={settings.homepage.heroSubtitle} />}
+        {settings.homepage.showHero && (
+            <HeroSection
+                title={settings.homepage.heroTitle}
+                subtitle={settings.homepage.heroSubtitle}
+                backgroundUrl={settings.homepage.heroBackgroundUrl}
+            />
+        )}
         {settings.homepage.showCourses && <MenuSection />}
-        {settings.homepage.showStats && <StatsSection />}
+        {settings.homepage.showStats && <StatsSection stats={settings.homepage.stats} />}
         {settings.homepage.showAbout && <AboutSection />}
         {settings.homepage.showTestimonials && <TestimonialCarousel />}
       </main>

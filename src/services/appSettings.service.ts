@@ -20,6 +20,8 @@ export interface AppSettings {
   homepage: {
     heroTitle: string;
     heroSubtitle: string;
+    heroBackgroundUrl?: string;
+    stats: { label: string; value: string }[];
     showHero: boolean;
     showCourses: boolean;
     showStats: boolean;
@@ -47,6 +49,13 @@ const DEFAULT_SETTINGS: AppSettings = {
   homepage: {
     heroTitle: 'Học Tập Không Giới Hạn',
     heroSubtitle: 'Khám phá hàng ngàn khóa học chất lượng từ các chuyên gia hàng đầu. Nâng cao kỹ năng của bạn ngay hôm nay.',
+    heroBackgroundUrl: '',
+    stats: [
+        { label: "Học Viên", value: "10,000+" },
+        { label: "Khóa Học", value: "500+" },
+        { label: "Giảng Viên", value: "150+" },
+        { label: "Hoàn Thành", value: "98%" }
+    ],
     showHero: true,
     showCourses: true,
     showStats: true,

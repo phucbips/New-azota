@@ -5,9 +5,10 @@ import { useTranslation } from 'react-i18next';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
 import { AppSettings } from '../../services/appSettings.service';
 import { toast } from 'sonner';
-import { Phone, Mail, MessageSquare, Facebook, Link as LinkIcon, Save, Settings, ShieldCheck, CreditCard, LayoutTemplate } from 'lucide-react';
+import { Phone, Mail, MessageSquare, Facebook, Link as LinkIcon, Save, Settings, ShieldCheck, CreditCard, LayoutTemplate, Plus, Trash2 } from 'lucide-react';
 import { SaaSButton } from '../../components/ui/SaaSButton';
 import { Loading } from '../../components/shared/Loading';
+import CloudinaryUploadWidget from '../../components/ui/CloudinaryUploadWidget';
 
 export const AdminSettings: React.FC = () => {
   const { t } = useTranslation();
@@ -155,6 +156,76 @@ export const AdminSettings: React.FC = () => {
                             placeholder="Nhập mô tả ngắn cho trang chủ..."
                         />
                     </div>
+                    <div>
+                        <label className="block text-sm font-semibold text-foreground mb-2">Ảnh/Video Nền (Hero Background)</label>
+                        <CloudinaryUploadWidget
+                            onSuccess={(url) => handleChange('homepage', 'heroBackgroundUrl', url)}
+                            folder="settings"
+                        />
+                        {formData.homepage.heroBackgroundUrl && (
+                            <div className="mt-3 relative w-full h-32 rounded-xl overflow-hidden border border-border shadow-sm group">
+                                {formData.homepage.heroBackgroundUrl.endsWith('.mp4') || formData.homepage.heroBackgroundUrl.endsWith('.webm') ? (
+                                    <video src={formData.homepage.heroBackgroundUrl} className="w-full h-full object-cover" muted loop autoPlay />
+                                ) : (
+                                    <img src={formData.homepage.heroBackgroundUrl} className="w-full h-full object-cover" alt="Hero Background" />
+                                )}
+                                <button
+                                    onClick={() => handleChange('homepage', 'heroBackgroundUrl', '')}
+                                    className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Thống kê động */}
+                    <div className="pt-4 border-t border-border space-y-4">
+                         <h4 className="font-semibold text-sm text-foreground uppercase tracking-wide">Số liệu Thống kê (Stats Section)</h4>
+                         {formData.homepage.stats?.map((stat, idx) => (
+                             <div key={idx} className="flex gap-2 items-center">
+                                 <input
+                                     value={stat.label}
+                                     onChange={(e) => {
+                                         const newStats = [...formData.homepage.stats];
+                                         newStats[idx].label = e.target.value;
+                                         handleChange('homepage', 'stats', newStats as any);
+                                     }}
+                                     className="flex-1 px-3 py-2 border border-input rounded-lg bg-background text-sm focus:ring-2 focus:ring-primary/20"
+                                     placeholder="VD: Học viên"
+                                 />
+                                 <input
+                                     value={stat.value}
+                                     onChange={(e) => {
+                                         const newStats = [...formData.homepage.stats];
+                                         newStats[idx].value = e.target.value;
+                                         handleChange('homepage', 'stats', newStats as any);
+                                     }}
+                                     className="w-32 px-3 py-2 border border-input rounded-lg bg-background text-sm font-bold focus:ring-2 focus:ring-primary/20"
+                                     placeholder="VD: 10k+"
+                                 />
+                                 <button
+                                     onClick={() => {
+                                         const newStats = formData.homepage.stats.filter((_, i) => i !== idx);
+                                         handleChange('homepage', 'stats', newStats as any);
+                                     }}
+                                     className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                 >
+                                     <Trash2 className="w-4 h-4" />
+                                 </button>
+                             </div>
+                         ))}
+                         <button
+                             onClick={() => {
+                                 const newStats = [...(formData.homepage.stats || []), { label: 'Mục mới', value: '100' }];
+                                 handleChange('homepage', 'stats', newStats as any);
+                             }}
+                             className="text-primary text-sm font-bold flex items-center gap-1 hover:underline"
+                         >
+                             <Plus className="w-4 h-4" /> Thêm chỉ số
+                         </button>
+                    </div>
+
                     <div className="space-y-4 pt-4 border-t border-border">
                         <h4 className="font-semibold text-sm text-foreground uppercase tracking-wide">Bật/Tắt các khối</h4>
 

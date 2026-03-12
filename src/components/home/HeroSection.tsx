@@ -4,7 +4,11 @@ import useEmblaCarousel from "embla-carousel-react";
 import { BookOpen, TrendingUp, Star, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export const HeroSection = ({ title = "Học Tập Không Giới Hạn", subtitle = "Khám phá hàng ngàn khóa học chất lượng từ các chuyên gia hàng đầu. Nâng cao kỹ năng của bạn ngay hôm nay." }) => {
+export const HeroSection = ({
+    title = "Học Tập Không Giới Hạn",
+    subtitle = "Khám phá hàng ngàn khóa học chất lượng từ các chuyên gia hàng đầu. Nâng cao kỹ năng của bạn ngay hôm nay.",
+    backgroundUrl = ""
+}) => {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -35,7 +39,14 @@ export const HeroSection = ({ title = "Học Tập Không Giới Hạn", subtitl
           {/* Slide 1: Main Hero */}
           <div className="relative min-h-[85vh] w-full flex-[0_0_100%] overflow-hidden bg-primary md:min-h-screen">
             <div className="absolute inset-0">
-               <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-primary/80" />
+               {backgroundUrl ? (
+                   backgroundUrl.endsWith('.mp4') || backgroundUrl.endsWith('.webm') ? (
+                       <video src={backgroundUrl} className="w-full h-full object-cover opacity-40" autoPlay muted loop playsInline />
+                   ) : (
+                       <img src={backgroundUrl} className="w-full h-full object-cover opacity-40" alt="Hero background" />
+                   )
+               ) : null}
+               <div className="absolute inset-0 bg-gradient-to-br from-primary/90 via-primary/80 to-primary/60" />
             </div>
 
             <div className="relative flex min-h-[85vh] flex-col items-center justify-center py-16 text-center md:min-h-screen md:py-24 z-10">
