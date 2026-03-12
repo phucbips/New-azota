@@ -31,13 +31,14 @@ export const AdminCourses: React.FC = () => {
         setLoading(false);
     });
 
-    const fetchAssignments = async () => {
-        const data = await assignmentService.getAssignments();
+    const unsubAssignments = assignmentService.subscribeToAllAssignments((data) => {
         setAssignments(data);
-    };
-    fetchAssignments();
+    });
 
-    return () => unsubCourses();
+    return () => {
+        unsubCourses();
+        unsubAssignments();
+    };
   }, []);
 
   const handleOpenModal = (course?: Course) => {
