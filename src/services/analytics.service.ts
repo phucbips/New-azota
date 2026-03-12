@@ -58,20 +58,47 @@ class AnalyticsService {
     }
   }
 
+  private detectBrowser(ua: string): string {
+    if (ua.includes("Firefox")) return "Firefox";
+    if (ua.includes("Edg")) return "Edge";
+    if (ua.includes("Chrome")) return "Chrome";
+    if (ua.includes("Safari")) return "Safari";
+    if (ua.includes("Opera") || ua.includes("OPR")) return "Opera";
+    return "Other";
+  }
+
+  private detectDevice(ua: string, width: number): string {
+    if (/Mobi|Android/i.test(ua) || width < 768) return "Mobile";
+    if (/Tablet|iPad/i.test(ua) || (width >= 768 && width < 1024)) return "Tablet";
+    return "Desktop";
+  }
+
   async logPageView() {
     try {
         const today = new Date().toISOString().split('T')[0];
         const dailyRef = doc(db, COLLECTIONS.DAILY, today);
         const aggRef = doc(db, COLLECTIONS.AGGREGATES, 'global_stats');
 
+        const ua = navigator.userAgent;
+        const browserName = this.detectBrowser(ua);
+        const deviceType = this.detectDevice(ua, window.innerWidth);
+        const osName = /Windows/i.test(ua) ? "Windows" : /Mac/i.test(ua) ? "Mac OS" : /Linux/i.test(ua) ? "Linux" : /Android/i.test(ua) ? "Android" : /iOS|iPhone|iPad/i.test(ua) ? "iOS" : "Other";
+
         const updates = {
             date: today,
             page_views: increment(1)
         };
 
+        const aggUpdates: any = {
+            total_page_views: increment(1)
+        };
+        aggUpdates[`os.${osName}`] = increment(1);
+        aggUpdates[`browsers.${browserName}`] = increment(1);
+        aggUpdates[`devices.${deviceType}`] = increment(1);
+
         // Fire and forget - separate promises to avoid blocking
         const p1 = setDoc(dailyRef, updates, { merge: true });
-        const p2 = setDoc(aggRef, { total_page_views: increment(1) }, { merge: true });
+        const p2 = setDoc(aggRef, aggUpdates, { merge: true });
 
         await Promise.all([p1, p2]);
 

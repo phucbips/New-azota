@@ -36,6 +36,8 @@ export const ProfilePage: React.FC = () => {
                <CloudinaryUploadWidget
                   onUploadSuccess={handleAvatarUpdate}
                   label=""
+                  folder="avatars"
+                  aspectRatio={1}
                />
             </div>
           ) : (

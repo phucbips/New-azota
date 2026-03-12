@@ -45,6 +45,7 @@ const StudentCourses = React.lazy(() => import('./pages/student/Courses').then(m
 const StudentSettings = React.lazy(() => import('./pages/student/Settings').then(module => ({ default: module.StudentSettings })));
 const StudentProfile = React.lazy(() => import('./pages/student/Profile').then(module => ({ default: module.StudentProfile })));
 const LandingPage = React.lazy(() => import('./pages/public/Landing').then(module => ({ default: module.LandingPage })));
+const PublicCourses = React.lazy(() => import('./pages/public/PublicCourses').then(module => ({ default: module.PublicCourses })));
 
 // Specialized Login Wrapper to redirect if already logged in
 const LoginWrapper: React.FC = () => {
@@ -73,6 +74,7 @@ function App() {
           <Suspense fallback={<Loading fullScreen />}>
           <Routes>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/courses" element={<PublicCourses />} />
             <Route path="/login" element={<LoginWrapper />} />
 
             {/* Admin Route Group */}

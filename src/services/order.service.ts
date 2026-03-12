@@ -58,6 +58,14 @@ class OrderService {
       callback(orders);
     });
   }
+
+  subscribeToUserOrders(userId: string, callback: (orders: Order[]) => void) {
+    const q = query(this.collection, where('userId', '==', userId), orderBy('createdAt', 'desc'));
+    return onSnapshot(q, (snapshot) => {
+      const orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+      callback(orders);
+    });
+  }
 }
 
 export const orderService = new OrderService();

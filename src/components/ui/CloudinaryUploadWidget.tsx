@@ -9,6 +9,7 @@ interface CloudinaryUploadWidgetProps {
   label?: string;
   defaultImage?: string; // Added to support editing
   folder?: string;
+  aspectRatio?: number; // Configurable crop aspect ratio
 }
 
 export default function CloudinaryUploadWidget({
@@ -16,7 +17,8 @@ export default function CloudinaryUploadWidget({
   onSuccess,
   label = "Ảnh bìa",
   defaultImage,
-  folder = 'school_uploads'
+  folder = 'school_uploads',
+  aspectRatio = 16/9
 }: CloudinaryUploadWidgetProps) {
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<string | null>(defaultImage || null);
@@ -25,8 +27,8 @@ export default function CloudinaryUploadWidget({
   const actualOnSuccess = onSuccess || onUploadSuccess;
 
   // Cấu hình Cloudinary của bạn
-  const CLOUD_NAME = 'dkkvom3um';
-  const UPLOAD_PRESET = 'school_uploads';
+  const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dkkvom3um';
+  const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'school_uploads';
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -156,7 +158,7 @@ export default function CloudinaryUploadWidget({
              imageSrc={cropImage}
              onCropDone={handleCropDone}
              onCancel={() => setCropImage(null)}
-             aspect={16/9} // Fixed to wide aspect for courses/assignments
+             aspect={aspectRatio}
           />
       )}
     </div>
