@@ -1,70 +1,91 @@
 'use client'; // Keeping this though mostly for Next.js, harmless in Vite
 
 import React, { useState } from 'react';
+import ImageCropper from './ImageCropper';
 
 interface CloudinaryUploadWidgetProps {
   onUploadSuccess: (url: string) => void;
+  onSuccess?: (url: string) => void; // Support for alias
   label?: string;
   defaultImage?: string; // Added to support editing
+  folder?: string;
 }
 
 export default function CloudinaryUploadWidget({
   onUploadSuccess,
-  label = "Ảnh bìa bài tập",
-  defaultImage
+  onSuccess,
+  label = "Ảnh bìa",
+  defaultImage,
+  folder = 'school_uploads'
 }: CloudinaryUploadWidgetProps) {
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<string | null>(defaultImage || null);
+  const [cropImage, setCropImage] = useState<string | null>(null);
+
+  const actualOnSuccess = onSuccess || onUploadSuccess;
 
   // Cấu hình Cloudinary của bạn
   const CLOUD_NAME = 'dkkvom3um';
   const UPLOAD_PRESET = 'school_uploads';
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate loại file
     if (!file.type.startsWith('image/')) {
       alert('Vui lòng chỉ chọn file ảnh!');
       return;
     }
 
-    setLoading(true);
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+        setCropImage(reader.result as string);
+    });
+    reader.readAsDataURL(file);
+    e.target.value = ''; // reset input
+  };
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', UPLOAD_PRESET);
+  const handleCropDone = async (croppedBlob: Blob) => {
+      setCropImage(null);
+      setLoading(true);
 
-    try {
-      // Gửi request lên Cloudinary
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
-        {
-          method: 'POST',
-          body: formData,
-        }
-      );
-
-      const data = await response.json();
-
-      if (data.secure_url) {
-        setPreview(data.secure_url);
-        onUploadSuccess(data.secure_url); // Trả link về cho form cha
-      } else {
-        throw new Error('Upload failed');
+      const formData = new FormData();
+      formData.append('file', croppedBlob);
+      // We will just use the default preset since Cloudinary allows folder overrides if unsigned preset permits it
+      formData.append('upload_preset', UPLOAD_PRESET);
+      // Optional: add folder if your preset supports dynamic folders, otherwise it goes to default
+      if (folder !== 'school_uploads') {
+          formData.append('folder', folder);
       }
-    } catch (error) {
-      console.error('Lỗi upload:', error);
-      alert('Có lỗi xảy ra khi tải ảnh lên. Vui lòng thử lại.');
-    } finally {
-      setLoading(false);
-    }
+
+      try {
+        const response = await fetch(
+          `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+          {
+            method: 'POST',
+            body: formData,
+          }
+        );
+
+        const data = await response.json();
+
+        if (data.secure_url) {
+          setPreview(data.secure_url);
+          actualOnSuccess(data.secure_url);
+        } else {
+          throw new Error('Upload failed');
+        }
+      } catch (error) {
+        console.error('Lỗi upload:', error);
+        alert('Có lỗi xảy ra khi tải ảnh lên. Vui lòng thử lại.');
+      } finally {
+        setLoading(false);
+      }
   };
 
   const removeImage = () => {
     setPreview(null);
-    onUploadSuccess(''); // Xóa link ở form cha
+    actualOnSuccess('');
   };
 
   return (
@@ -112,14 +133,13 @@ export default function CloudinaryUploadWidget({
       {/* 3. Trạng thái: Chưa có ảnh (Upload Button) */}
       {!loading && !preview && (
         <div className="flex items-center justify-center w-full">
-          <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+          <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-border border-dashed rounded-xl cursor-pointer bg-muted/30 hover:bg-muted/50 transition-colors">
             <div className="flex flex-col items-center justify-center pt-5 pb-6">
-              {/* Cloud Upload Icon */}
-              <svg className="w-8 h-8 mb-3 text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+              <svg className="w-8 h-8 mb-3 text-muted-foreground" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
                 <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
               </svg>
-              <p className="mb-2 text-sm text-gray-500"><span className="font-semibold">Bấm để tải ảnh</span></p>
-              <p className="text-xs text-gray-500">PNG, JPG (Tối đa 10MB)</p>
+              <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Bấm để tải ảnh</span></p>
+              <p className="text-xs text-muted-foreground/70">PNG, JPG (Cho phép cắt ảnh)</p>
             </div>
             <input
               type="file"
@@ -129,6 +149,15 @@ export default function CloudinaryUploadWidget({
             />
           </label>
         </div>
+      )}
+
+      {cropImage && (
+          <ImageCropper
+             imageSrc={cropImage}
+             onCropDone={handleCropDone}
+             onCancel={() => setCropImage(null)}
+             aspect={16/9} // Fixed to wide aspect for courses/assignments
+          />
       )}
     </div>
   );
