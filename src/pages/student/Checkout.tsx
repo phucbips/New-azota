@@ -72,7 +72,7 @@ export const Checkout: React.FC = () => {
               items: items,
               originalAmount: totalPrice,
               discount: discount,
-              voucherCode: appliedVoucherId ? voucher : undefined,
+              voucherCode: appliedVoucherId ? voucher : null,
               amount: finalPrice,
               status: finalPrice === 0 ? 'paid' : 'pending',
               paymentMethod: paymentMethod,
