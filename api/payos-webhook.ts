@@ -1,5 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-const PayOS = require('@payos/node');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { PayOS } = require('@payos/node');
 import * as admin from 'firebase-admin';
 
 if (!admin.apps.length) {
@@ -30,9 +31,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         );
 
         // This verifies the signature and throws an error if invalid
-        const webhookData = payOS.verifyPaymentWebhookData(req.body);
+        const webhookData = payOS.webhooks.verify(req.body);
 
-        if (webhookData.code === '00' && webhookData.success) {
+        if (webhookData && webhookData.code === '00' && webhookData.success) {
             const orderCode = webhookData.data.orderCode;
             const db = admin.firestore();
 

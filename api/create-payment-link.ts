@@ -1,5 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-const PayOS = require('@payos/node');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { PayOS } = require('@payos/node');
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS configuration
@@ -41,7 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       cancelUrl,
     };
 
-    const paymentLinkResponse = await payOS.createPaymentLink(body);
+    const paymentLinkResponse = await payOS.paymentRequests.create(body);
 
     return res.status(200).json({
       checkoutUrl: paymentLinkResponse.checkoutUrl,
