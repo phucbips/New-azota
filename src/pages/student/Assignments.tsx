@@ -142,33 +142,6 @@ export const StudentAssignments: React.FC = () => {
     const targetGrade = String(selectedAssignment.gradeLevel);
     const subjectTitle = safeString(selectedAssignment.subject || 'Chung');
 
-    // If it's native code, we want to render it as fully and natively as possible.
-    if (selectedAssignment.type === 'native_code') {
-        return (
-            <div className="fixed inset-0 z-[100] bg-background flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
-                <div className="h-14 border-b border-border bg-card flex items-center justify-between px-4 shrink-0 shadow-sm z-10">
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => setSelectedAssignment(null)}
-                            className="mr-2 flex items-center gap-2 text-muted-foreground hover:text-foreground font-medium transition-colors text-sm"
-                        >
-                           <ArrowLeft className="w-4 h-4" />
-                           Back to Assignments {subjectTitle} Grade {targetGrade} • {topic}
-                        </button>
-                    </div>
-                </div>
-                <div className="flex-1 w-full bg-background relative">
-                    <iframe
-                        srcDoc={selectedAssignment.embedUrl}
-                        className="w-full h-full border-none absolute inset-0"
-                        title={title}
-                        sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin"
-                    />
-                </div>
-            </div>
-        );
-    }
-
     return (
       <>
         <button
@@ -193,8 +166,15 @@ export const StudentAssignments: React.FC = () => {
            )}
 
            <div className="flex-1 w-full bg-slate-50 rounded-lg border border-slate-200 relative overflow-hidden">
-              {selectedAssignment.type === 'video' ? (
-                  <div className="w-full h-full flex items-center justify-center bg-black">
+              {selectedAssignment.type === 'native_code' ? (
+                  <iframe
+                      srcDoc={selectedAssignment.embedUrl}
+                      className="w-full h-full border-none absolute inset-0"
+                      title={title}
+                      sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin"
+                  />
+              ) : selectedAssignment.type === 'video' ? (
+                  <div className="w-full h-full flex items-center justify-center bg-black absolute inset-0">
                       <iframe
                           src={selectedAssignment.embedUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
                           className="w-full h-full max-w-4xl max-h-[600px] aspect-video"

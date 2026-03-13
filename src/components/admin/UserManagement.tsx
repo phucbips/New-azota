@@ -197,16 +197,6 @@ export const UserManagement: React.FC = () => {
         cell: ({ row }) => formatLastActive(row.original)
     },
     {
-        accessorKey: "isWhitelisted",
-        header: "Trạng thái",
-        cell: ({ row }) => (
-            <div className="flex items-center gap-2">
-                <div className={`h-2 w-2 rounded-full ${row.original.isWhitelisted ? 'bg-green-500' : 'bg-slate-300'}`}></div>
-                <span className="text-sm text-muted-foreground">{row.original.isWhitelisted ? 'Active' : 'Inactive'}</span>
-            </div>
-        )
-    },
-    {
         id: "actions",
         cell: ({ row }) => (
             <div className="flex items-center justify-end gap-2">
