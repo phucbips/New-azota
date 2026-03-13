@@ -76,9 +76,18 @@ export const PaymentQR: React.FC = () => {
                 ELEMENT_ID: "embeded-payment-container",
                 CHECKOUT_URL: checkoutUrl,
                 embedded: true,
-                onSuccess: (event: any) => {
+                onSuccess: async (event: any) => {
                     // Fast track local state update
-                    orderService.updateOrderStatus(order.id, 'paid');
+                    await orderService.updateOrderStatus(order.id, 'paid');
+                    // Update course enrollment counts securely upon successful payment
+                    if (order && order.items) {
+                        for (const item of order.items) {
+                            const c = await courseService.getCourse(item.courseId);
+                            if (c) {
+                                await courseService.updateCourse(c.id, { enrollmentCount: (c.enrollmentCount || 0) + 1 });
+                            }
+                        }
+                    }
                     navigate('/student/courses');
                 },
                 onCancel: (event: any) => {

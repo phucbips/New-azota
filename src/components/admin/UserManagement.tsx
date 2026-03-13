@@ -10,6 +10,8 @@ import { vi } from 'date-fns/locale';
 import { DataTable } from '../../components/ui/DataTable';
 import { ColumnDef } from '@tanstack/react-table';
 import { useForm } from 'react-hook-form';
+import { Course, courseService } from '../../services/course.service';
+import { orderService } from '../../services/order.service';
 
 type CreateUserForm = {
   email: string;
@@ -31,6 +33,8 @@ export const UserManagement: React.FC = () => {
   // Edit Mode State
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [enrollingUser, setEnrollingUser] = useState<User | null>(null);
+  const [courses, setCourses] = useState<Course[]>([]);
 
   // Filter States - Simplified as Table handles search, but we might want advanced filtering later
   // For now, let's pass all users to the table and let it handle search if we want client side search.
@@ -40,6 +44,8 @@ export const UserManagement: React.FC = () => {
   const selectedRole = watch('role');
 
   useEffect(() => {
+    courseService.getActiveCourses().then(setCourses);
+
     const unsubscribe = userService.subscribeToAllUsers((fetchedUsers) => {
       setUsers(fetchedUsers);
       setIsFetching(false);
@@ -204,6 +210,14 @@ export const UserManagement: React.FC = () => {
         id: "actions",
         cell: ({ row }) => (
             <div className="flex items-center justify-end gap-2">
+                {row.original.role === 'student' && (
+                    <button
+                        onClick={() => setEnrollingUser(row.original)}
+                        className="text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 px-2 py-1 rounded-md transition-colors"
+                    >
+                        Cấp khóa học
+                    </button>
+                )}
                 <button onClick={() => handleEdit(row.original)} className="text-muted-foreground hover:text-primary p-1"><Edit2 className="w-5 h-5" /></button>
                 <button onClick={() => handleDelete(row.original.uid)} className="text-muted-foreground hover:text-destructive p-1"><Trash2 className="w-5 h-5" /></button>
             </div>
@@ -313,8 +327,99 @@ export const UserManagement: React.FC = () => {
              }}
           />
       )}
+
+      {/* Enroll Modal */}
+      {enrollingUser && (
+          <EnrollUserModal
+              user={enrollingUser}
+              courses={courses}
+              onClose={() => setEnrollingUser(null)}
+          />
+      )}
     </div>
   );
+};
+
+const EnrollUserModal: React.FC<{ user: User, courses: Course[], onClose: () => void }> = ({ user, courses, onClose }) => {
+    const [selectedCourseId, setSelectedCourseId] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const handleEnroll = async () => {
+        if (!selectedCourseId) return toast.error("Vui lòng chọn khóa học");
+        setLoading(true);
+        try {
+            const course = courses.find(c => c.id === selectedCourseId);
+            if (!course) return;
+
+            // Admin manual enrollment bypasses payment, direct to paid status
+            await orderService.createOrder({
+                userId: user.uid,
+                userEmail: user.email,
+                userName: user.displayName || user.email,
+                items: [{ courseId: course.id, courseTitle: course.title, price: 0 }],
+                originalAmount: 0,
+                discount: 0,
+                amount: 0,
+                paymentMethod: 'cash',
+                status: 'paid', // Immediately paid/active
+            });
+
+            // Update course enrollment count
+            await courseService.updateCourse(course.id, {
+                enrollmentCount: (course.enrollmentCount || 0) + 1
+            });
+
+            toast.success(`Đã cấp khóa học cho ${user.email}`);
+            onClose();
+        } catch (error) {
+            console.error(error);
+            toast.error("Lỗi cấp khóa học");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn px-4">
+            <div className="bg-card p-6 rounded-xl w-full max-w-md shadow-2xl border border-border">
+                <h3 className="text-xl font-bold mb-4 text-card-foreground">Cấp khóa học cho học sinh</h3>
+                <p className="text-sm text-muted-foreground mb-4">Học sinh: {user.email}</p>
+
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-1 text-muted-foreground">Chọn khóa học</label>
+                        <select
+                            value={selectedCourseId}
+                            onChange={(e) => setSelectedCourseId(e.target.value)}
+                            className="w-full p-2.5 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary outline-none"
+                        >
+                            <option value="">-- Chọn khóa học --</option>
+                            {courses.map(course => (
+                                <option key={course.id} value={course.id}>{course.title}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-4">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 text-muted-foreground hover:bg-muted rounded-lg transition-colors"
+                        >
+                            Hủy
+                        </button>
+                        <button
+                            onClick={handleEnroll}
+                            disabled={loading || !selectedCourseId}
+                            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+                        >
+                            {loading ? 'Đang cấp...' : 'Cấp quyền truy cập'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 };
 
 const EditUserModal: React.FC<{ user: User, onClose: () => void, onUpdate: () => void }> = ({ user, onClose, onUpdate }) => {

@@ -83,6 +83,13 @@ export const Checkout: React.FC = () => {
           }
 
           if (finalPrice === 0) {
+               // Update course enrollment counts for free orders directly
+               await Promise.all(items.map(async (item) => {
+                   const c = await courseService.getCourse(item.courseId);
+                   if (c) {
+                       await courseService.updateCourse(c.id, { enrollmentCount: (c.enrollmentCount || 0) + 1 });
+                   }
+               }));
                clearCart();
                toast.success("Nhận khóa học miễn phí thành công!");
                navigate('/student/courses');
