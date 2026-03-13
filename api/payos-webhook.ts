@@ -22,6 +22,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
+    // Special case for PayOS confirm-webhook test payload
+    if (req.body && req.body.webhookUrl && !req.body.signature) {
+        return res.status(200).json({ success: true, message: 'Webhook URL test received.' });
+    }
+
     try {
         const payOS = new PayOS({
             clientId: process.env.PAYOS_CLIENT_ID || '',
@@ -75,11 +80,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } catch (error: any) {
         console.error('PayOS Webhook Error:', error);
 
-        // Handle webhook validation/verification specific errors gracefully
-        if (error.name === 'WebhookError' || error.message?.includes('integrity') || error.message?.includes('signature') || error.message?.includes('Invalid')) {
-            return res.status(400).json({ error: 'Invalid signature or data' });
+        // Handle webhook validation/verification specific errors gracefully.
+        // Important: PayOS dashboard URL verification requires a 200 OK response even if the dummy payload
+        // signature is missing or mismatched (e.g., when the user hasn't synced the Checksum Key yet).
+        // Returning 400 or 500 will cause the PayOS dashboard to say "Webhook URL is not working".
+        if (
+            error.name === 'WebhookError' ||
+            error.message?.includes('integrity') ||
+            error.message?.includes('signature') ||
+            error.message?.includes('Invalid')
+        ) {
+            return res.status(200).json({
+                success: true,
+                message: 'Webhook received but signature validation failed. Ignored.'
+            });
         }
 
-        return res.status(500).json({ error: 'Internal Server Error', message: error.message });
+        // Only return 500 for actual server/database crashes, though even here returning 200 with an error object
+        // is often safer for webhooks to prevent automatic retries from flooding the server.
+        return res.status(200).json({
+            success: false,
+            message: 'Internal processing error',
+            error: error.message
+        });
     }
 }
