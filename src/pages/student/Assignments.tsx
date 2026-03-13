@@ -24,7 +24,10 @@ export const StudentAssignments: React.FC = () => {
   const [selectedSubject, setSelectedSubject] = useState('All');
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !user.isWhitelisted) {
+        setIsFetchingCourses(false);
+        return;
+    }
     const unsubCourses = courseService.subscribeToCourses((data) => {
         setCourses(data);
         setIsFetchingCourses(false);
@@ -33,7 +36,10 @@ export const StudentAssignments: React.FC = () => {
   }, [user]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !user.isWhitelisted) {
+        setIsFetchingAssignments(false);
+        return;
+    }
     const unsubAssignments = assignmentService.subscribeToAllAssignments((data) => {
         setAllAssignments(data);
         setIsFetchingAssignments(false);
