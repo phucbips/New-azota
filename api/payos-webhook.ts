@@ -1,6 +1,7 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { PayOS } from '@payos/node';
+const { PayOS } = require('@payos/node');
 import * as admin from 'firebase-admin';
+import { createHmac } from 'crypto';
 
 if (!admin.apps.length) {
     try {
@@ -23,55 +24,61 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-        // Attempt to read PayOS keys from Firestore Database (Admin UI settings)
-        let clientId = process.env.PAYOS_CLIENT_ID || '';
-        let apiKey = process.env.PAYOS_API_KEY || '';
-        let checksumKey = process.env.PAYOS_CHECKSUM_KEY || '';
+        const checksumKey = process.env.PAYOS_CHECKSUM_KEY || '';
 
-        if (admin.apps.length) {
-            try {
-                const db = admin.firestore();
-                const settingsDoc = await db.collection('app_settings').doc('general').get();
-                if (settingsDoc.exists) {
-                    const data = settingsDoc.data();
-                    if (data?.integrations) {
-                        if (data.integrations.payosClientId) clientId = data.integrations.payosClientId;
-                        if (data.integrations.payosApiKey) apiKey = data.integrations.payosApiKey;
-                        if (data.integrations.payosChecksumKey) checksumKey = data.integrations.payosChecksumKey;
+        if (!checksumKey) {
+            console.error('Missing PayOS Checksum Key.');
+            return res.status(200).json({ success: false, message: 'Server missing config' });
+        }
+
+        // --- Custom Manual Signature Verification (from PayOS documentation) ---
+        const webhookDataRaw = req.body;
+
+        // If it's just a test ping to add webhook URL
+        if (!webhookDataRaw.data || !webhookDataRaw.signature) {
+            return res.status(200).json({ success: true, message: 'Webhook URL verified' });
+        }
+
+        function sortObjDataByKey(object: any) {
+            return Object.keys(object)
+                .sort()
+                .reduce((obj: any, key: string) => {
+                    obj[key] = object[key];
+                    return obj;
+                }, {});
+        }
+
+        function convertObjToQueryStr(object: any) {
+            return Object.keys(object)
+                .filter((key) => object[key] !== undefined)
+                .map((key) => {
+                    let value = object[key];
+                    if (value && Array.isArray(value)) {
+                        value = JSON.stringify(value.map((val) => sortObjDataByKey(val)));
                     }
-                }
-            } catch (dbErr) {
-                console.warn('Could not read PayOS keys from database, falling back to process.env', dbErr);
-            }
+                    if ([null, undefined, 'undefined', 'null'].includes(value)) {
+                        value = '';
+                    }
+                    return `${key}=${value}`;
+                })
+                .join('&');
         }
 
-        if (!clientId || !apiKey || !checksumKey) {
-            console.error('Missing PayOS Configuration. Checksum Key is required for webhooks.');
-            return res.status(200).json({ success: false, message: 'Server missing config but returning 200' });
+        const sortedDataByKey = sortObjDataByKey(webhookDataRaw.data);
+        const dataQueryStr = convertObjToQueryStr(sortedDataByKey);
+        const expectedSignature = createHmac('sha256', checksumKey).update(dataQueryStr).digest('hex');
+
+        if (expectedSignature !== webhookDataRaw.signature) {
+            console.error('PayOS Invalid Signature:', {
+                expected: expectedSignature,
+                received: webhookDataRaw.signature
+            });
+            // Still return 200 to satisfy webhook tests, but do NOT process order
+            return res.status(200).json({ success: false, message: 'Invalid Signature' });
         }
 
-        const payOS = new PayOS({
-            clientId,
-            apiKey,
-            checksumKey
-        });
-
-        // PayOS Dashboard often sends a test webhook to verify the URL
-        // It might not have the full structure. We should wrap verification in a try/catch
-        // but ALWAYS return 200 OK so PayOS accepts our URL.
-        let webhookData;
-        try {
-            webhookData = await payOS.webhooks.verify(req.body);
-        } catch (verifyError: any) {
-            console.error('PayOS Signature Verification Failed (might be a test ping):', verifyError.message || String(verifyError));
-            // Return 200 OK anyway so the Webhook can be successfully added in the PayOS dashboard
-            return res.status(200).json({ success: true, message: 'Webhook URL verified (signature check failed but accepted)' });
-        }
-
-        // WebhookData in @payos/node v2 contains the nested properties directly
-        // code / desc are at the top level in the req.body, but the SDK returns the data object
-        if (webhookData && webhookData.orderCode) {
-            const orderCode = webhookData.orderCode;
+        if (webhookDataRaw.code === '00' && webhookDataRaw.data && webhookDataRaw.data.orderCode) {
+            const orderCode = webhookDataRaw.data.orderCode;
 
             // Check if Firebase Admin is initialized
             if (!admin.apps.length) {
