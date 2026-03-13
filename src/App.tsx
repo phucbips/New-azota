@@ -5,6 +5,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { ThemeSettingsProvider } from './contexts/ThemeSettingsContext';
 import { DashboardConfigProvider } from './contexts/DashboardConfigContext';
 import { AppSettingsProvider } from './contexts/AppSettingsContext';
+import { CartProvider } from './contexts/CartContext';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './components/auth/LoginPage';
 import { Loading } from './components/shared/Loading';
@@ -41,6 +42,7 @@ const StudentAssignments = React.lazy(() => import('./pages/student/Assignments'
 const StudentCourses = React.lazy(() => import('./pages/student/Courses').then(module => ({ default: module.StudentCourses })));
 const StudentSettings = React.lazy(() => import('./pages/student/Settings').then(module => ({ default: module.StudentSettings })));
 const StudentProfile = React.lazy(() => import('./pages/student/Profile').then(module => ({ default: module.StudentProfile })));
+const PaymentQR = React.lazy(() => import('./pages/student/PaymentQR').then(module => ({ default: module.PaymentQR })));
 const LandingPage = React.lazy(() => import('./pages/public/Landing').then(module => ({ default: module.LandingPage })));
 const PublicCourses = React.lazy(() => import('./pages/public/PublicCourses').then(module => ({ default: module.PublicCourses })));
 
@@ -64,6 +66,7 @@ function App() {
         <ThemeSettingsProvider>
          <AppSettingsProvider>
          <DashboardConfigProvider>
+          <CartProvider>
           <PageTracker />
           <Toaster richColors position="top-right" />
           <Suspense fallback={<Loading fullScreen />}>
@@ -120,6 +123,7 @@ function App() {
               <Route index element={<StudentHome />} />
               <Route path="assignments" element={<StudentAssignments />} />
               <Route path="courses" element={<StudentCourses />} />
+              <Route path="payment" element={<PaymentQR />} />
               <Route path="settings" element={<StudentSettings />} />
               <Route path="profile" element={<StudentProfile />} />
             </Route>
@@ -128,6 +132,7 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
+          </CartProvider>
          </DashboardConfigProvider>
          </AppSettingsProvider>
         </ThemeSettingsProvider>

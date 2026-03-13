@@ -7,14 +7,26 @@ import { Course, courseService } from "../../services/course.service";
 export const MenuSection = () => {
   const [courses, setCourses] = useState<Course[]>([]);
 
+  const [hasEnoughSales, setHasEnoughSales] = useState(false);
+
   useEffect(() => {
       courseService.getActiveCourses().then(data => {
-          // Show only top 4 for landing page
-          setCourses(data.slice(0, 4));
+          // Sort by enrollmentCount (descending) to find top courses
+          const sorted = data.sort((a, b) => (b.enrollmentCount || 0) - (a.enrollmentCount || 0));
+
+          // Check if at least 4 courses have been sold (enrollmentCount > 0)
+          const coursesWithSales = sorted.filter(c => (c.enrollmentCount || 0) > 0);
+
+          if (coursesWithSales.length >= 4) {
+              setHasEnoughSales(true);
+              setCourses(sorted.slice(0, 4));
+          } else {
+              setHasEnoughSales(false);
+          }
       });
   }, []);
 
-  if (courses.length === 0) return null;
+  if (!hasEnoughSales || courses.length === 0) return null;
 
   return (
     <section className="bg-muted/10 py-20 md:py-32" id="courses">

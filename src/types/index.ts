@@ -51,6 +51,7 @@ export interface Assignment {
   embedUrl: string; // Renamed from embedCode
   coverImageUrl?: string; // New
   teacherId: string; // Renamed from createdByTeacherId
+  creatorName?: string; // Optional field for displaying the creator name without a lookup
   gradeLevel: number; // Changed from targetGrade (string) to number
   createdAt: Timestamp;
   updatedAt: Timestamp;

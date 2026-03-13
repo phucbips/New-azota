@@ -5,11 +5,14 @@ import Footer from '../../components/Footer';
 import { BookOpen, Tag, ShoppingCart, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useCart } from '../../contexts/CartContext';
+import { toast } from 'sonner';
 
 export const PublicCourses: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { addToCart } = useCart();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,7 +22,9 @@ export const PublicCourses: React.FC = () => {
       });
   }, []);
 
-  const handlePurchaseClick = () => {
+  const handlePurchaseClick = (course: Course) => {
+      addToCart(course);
+      toast.success("Đã thêm vào giỏ hàng");
       if (user) {
           navigate('/student/courses');
       } else {
@@ -66,11 +71,11 @@ export const PublicCourses: React.FC = () => {
 
                                 <div className="mt-6">
                                     <button
-                                        onClick={handlePurchaseClick}
+                                        onClick={() => handlePurchaseClick(course)}
                                         className="w-full py-3.5 bg-background border-2 border-primary text-primary hover:bg-primary hover:text-white rounded-xl font-bold transition-all shadow-sm flex items-center justify-center gap-2"
                                     >
                                         <ShoppingCart className="w-5 h-5" />
-                                        Mua Khóa Học
+                                        {course.price === 0 ? 'Vào học ngay' : 'Thêm vào giỏ'}
                                     </button>
                                 </div>
                             </div>

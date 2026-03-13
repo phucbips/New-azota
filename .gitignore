@@ -69,3 +69,4 @@ node_modules/
 .dataconnect
 dist/
 extracted_zip
+reference_project/

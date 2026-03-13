@@ -88,7 +88,11 @@ export const AdminOrders: React.FC = () => {
                               <div>
                                   <div className="flex items-center gap-2">
                                       <h3 className="font-bold text-foreground">{order.orderCode}</h3>
-                                      <StatusBadge status={order.status === 'paid' ? 'Active' : order.status === 'cancelled' ? 'Inactive' : 'Pending'} />
+                                      {order.status === 'pay_later' ? (
+                                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800">Trả sau</span>
+                                      ) : (
+                                          <StatusBadge status={order.status === 'paid' ? 'Active' : order.status === 'cancelled' ? 'Inactive' : 'Pending'} />
+                                      )}
                                   </div>
                                   <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{order.courseTitle}</p>
                               </div>
@@ -145,23 +149,31 @@ export const AdminOrders: React.FC = () => {
                                                       </span>
                                                   </div>
 
-                                                  {isPending && (
-                                                      <div className="flex gap-2 pt-4 border-t border-border">
+                                                  {(isPending || order.status === 'pay_later') && (
+                                                      <div className="flex flex-col gap-2 pt-4 border-t border-border">
                                                           <button
                                                             onClick={() => handleUpdateStatus(order.id, 'paid')}
-                                                            className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm"
+                                                            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm"
                                                           >
                                                               Duyệt (Đã thu tiền)
                                                           </button>
+                                                          {isPending && order.paymentMethod === 'cash' && (
+                                                              <button
+                                                                onClick={() => handleUpdateStatus(order.id, 'pay_later')}
+                                                                className="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm"
+                                                              >
+                                                                  Duyệt (Ghi nợ / Trả sau)
+                                                              </button>
+                                                          )}
                                                           <button
                                                             onClick={() => handleUpdateStatus(order.id, 'cancelled')}
-                                                            className="flex-1 bg-muted hover:bg-red-50 text-red-600 border border-input hover:border-red-200 py-2.5 rounded-lg text-sm font-bold transition-colors"
+                                                            className="w-full bg-muted hover:bg-red-50 text-red-600 border border-input hover:border-red-200 py-2.5 rounded-lg text-sm font-bold transition-colors"
                                                           >
                                                               Hủy đơn
                                                           </button>
                                                       </div>
                                                   )}
-                                                  {!isPending && (
+                                                  {!isPending && order.status !== 'pay_later' && (
                                                       <div className="pt-2 text-center text-sm font-medium text-muted-foreground">
                                                           Đơn hàng này đã đóng ({order.status}).
                                                       </div>
