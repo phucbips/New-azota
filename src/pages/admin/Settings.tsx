@@ -399,20 +399,6 @@ export const AdminSettings: React.FC = () => {
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-foreground mb-1">
-                            Webhook URL
-                        </label>
-                        <input
-                            type="url"
-                            value={formData.integrations.payosWebhookUrl || ''}
-                            onChange={(e) => handleChange('integrations', 'payosWebhookUrl', e.target.value)}
-                            className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-input bg-background text-foreground font-mono text-sm"
-                            placeholder="https://your-domain.com/api/webhook"
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">Dùng để cấu hình trên trang quản trị PayOS.</p>
-                    </div>
-
                 </div>
             </div>
 
