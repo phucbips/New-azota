@@ -97,15 +97,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     paidAt: admin.firestore.FieldValue.serverTimestamp()
                 });
 
-                // Update course enrollments
+                // Update course enrollments & user access
                 if (orderData.items && Array.isArray(orderData.items)) {
+                    const courseIds: string[] = [];
                     for (const item of orderData.items) {
+                        courseIds.push(item.courseId);
                         const cRef = db.collection('courses').doc(item.courseId);
                         await db.runTransaction(async (t) => {
                             const cDoc = await t.get(cRef);
                             if (cDoc.exists) {
                                 t.update(cRef, { enrollmentCount: admin.firestore.FieldValue.increment(1) });
                             }
+                        });
+                    }
+
+                    // Automatically add the courses to the user's enrolledCourses array
+                    if (orderData.userId && courseIds.length > 0) {
+                        const userRef = db.collection('users').doc(orderData.userId);
+                        await userRef.update({
+                            enrolledCourses: admin.firestore.FieldValue.arrayUnion(...courseIds)
                         });
                     }
                 }

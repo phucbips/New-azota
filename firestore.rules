@@ -135,7 +135,7 @@ service cloud.firestore {
     // --- COLLECTION: AUDIT LOGS ---
     match /audit_logs/{logId} {
       allow read: if request.auth != null && isAdmin();
-      allow create: if request.auth != null; // allow any authenticated user to create a log (e.g. login, register)
+      allow create: if request.auth != null && isAdmin(); // Only admins can write audit logs
       allow update, delete: if false; // Logs should be immutable
     }
   }
