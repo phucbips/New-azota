@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { assignmentService } from '../../services/assignment.service';
+import { Course, courseService } from '../../services/course.service';
 import { Assignment } from '../../types';
 import { BookOpen, ChevronRight, AlertCircle, Clock, ArrowLeft } from 'lucide-react';
 import { formatDate, safeString } from '../../lib/formatters';
@@ -13,27 +14,49 @@ export const StudentAssignments: React.FC = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const searchQuery = (searchParams.get('q') || '').toLowerCase();
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [allAssignments, setAllAssignments] = useState<Assignment[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
-  const [isFetching, setIsFetching] = useState(true);
+  const [isFetchingAssignments, setIsFetchingAssignments] = useState(true);
+  const [isFetchingCourses, setIsFetchingCourses] = useState(true);
 
   // Filter States
   const [selectedSubject, setSelectedSubject] = useState('All');
 
   useEffect(() => {
-    // Only fetch if user has a grade
-    if (!user || !user.grade || !user.isWhitelisted) return;
-
-    // The service now expects a number for gradeLevel, but user.grade is string '10', '11', '12'
-    const gradeNum = parseInt(user.grade, 10);
-    if (isNaN(gradeNum)) return;
-
-    const unsubscribe = assignmentService.subscribeToGradeAssignments(gradeNum, (data) => {
-      setAssignments(data);
-      setIsFetching(false);
+    if (!user) return;
+    const unsubCourses = courseService.subscribeToCourses((data) => {
+        setCourses(data);
+        setIsFetchingCourses(false);
     });
-    return () => unsubscribe();
+    return () => unsubCourses();
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const unsubAssignments = assignmentService.subscribeToAllAssignments((data) => {
+        setAllAssignments(data);
+        setIsFetchingAssignments(false);
+    });
+    return () => unsubAssignments();
+  }, [user]);
+
+  const isLoading = isFetchingAssignments || isFetchingCourses;
+
+  const assignments = useMemo(() => {
+      if (!user) return [];
+      const enrolledCourseIds = user.enrolledCourses || [];
+      const activeEnrolledCourses = courses.filter(c => enrolledCourseIds.includes(c.id));
+
+      const allowedAssignmentIds = new Set<string>();
+      activeEnrolledCourses.forEach(c => {
+          if (c.assignmentIds) {
+              c.assignmentIds.forEach(id => allowedAssignmentIds.add(id));
+          }
+      });
+
+      return allAssignments.filter(a => a.id && allowedAssignmentIds.has(a.id));
+  }, [user, courses, allAssignments]);
 
   // Extract unique subjects
   const availableSubjects = useMemo(() => {
@@ -226,7 +249,7 @@ export const StudentAssignments: React.FC = () => {
             />
         </div>
 
-        {isFetching ? (
+        {isLoading ? (
             <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
                 <Skeleton className="h-6 w-1/3" />
                 <Skeleton className="h-40 w-full" />

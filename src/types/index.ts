@@ -12,9 +12,9 @@ export interface User {
   isWhitelisted: boolean;
   sessionId: string;
   joinedAt: Timestamp;
-  isActive?: boolean;
   lastDevice?: string;
   lastLoginAt?: Timestamp; // New field for detailed last login tracking
+  enrolledCourses?: string[]; // IDs of courses the user has access to
   deviceHistory?: {
     device: string;
     timestamp: Timestamp;

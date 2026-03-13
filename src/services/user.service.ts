@@ -56,7 +56,7 @@ class UserService {
         isWhitelisted: true, // Auto whitelist invited users
         sessionId: '',
         joinedAt: Timestamp.now(),
-        isActive: true,
+        enrolledCourses: [],
     };
 
     await setDoc(newDocRef, {
@@ -116,7 +116,7 @@ class UserService {
 
     // Only log significant admin updates (e.g. role change), avoid logging self-updates (lastLogin) if possible
     // Checking if current user is admin and different from target or if critical fields changed
-    const sensitiveFields = ['role', 'isWhitelisted', 'grade'];
+    const sensitiveFields = ['role', 'isWhitelisted', 'grade', 'enrolledCourses'];
     const hasSensitiveUpdate = sensitiveFields.some(field => Object.keys(updates).includes(field));
 
     if (this.currentAdmin && hasSensitiveUpdate) {

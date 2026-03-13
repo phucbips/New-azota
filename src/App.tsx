@@ -76,6 +76,7 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/courses" element={<PublicCourses />} />
             <Route path="/login" element={<LoginWrapper />} />
+            <Route path="/register" element={<LoginWrapper />} />
 
             {/* Admin Route Group */}
             <Route
