@@ -30,10 +30,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
 
         // This verifies the signature and throws an error if invalid
-        const webhookData = payOS.webhooks.verify(req.body);
+        // In v2, webhooks.verify() returns the inner `WebhookData` object directly.
+        // It throws an error if the signature is invalid.
+        const webhookData = await payOS.webhooks.verify(req.body);
 
-        if (webhookData && webhookData.code === '00' && webhookData.success) {
-            const orderCode = webhookData.data.orderCode;
+        if (webhookData && webhookData.code === '00') {
+            const orderCode = webhookData.orderCode;
             const db = admin.firestore();
 
             // Search order by orderCode (number or string)
