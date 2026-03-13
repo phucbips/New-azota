@@ -74,9 +74,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ success: true });
     } catch (error: any) {
         console.error('PayOS Webhook Error:', error);
-        if (error.message && error.message.includes('signature')) {
-            return res.status(400).json({ error: 'Invalid signature' });
+
+        // Handle webhook validation/verification specific errors gracefully
+        if (error.name === 'WebhookError' || error.message?.includes('integrity') || error.message?.includes('signature') || error.message?.includes('Invalid')) {
+            return res.status(400).json({ error: 'Invalid signature or data' });
         }
-        return res.status(500).json({ error: 'Internal Server Error' });
+
+        return res.status(500).json({ error: 'Internal Server Error', message: error.message });
     }
 }
