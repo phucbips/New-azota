@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { assignmentService } from '../../services/assignment.service';
 import { Course, courseService } from '../../services/course.service';
