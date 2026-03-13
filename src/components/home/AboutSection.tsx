@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { CheckCircle2, MonitorPlay, Target, Users2 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export const AboutSection = () => {
   const features = [
@@ -103,9 +104,9 @@ export const AboutSection = () => {
             </div>
 
             <div className="pt-4">
-              <button className="rounded-full bg-primary px-8 py-4 text-sm font-bold text-primary-foreground shadow-lg transition-transform hover:-translate-y-1 hover:shadow-xl">
+              <Link to="/student/courses" className="inline-block rounded-full bg-primary px-8 py-4 text-sm font-bold text-primary-foreground shadow-lg transition-transform hover:-translate-y-1 hover:shadow-xl">
                 Tìm hiểu thêm
-              </button>
+              </Link>
             </div>
           </motion.div>
         </div>

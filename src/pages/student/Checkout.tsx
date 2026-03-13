@@ -63,40 +63,35 @@ export const Checkout: React.FC = () => {
       if (!user) return;
       setLoading(true);
       try {
-          // Send request to secure checkout backend
-          const response = await fetch('/api/checkout', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                  userId: user.uid,
-                  userEmail: user.email,
-                  userName: user.displayName || 'Student',
-                  items: cartItems.map(c => ({ courseId: c.id })), // Only send ID, backend verifies price
-                  paymentMethod: paymentMethod,
-                  voucherCode: appliedVoucherId ? voucher : null
-              })
+          const items = cartItems.map(c => ({ courseId: c.id, courseTitle: c.title, price: c.price }));
+
+          const orderId = await orderService.createOrder({
+              userId: user.uid,
+              userEmail: user.email,
+              userName: user.displayName || 'Student',
+              items: items,
+              originalAmount: totalPrice,
+              discount: discount,
+              voucherCode: appliedVoucherId ? voucher : undefined,
+              amount: finalPrice,
+              status: finalPrice === 0 ? 'paid' : 'pending',
+              paymentMethod: paymentMethod,
           });
 
-          if (!response.ok) {
-              const errData = await response.json();
-              throw new Error(errData.message || 'Lỗi server');
+          if (appliedVoucherId) {
+              await voucherService.incrementUsage(appliedVoucherId);
           }
 
-          const result = await response.json();
-
-          // Handle free checkout directly
-          if (result.finalPrice === 0 || result.status === 'paid') {
+          if (finalPrice === 0) {
                clearCart();
-               toast.success("Đăng ký khóa học thành công!");
+               toast.success("Nhận khóa học miễn phí thành công!");
                navigate('/student/courses');
                return;
           }
 
           clearCart();
           if (paymentMethod === 'bank_transfer') {
-              navigate(`/student/payment?orderId=${result.orderId}`);
+              navigate(`/student/payment?orderId=${orderId}`);
           } else {
               toast.success("Đã ghi nhận yêu cầu. Admin sẽ duyệt sau khi nhận tiền mặt.");
               navigate('/student/courses');
@@ -113,7 +108,7 @@ export const Checkout: React.FC = () => {
       return (
           <div className="max-w-4xl mx-auto py-20 text-center">
               <h2 className="text-2xl font-bold mb-4">Giỏ hàng trống</h2>
-              <button onClick={() => navigate('/courses')} className="px-6 py-2 bg-primary text-white rounded-xl">Khám phá khóa học</button>
+              <button onClick={() => navigate('/student/courses')} className="px-6 py-2 bg-primary text-white rounded-xl">Khám phá khóa học</button>
           </div>
       );
   }
