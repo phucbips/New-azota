@@ -4,7 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { assignmentService } from '../../services/assignment.service';
 import { Course, courseService } from '../../services/course.service';
 import { Assignment } from '../../types';
-import { BookOpen, ChevronRight, AlertCircle, Clock, ArrowLeft } from 'lucide-react';
+import { BookOpen, ChevronRight, AlertCircle, Clock, ArrowLeft, Maximize, Minimize } from 'lucide-react';
 import { formatDate, safeString } from '../../lib/formatters';
 import { SubjectFilterBar } from '../../components/student/SubjectFilterBar';
 import { StudentSupportWidget } from '../../components/student/StudentSupportWidget';
@@ -22,6 +22,7 @@ export const StudentAssignments: React.FC = () => {
 
   // Filter States
   const [selectedSubject, setSelectedSubject] = useState('All');
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     if (!user || !user.isWhitelisted) {
@@ -142,6 +143,26 @@ export const StudentAssignments: React.FC = () => {
     const targetGrade = String(selectedAssignment.gradeLevel);
     const subjectTitle = safeString(selectedAssignment.subject || 'Chung');
 
+    if (isFullscreen && selectedAssignment.type === 'native_code') {
+        return (
+            <div className="fixed inset-0 z-[100] bg-white flex flex-col overflow-auto animate-in fade-in duration-200">
+                <div className="sticky top-0 right-0 w-full flex justify-end p-4 pointer-events-none z-10">
+                    <button
+                        onClick={() => setIsFullscreen(false)}
+                        className="bg-slate-900/80 hover:bg-slate-900 text-white p-3 rounded-full shadow-lg backdrop-blur-sm transition-all pointer-events-auto flex items-center gap-2 font-medium"
+                    >
+                        <Minimize className="w-5 h-5" />
+                        Thu nhỏ
+                    </button>
+                </div>
+                <div
+                    className="flex-1 w-full max-w-5xl mx-auto p-4 md:p-8"
+                    dangerouslySetInnerHTML={{ __html: selectedAssignment.embedUrl }}
+                />
+            </div>
+        );
+    }
+
     return (
       <>
         <button
@@ -158,20 +179,28 @@ export const StudentAssignments: React.FC = () => {
             </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 min-h-[600px] flex flex-col">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 min-h-[600px] flex flex-col relative group">
            {description && description !== topic && (
-               <div className="mb-6">
+               <div className="mb-6 pr-12">
                    <p className="text-slate-600 leading-relaxed">{description}</p>
                </div>
            )}
 
-           <div className="flex-1 w-full bg-slate-50 rounded-lg border border-slate-200 relative overflow-hidden">
+           {selectedAssignment.type === 'native_code' && (
+               <button
+                   onClick={() => setIsFullscreen(true)}
+                   className="absolute top-6 right-6 p-2 bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 rounded-lg transition-colors border border-slate-200 shadow-sm z-10"
+                   title="Phóng to (Mở toàn màn hình)"
+               >
+                   <Maximize className="w-5 h-5" />
+               </button>
+           )}
+
+           <div className={`flex-1 w-full relative overflow-hidden ${selectedAssignment.type !== 'native_code' ? 'bg-slate-50 rounded-lg border border-slate-200' : ''}`}>
               {selectedAssignment.type === 'native_code' ? (
-                  <iframe
-                      srcDoc={selectedAssignment.embedUrl}
-                      className="w-full h-full border-none absolute inset-0"
-                      title={title}
-                      sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin"
+                  <div
+                      className="w-full h-full text-foreground"
+                      dangerouslySetInnerHTML={{ __html: selectedAssignment.embedUrl }}
                   />
               ) : selectedAssignment.type === 'video' ? (
                   <div className="w-full h-full flex items-center justify-center bg-black absolute inset-0">
