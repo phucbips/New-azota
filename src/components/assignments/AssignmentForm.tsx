@@ -8,12 +8,23 @@ import { SubjectSelector } from './SubjectSelector';
 import { Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 
+const extractIframeSrc = (input: string) => {
+  // Check if input looks like an iframe tag
+  if (input.trim().toLowerCase().startsWith('<iframe') && input.includes('src=')) {
+      const match = input.match(/src=["']([^"']+)["']/);
+      if (match && match[1]) {
+          return match[1];
+      }
+  }
+  return input.trim();
+};
+
 const assignmentSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   subject: z.string().min(1, "Subject is required"),
   topic: z.string().min(2, "Topic is required"),
   gradeLevel: z.coerce.number().min(10).max(12),
-  embedUrl: z.string().url("Must be a valid URL"),
+  embedUrl: z.string().transform(extractIframeSrc).pipe(z.string().url("Must be a valid URL hoặc Iframe")),
   coverImageUrl: z.string().optional(),
 });
 
@@ -110,11 +121,11 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
 
         {/* Embed URL */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-bold text-slate-700">Embed URL (Azota, Quizlet...) <span className="text-red-500">*</span></label>
+          <label className="text-sm font-bold text-slate-700">Embed URL (hoặc Mã nhúng Iframe) <span className="text-red-500">*</span></label>
           <input
             {...register('embedUrl')}
             className="w-full h-11 px-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
-            placeholder="https://..."
+            placeholder="Dán link Azota, Youtube hoặc mã <iframe> vào đây..."
           />
           {errors.embedUrl && <span className="text-xs text-red-500">{errors.embedUrl.message}</span>}
         </div>
