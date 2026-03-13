@@ -111,6 +111,7 @@ export const StudentAssignments: React.FC = () => {
     const topic = safeString(selectedAssignment.topic);
     const description = safeString(selectedAssignment.description || selectedAssignment.topic);
     const targetGrade = String(selectedAssignment.gradeLevel);
+    const subjectTitle = safeString(selectedAssignment.subject || 'Chung');
 
     // If it's native code, we want to render it as fully and natively as possible.
     if (selectedAssignment.type === 'native_code') {
@@ -123,12 +124,8 @@ export const StudentAssignments: React.FC = () => {
                             className="mr-2 flex items-center gap-2 text-muted-foreground hover:text-foreground font-medium transition-colors text-sm"
                         >
                            <ArrowLeft className="w-4 h-4" />
-                           Back to Assignments
+                           Back to Assignments {subjectTitle} Grade {targetGrade} • {topic}
                         </button>
-                        <div className="border-l border-border pl-4">
-                            <h1 className="font-bold text-foreground leading-tight">{safeString(selectedAssignment.subject || 'Chung')}</h1>
-                            <p className="text-xs text-muted-foreground mt-0.5">Grade {targetGrade} • {topic}</p>
-                        </div>
                     </div>
                 </div>
                 <div className="flex-1 w-full bg-background relative">
@@ -150,13 +147,12 @@ export const StudentAssignments: React.FC = () => {
           className="mb-4 flex items-center gap-2 text-slate-600 hover:text-blue-600 font-medium transition-colors"
         >
            <ArrowLeft className="w-4 h-4" />
-           Back to Assignments
+           Back to Assignments {subjectTitle} Grade {targetGrade} • {topic}
         </button>
 
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
             <div>
                 <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{title}</h1>
-                <p className="text-slate-500 mt-2">Grade {targetGrade} • {topic}</p>
             </div>
         </div>
 

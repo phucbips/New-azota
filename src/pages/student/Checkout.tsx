@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { orderService } from '../../services/order.service';
 import { courseService } from '../../services/course.service';
+import { voucherService } from '../../services/voucher.service';
 import { BookOpen, CreditCard, Banknote, Tag, Loader2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -14,20 +15,45 @@ export const Checkout: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<'bank_transfer' | 'cash'>('bank_transfer');
   const [voucher, setVoucher] = useState('');
   const [discount, setDiscount] = useState(0);
+  const [appliedVoucherId, setAppliedVoucherId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const applyVoucher = () => {
-      // Mock voucher logic
-      if (voucher.toUpperCase() === 'NOVA20') {
-          setDiscount(totalPrice * 0.2);
-          toast.success("Áp dụng mã giảm giá 20% thành công!");
-      } else if (voucher.toUpperCase() === 'FREESHIP') {
-          // just an example
-          setDiscount(15000);
-          toast.success("Giảm giá 15K");
-      } else {
-          toast.error("Mã giảm giá không hợp lệ");
-          setDiscount(0);
+  const applyVoucher = async () => {
+      if (!voucher) return;
+      try {
+        const v = await voucherService.getVoucherByCode(voucher);
+        if (!v) {
+            toast.error("Mã giảm giá không hợp lệ hoặc đã hết hạn");
+            setDiscount(0);
+            setAppliedVoucherId(null);
+            return;
+        }
+
+        if (v.minOrderValue && totalPrice < v.minOrderValue) {
+            toast.error(`Đơn hàng tối thiểu để áp dụng mã này là ${new Intl.NumberFormat('vi-VN').format(v.minOrderValue)}đ`);
+            return;
+        }
+
+        if (v.usageLimit && v.usageCount >= v.usageLimit) {
+            toast.error("Mã giảm giá đã hết lượt sử dụng");
+            return;
+        }
+
+        let calculatedDiscount = 0;
+        if (v.type === 'percent') {
+            calculatedDiscount = (totalPrice * v.value) / 100;
+            if (v.maxDiscount) {
+                calculatedDiscount = Math.min(calculatedDiscount, v.maxDiscount);
+            }
+        } else {
+            calculatedDiscount = v.value;
+        }
+
+        setDiscount(calculatedDiscount);
+        setAppliedVoucherId(v.id);
+        toast.success(`Áp dụng mã thành công! Giảm ${new Intl.NumberFormat('vi-VN').format(calculatedDiscount)}đ`);
+      } catch (e) {
+        toast.error("Lỗi khi áp dụng mã giảm giá");
       }
   };
 
@@ -37,43 +63,47 @@ export const Checkout: React.FC = () => {
       if (!user) return;
       setLoading(true);
       try {
-          const items = cartItems.map(c => ({ courseId: c.id, courseTitle: c.title, price: c.price }));
-
-          const orderId = await orderService.createOrder({
-              userId: user.uid,
-              userEmail: user.email,
-              userName: user.displayName || 'Student',
-              items: items,
-              originalAmount: totalPrice,
-              discount: discount,
-              voucherCode: discount > 0 ? voucher : undefined,
-              amount: finalPrice,
-              status: finalPrice === 0 ? 'paid' : 'pending',
-              paymentMethod: paymentMethod,
+          // Send request to secure checkout backend
+          const response = await fetch('/api/checkout', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                  userId: user.uid,
+                  userEmail: user.email,
+                  userName: user.displayName || 'Student',
+                  items: cartItems.map(c => ({ courseId: c.id })), // Only send ID, backend verifies price
+                  paymentMethod: paymentMethod,
+                  voucherCode: appliedVoucherId ? voucher : null
+              })
           });
 
+          if (!response.ok) {
+              const errData = await response.json();
+              throw new Error(errData.message || 'Lỗi server');
+          }
+
+          const result = await response.json();
+
           // Handle free checkout directly
-          if (finalPrice === 0) {
-               // Update enrollments (simulate)
-               await Promise.all(items.map(item => courseService.updateCourse(item.courseId, {
-                   enrollmentCount: 1 // In reality, we increment securely in cloud func
-               })));
+          if (result.finalPrice === 0 || result.status === 'paid') {
                clearCart();
-               toast.success("Nhận khóa học miễn phí thành công!");
+               toast.success("Đăng ký khóa học thành công!");
                navigate('/student/courses');
                return;
           }
 
           clearCart();
           if (paymentMethod === 'bank_transfer') {
-              navigate(`/student/payment?orderId=${orderId}`);
+              navigate(`/student/payment?orderId=${result.orderId}`);
           } else {
               toast.success("Đã ghi nhận yêu cầu. Admin sẽ duyệt sau khi nhận tiền mặt.");
               navigate('/student/courses');
           }
-      } catch (e) {
+      } catch (e: any) {
           console.error(e);
-          toast.error("Lỗi tạo đơn hàng.");
+          toast.error(`Lỗi tạo đơn hàng: ${e.message}`);
       } finally {
           setLoading(false);
       }
