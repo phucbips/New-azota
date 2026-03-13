@@ -80,7 +80,8 @@ export const TeacherAssignments: React.FC = () => {
               await assignmentService.createAssignment({
                   ...data,
                   gradeLevel: Number(data.gradeLevel),
-                  teacherId: user!.uid
+                  teacherId: user!.uid,
+                  creatorName: user!.displayName || user!.email
               });
               toast.success('Assignment created');
           }

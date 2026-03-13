@@ -112,6 +112,37 @@ export const StudentAssignments: React.FC = () => {
     const description = safeString(selectedAssignment.description || selectedAssignment.topic);
     const targetGrade = String(selectedAssignment.gradeLevel);
 
+    // If it's native code, we want to render it as fully and natively as possible.
+    if (selectedAssignment.type === 'native_code') {
+        return (
+            <div className="fixed inset-0 z-[100] bg-background flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
+                <div className="h-14 border-b border-border bg-card flex items-center justify-between px-4 shrink-0 shadow-sm z-10">
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setSelectedAssignment(null)}
+                            className="mr-2 flex items-center gap-2 text-muted-foreground hover:text-foreground font-medium transition-colors text-sm"
+                        >
+                           <ArrowLeft className="w-4 h-4" />
+                           Back to Assignments
+                        </button>
+                        <div className="border-l border-border pl-4">
+                            <h1 className="font-bold text-foreground leading-tight">{safeString(selectedAssignment.subject || 'Chung')}</h1>
+                            <p className="text-xs text-muted-foreground mt-0.5">Grade {targetGrade} • {topic}</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="flex-1 w-full bg-background relative">
+                    <iframe
+                        srcDoc={selectedAssignment.embedUrl}
+                        className="w-full h-full border-none absolute inset-0"
+                        title={title}
+                        sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin"
+                    />
+                </div>
+            </div>
+        );
+    }
+
     return (
       <>
         <button
@@ -137,7 +168,17 @@ export const StudentAssignments: React.FC = () => {
            )}
 
            <div className="flex-1 w-full bg-slate-50 rounded-lg border border-slate-200 relative overflow-hidden">
-              {embed.startsWith('<iframe') ? (
+              {selectedAssignment.type === 'video' ? (
+                  <div className="w-full h-full flex items-center justify-center bg-black">
+                      <iframe
+                          src={selectedAssignment.embedUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
+                          className="w-full h-full max-w-4xl max-h-[600px] aspect-video"
+                          title={title}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                      />
+                  </div>
+              ) : embed.startsWith('<iframe') ? (
                   <div dangerouslySetInnerHTML={{ __html: embed }} className="w-full h-full absolute inset-0 [&>iframe]:w-full [&>iframe]:h-full" />
               ) : (
                   <iframe
@@ -158,18 +199,6 @@ export const StudentAssignments: React.FC = () => {
   }
 
   // Handle Loading/Empty/Error States
-  if (!user?.isWhitelisted) {
-    return (
-        <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-           <div className="p-4 bg-yellow-100 rounded-full mb-4">
-             <AlertCircle className="w-8 h-8 text-yellow-600" />
-           </div>
-           <h2 className="text-xl font-bold text-slate-900 mb-2">Account Not Active</h2>
-           <p className="text-slate-500 max-w-md">Please contact the administrator to approve your access.</p>
-        </div>
-    );
-  }
-
   if (!user.grade) {
     return (
         <div className="flex flex-col items-center justify-center h-[60vh] text-center">
@@ -264,12 +293,15 @@ export const StudentAssignments: React.FC = () => {
             ))}
             </div>
         ) : (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-xl border border-slate-200 shadow-sm p-6">
                 <div className="bg-blue-50 rounded-full p-6 mb-6">
                     <BookOpen className="w-16 h-16 text-blue-600" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">No assignments found</h3>
-                <p className="text-slate-500 max-w-sm mx-auto">Try adjusting your search or check back later.</p>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">Bạn chưa có bài tập nào</h3>
+                <p className="text-slate-500 max-w-sm mx-auto mb-6">Hãy tham gia hoặc mua thêm khóa học để mở khóa bài tập mới nhé.</p>
+                <Link to="/student/courses" className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-md">
+                    Khám phá Khóa học
+                </Link>
             </div>
         )}
 

@@ -42,15 +42,19 @@ export interface Announcement {
   isActive: boolean;
 }
 
+export type AssignmentType = 'embed' | 'video' | 'native_code';
+
 export interface Assignment {
   id?: string;
   title: string;
   subject: string; // New: Subject (Math, etc.)
   topic: string; // Topic/Chapter
   description?: string; // Optional/Deprecated
-  embedUrl: string; // Renamed from embedCode
+  type?: AssignmentType; // Make optional for backward compatibility
+  embedUrl: string; // Renamed from embedCode (holds URL for embed/video, or default HTML for native_code)
   coverImageUrl?: string; // New
   teacherId: string; // Renamed from createdByTeacherId
+  creatorName?: string; // Optional field for displaying the creator name without a lookup
   gradeLevel: number; // Changed from targetGrade (string) to number
   createdAt: Timestamp;
   updatedAt: Timestamp;

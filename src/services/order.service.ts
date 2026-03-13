@@ -1,8 +1,14 @@
 import { collection, doc, getDocs, getDoc, setDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, onSnapshot, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
-export type OrderStatus = 'pending' | 'paid' | 'cancelled';
+export type OrderStatus = 'pending' | 'paid' | 'pay_later' | 'cancelled';
 export type PaymentMethod = 'bank_transfer' | 'cash';
+
+export interface OrderItem {
+  courseId: string;
+  courseTitle: string;
+  price: number;
+}
 
 export interface Order {
   id: string;
@@ -10,14 +16,19 @@ export interface Order {
   userId: string;
   userEmail: string;
   userName: string;
-  courseId: string;
-  courseTitle: string;
-  amount: number;
+  items: OrderItem[];
+  amount: number; // Final amount after discount
+  originalAmount?: number;
+  discount?: number;
+  voucherCode?: string;
   status: OrderStatus;
   paymentMethod: PaymentMethod;
   createdAt: Date | any;
   updatedAt: Date | any;
   notes?: string;
+  // Backward compatibility:
+  courseId?: string;
+  courseTitle?: string;
 }
 
 class OrderService {
@@ -49,6 +60,15 @@ class OrderService {
       status,
       updatedAt: serverTimestamp(),
     });
+  }
+
+  async getOrder(id: string): Promise<Order | null> {
+      const docRef = doc(db, 'orders', id);
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+          return { id: snap.id, ...snap.data() } as Order;
+      }
+      return null;
   }
 
   subscribeToOrders(callback: (orders: Order[]) => void): () => void {

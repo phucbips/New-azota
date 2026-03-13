@@ -81,7 +81,8 @@ export const AdminAssignments: React.FC = () => {
               await assignmentService.createAssignment({
                   ...data,
                   gradeLevel: Number(data.gradeLevel),
-                  teacherId: user.uid // Admin creating assignment
+                  teacherId: user.uid, // Admin creating assignment
+                  creatorName: user.displayName || user.email || 'Admin'
               });
               toast.success('Assignment created');
           }
@@ -171,8 +172,8 @@ export const AdminAssignments: React.FC = () => {
                                         Grade {assignment.gradeLevel}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4 text-slate-500 font-mono text-xs">
-                                    {(assignment.teacherId || 'unknown').slice(0, 8)}...
+                                <td className="px-6 py-4 text-slate-500 font-medium text-xs">
+                                    {assignment.creatorName || (assignment.teacherId || 'unknown').slice(0, 8) + '...'}
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                     <div className="flex justify-end gap-2">

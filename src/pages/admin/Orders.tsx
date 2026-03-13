@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader } from '../../components/ui/PageHeader';
-import { Order, orderService } from '../../services/order.service';
+import { Order, orderService, OrderStatus } from '../../services/order.service';
+import { courseService } from '../../services/course.service';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Search, ChevronDown, ChevronUp, Copy, CheckCircle, XCircle, CreditCard, Banknote, Calendar, Mail, User } from 'lucide-react';
 import { toast } from 'sonner';
@@ -21,10 +22,31 @@ export const AdminOrders: React.FC = () => {
     return () => unsub();
   }, []);
 
-  const handleUpdateStatus = async (id: string, status: 'paid' | 'cancelled') => {
+  const handleUpdateStatus = async (order: Order, newStatus: OrderStatus) => {
       try {
-          await orderService.updateOrderStatus(id, status);
-          toast.success(`Đã cập nhật trạng thái thành ${status === 'paid' ? 'Đã Thanh toán' : 'Đã Hủy'}`);
+          await orderService.updateOrderStatus(order.id, newStatus);
+
+          // Increment course enrollment count if moving to paid
+          if (newStatus === 'paid' && order.status !== 'paid') {
+              const items = order.items || [];
+              if (items.length === 0 && order.courseId) {
+                  items.push({ courseId: order.courseId, courseTitle: order.courseTitle || '', price: order.amount });
+              }
+
+              for (const item of items) {
+                  // This is a naive increment for demo. A real app uses Firestore increment() in the service
+                  const cInfo = await courseService.getCourses();
+                  const target = cInfo.find(c => c.id === item.courseId);
+                  if (target) {
+                      await courseService.updateCourse(target.id, {
+                          enrollmentCount: (target.enrollmentCount || 0) + 1
+                      });
+                  }
+              }
+          }
+
+          toast.success(`Đã cập nhật trạng thái thành ${newStatus === 'paid' ? 'Đã Thanh toán' : newStatus === 'cancelled' ? 'Đã Hủy' : 'Ghi nợ'}`);
+          setExpandedId(null);
       } catch (e) {
           toast.error('Lỗi khi cập nhật trạng thái');
       }
@@ -88,9 +110,15 @@ export const AdminOrders: React.FC = () => {
                               <div>
                                   <div className="flex items-center gap-2">
                                       <h3 className="font-bold text-foreground">{order.orderCode}</h3>
-                                      <StatusBadge status={order.status === 'paid' ? 'Active' : order.status === 'cancelled' ? 'Inactive' : 'Pending'} />
+                                      {order.status === 'pay_later' ? (
+                                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800">Trả sau</span>
+                                      ) : (
+                                          <StatusBadge status={order.status === 'paid' ? 'Active' : order.status === 'cancelled' ? 'Inactive' : 'Pending'} />
+                                      )}
                                   </div>
-                                  <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{order.courseTitle}</p>
+                                  <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
+                                      {order.items?.length ? `${order.items.length} khóa học: ${order.items.map(i => i.courseTitle).join(', ')}` : order.courseTitle}
+                                  </p>
                               </div>
                           </div>
 
@@ -145,23 +173,31 @@ export const AdminOrders: React.FC = () => {
                                                       </span>
                                                   </div>
 
-                                                  {isPending && (
-                                                      <div className="flex gap-2 pt-4 border-t border-border">
+                                                  {(isPending || order.status === 'pay_later') && (
+                                                      <div className="flex flex-col gap-2 pt-4 border-t border-border">
                                                           <button
-                                                            onClick={() => handleUpdateStatus(order.id, 'paid')}
-                                                            className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm"
+                                                            onClick={() => handleUpdateStatus(order, 'paid')}
+                                                            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm"
                                                           >
                                                               Duyệt (Đã thu tiền)
                                                           </button>
+                                                          {isPending && order.paymentMethod === 'cash' && (
+                                                              <button
+                                                                onClick={() => handleUpdateStatus(order, 'pay_later')}
+                                                                className="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm"
+                                                              >
+                                                                  Duyệt (Ghi nợ / Trả sau)
+                                                              </button>
+                                                          )}
                                                           <button
-                                                            onClick={() => handleUpdateStatus(order.id, 'cancelled')}
-                                                            className="flex-1 bg-muted hover:bg-red-50 text-red-600 border border-input hover:border-red-200 py-2.5 rounded-lg text-sm font-bold transition-colors"
+                                                            onClick={() => handleUpdateStatus(order, 'cancelled')}
+                                                            className="w-full bg-muted hover:bg-red-50 text-red-600 border border-input hover:border-red-200 py-2.5 rounded-lg text-sm font-bold transition-colors"
                                                           >
                                                               Hủy đơn
                                                           </button>
                                                       </div>
                                                   )}
-                                                  {!isPending && (
+                                                  {!isPending && order.status !== 'pay_later' && (
                                                       <div className="pt-2 text-center text-sm font-medium text-muted-foreground">
                                                           Đơn hàng này đã đóng ({order.status}).
                                                       </div>

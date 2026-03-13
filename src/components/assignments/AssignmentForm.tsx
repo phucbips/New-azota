@@ -8,12 +8,24 @@ import { SubjectSelector } from './SubjectSelector';
 import { Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 
+const extractIframeSrc = (input: string) => {
+  // Check if input looks like an iframe tag
+  if (input.trim().toLowerCase().startsWith('<iframe') && input.includes('src=')) {
+      const match = input.match(/src=["']([^"']+)["']/);
+      if (match && match[1]) {
+          return match[1];
+      }
+  }
+  return input.trim();
+};
+
 const assignmentSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   subject: z.string().min(1, "Subject is required"),
   topic: z.string().min(2, "Topic is required"),
   gradeLevel: z.coerce.number().min(10).max(12),
-  embedUrl: z.string().url("Must be a valid URL"),
+  type: z.enum(['embed', 'video', 'native_code']).default('embed'),
+  embedUrl: z.string().transform(extractIframeSrc), // Removed strict URL validation to allow raw HTML/code when type is native_code
   coverImageUrl: z.string().optional(),
 });
 
@@ -45,12 +57,14 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
       subject: defaultValues?.subject || '',
       topic: defaultValues?.topic || '',
       gradeLevel: defaultValues?.gradeLevel || 10,
+      type: defaultValues?.type || 'embed',
       embedUrl: defaultValues?.embedUrl || '',
       coverImageUrl: defaultValues?.coverImageUrl || '',
     }
   });
 
   const subject = watch('subject');
+  const type = watch('type');
   const coverImageUrl = watch('coverImageUrl');
 
   const handleFormSubmit = async (data: AssignmentFormData) => {
@@ -94,30 +108,82 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
           {errors.topic && <span className="text-xs text-red-500">{errors.topic.message}</span>}
         </div>
 
-        {/* Grade Level */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-bold text-slate-700">Grade Level <span className="text-red-500">*</span></label>
-          <select
-            {...register('gradeLevel')}
-            className="w-full h-11 px-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm bg-white"
-          >
-            <option value="10">Grade 10</option>
-            <option value="11">Grade 11</option>
-            <option value="12">Grade 12</option>
-          </select>
-          {errors.gradeLevel && <span className="text-xs text-red-500">{errors.gradeLevel.message}</span>}
+        {/* Type & Grade Level */}
+        <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-bold text-slate-700">Grade Level <span className="text-red-500">*</span></label>
+              <select
+                {...register('gradeLevel')}
+                className="w-full h-11 px-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm bg-white"
+              >
+                <option value="10">Grade 10</option>
+                <option value="11">Grade 11</option>
+                <option value="12">Grade 12</option>
+              </select>
+              {errors.gradeLevel && <span className="text-xs text-red-500">{errors.gradeLevel.message}</span>}
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-bold text-slate-700">Loại bài học <span className="text-red-500">*</span></label>
+              <select
+                {...register('type')}
+                className="w-full h-11 px-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm bg-white"
+              >
+                <option value="embed">Bài tập (Azota, Quizlet...)</option>
+                <option value="video">Video (Youtube...)</option>
+                <option value="native_code">Thiết kế Trực tiếp (HTML/JS)</option>
+              </select>
+            </div>
         </div>
 
-        {/* Embed URL */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-bold text-slate-700">Embed URL (Azota, Quizlet...) <span className="text-red-500">*</span></label>
-          <input
-            {...register('embedUrl')}
-            className="w-full h-11 px-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
-            placeholder="https://..."
-          />
-          {errors.embedUrl && <span className="text-xs text-red-500">{errors.embedUrl.message}</span>}
-        </div>
+        {/* Content Input (Depends on type) */}
+        {type === 'native_code' ? (
+            <div className="flex flex-col gap-3">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+                  <p className="font-bold mb-1">Tạo bài tập tự động (HTML/JS Native):</p>
+                  <p>Bạn có thể dán mã HTML/CSS/JS thuần túy của mình vào ô bên dưới. Hệ thống sẽ tự động hiển thị nó dưới dạng một ứng dụng web thu nhỏ trong bài học của học viên.</p>
+                  <p className="mt-2 text-xs opacity-80">Gợi ý: Dùng prompt "Trợ lý Trích xuất Đề thi Azota" với AI để chuyển đổi ảnh đề thi thành mảng text, sau đó dán vào mã HTML mẫu để có ngay form trắc nghiệm tương tác!</p>
+              </div>
+
+              <div className="flex flex-col md:flex-row gap-4 h-[500px]">
+                  <div className="flex-1 flex flex-col gap-1.5 h-full">
+                      <div className="flex justify-between items-center">
+                          <label className="text-sm font-bold text-slate-700">Mã HTML/JS (Editor) <span className="text-red-500">*</span></label>
+                      </div>
+                      <textarea
+                        {...register('embedUrl')}
+                        className="flex-1 w-full p-4 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-mono bg-[#1e1e1e] text-[#d4d4d4] resize-none"
+                        placeholder="<!DOCTYPE html>\n<html lang='vi'>\n<head>\n  <meta charset='UTF-8'>\n  <title>Quiz</title>\n</head>\n<body>\n  <h1>Bài kiểm tra của bạn</h1>\n</body>\n</html>"
+                      />
+                      {errors.embedUrl && <span className="text-xs text-red-500">{errors.embedUrl.message}</span>}
+                  </div>
+
+                  {/* Live Preview Pane */}
+                  <div className="flex-1 flex flex-col gap-1.5 h-full hidden md:flex">
+                      <label className="text-sm font-bold text-slate-700">Xem trước (Live Preview)</label>
+                      <div className="flex-1 border border-slate-300 rounded-xl overflow-hidden bg-white">
+                          <iframe
+                             srcDoc={watch('embedUrl') || '<h3>Preview will appear here...</h3>'}
+                             className="w-full h-full border-none"
+                             sandbox="allow-scripts allow-modals"
+                          />
+                      </div>
+                  </div>
+              </div>
+            </div>
+        ) : (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-bold text-slate-700">
+                  {type === 'video' ? 'Link Video Youtube' : 'Link Bài tập / Mã Iframe'} <span className="text-red-500">*</span>
+              </label>
+              <input
+                {...register('embedUrl')}
+                className="w-full h-11 px-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                placeholder={type === 'video' ? "https://youtube.com/watch?v=..." : "Dán link Azota hoặc mã <iframe> vào đây..."}
+              />
+              {errors.embedUrl && <span className="text-xs text-red-500">{errors.embedUrl.message}</span>}
+            </div>
+        )}
 
         {/* Cover Image (Cloudinary) */}
         <div className="flex flex-col gap-1.5">

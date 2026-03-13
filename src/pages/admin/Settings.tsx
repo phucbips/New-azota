@@ -5,16 +5,19 @@ import { useTranslation } from 'react-i18next';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
 import { AppSettings } from '../../services/appSettings.service';
 import { toast } from 'sonner';
-import { Phone, Mail, MessageSquare, Facebook, Link as LinkIcon, Save, Settings, ShieldCheck, CreditCard, LayoutTemplate, Plus, Trash2 } from 'lucide-react';
+import { Phone, Mail, MessageSquare, Facebook, Link as LinkIcon, Save, Settings, ShieldCheck, CreditCard, LayoutTemplate, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
 import { SaaSButton } from '../../components/ui/SaaSButton';
 import { Loading } from '../../components/shared/Loading';
 import CloudinaryUploadWidget from '../../components/ui/CloudinaryUploadWidget';
+import { Switch } from '../../components/ui/switch';
 
 export const AdminSettings: React.FC = () => {
   const { t } = useTranslation();
   const { settings, loading, updateSettings } = useAppSettings();
   const [formData, setFormData] = useState<AppSettings | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [showChecksum, setShowChecksum] = useState(false);
 
   // Sync state when settings are loaded
   useEffect(() => {
@@ -229,26 +232,26 @@ export const AdminSettings: React.FC = () => {
                     <div className="space-y-4 pt-4 border-t border-border">
                         <h4 className="font-semibold text-sm text-foreground uppercase tracking-wide">Bật/Tắt các khối</h4>
 
-                        {[
-                            { id: 'showHero', label: 'Khối Hero (Banner chính)' },
-                            { id: 'showCourses', label: 'Khối Danh sách Khóa học' },
-                            { id: 'showStats', label: 'Khối Thống kê (Con số)' },
-                            { id: 'showAbout', label: 'Khối Về chúng tôi' },
-                            { id: 'showTestimonials', label: 'Khối Đánh giá học viên' }
-                        ].map((item) => (
-                            <div key={item.id} className="flex items-center justify-between">
-                                <span className="font-medium text-foreground">{item.label}</span>
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        className="sr-only peer"
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {[
+                                { id: 'showHero', label: 'Khối Hero (Banner chính)', desc: 'Banner to nhất ở đầu trang' },
+                                { id: 'showCourses', label: 'Khối Khóa học', desc: 'Danh sách các khóa học thịnh hành' },
+                                { id: 'showStats', label: 'Khối Thống kê', desc: 'Các con số ấn tượng' },
+                                { id: 'showAbout', label: 'Khối Về chúng tôi', desc: 'Giới thiệu ngắn' },
+                                { id: 'showTestimonials', label: 'Khối Đánh giá', desc: 'Review từ học viên' }
+                            ].map((item) => (
+                                <div key={item.id} className="flex items-center justify-between p-4 rounded-xl border border-border bg-background hover:border-primary/50 transition-colors">
+                                    <div>
+                                        <div className="font-bold text-foreground text-sm">{item.label}</div>
+                                        <div className="text-xs text-muted-foreground mt-0.5">{item.desc}</div>
+                                    </div>
+                                    <Switch
                                         checked={(formData.homepage as any)[item.id]}
-                                        onChange={(e) => handleChange('homepage', item.id, e.target.checked)}
+                                        onCheckedChange={(checked) => handleChange('homepage', item.id, checked)}
                                     />
-                                    <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                                </label>
-                            </div>
-                        ))}
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -356,26 +359,58 @@ export const AdminSettings: React.FC = () => {
                         <label className="block text-sm font-medium text-foreground mb-1">
                             API Key
                         </label>
-                        <input
-                            type="password"
-                            value={formData.integrations.payosApiKey}
-                            onChange={(e) => handleChange('integrations', 'payosApiKey', e.target.value)}
-                            className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-input bg-background text-foreground font-mono text-sm"
-                            placeholder="Nhập API Key..."
-                        />
+                        <div className="relative">
+                            <input
+                                type={showApiKey ? "text" : "password"}
+                                value={formData.integrations.payosApiKey}
+                                onChange={(e) => handleChange('integrations', 'payosApiKey', e.target.value)}
+                                className="w-full pl-3 pr-10 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-input bg-background text-foreground font-mono text-sm"
+                                placeholder="Nhập API Key..."
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowApiKey(!showApiKey)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                                {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                        </div>
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-foreground mb-1">
                             Checksum Key
                         </label>
+                        <div className="relative">
+                            <input
+                                type={showChecksum ? "text" : "password"}
+                                value={formData.integrations.payosChecksumKey}
+                                onChange={(e) => handleChange('integrations', 'payosChecksumKey', e.target.value)}
+                                className="w-full pl-3 pr-10 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-input bg-background text-foreground font-mono text-sm"
+                                placeholder="Nhập Checksum Key..."
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowChecksum(!showChecksum)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                                {showChecksum ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-foreground mb-1">
+                            Webhook URL
+                        </label>
                         <input
-                            type="password"
-                            value={formData.integrations.payosChecksumKey}
-                            onChange={(e) => handleChange('integrations', 'payosChecksumKey', e.target.value)}
+                            type="url"
+                            value={formData.integrations.payosWebhookUrl || ''}
+                            onChange={(e) => handleChange('integrations', 'payosWebhookUrl', e.target.value)}
                             className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-input bg-background text-foreground font-mono text-sm"
-                            placeholder="Nhập Checksum Key..."
+                            placeholder="https://your-domain.com/api/webhook"
                         />
+                        <p className="text-xs text-muted-foreground mt-1">Dùng để cấu hình trên trang quản trị PayOS.</p>
                     </div>
 
                 </div>

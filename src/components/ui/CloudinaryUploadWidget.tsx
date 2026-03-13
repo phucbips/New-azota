@@ -9,7 +9,7 @@ interface CloudinaryUploadWidgetProps {
   label?: string;
   defaultImage?: string; // Added to support editing
   folder?: string;
-  aspectRatio?: number; // Configurable crop aspect ratio
+  aspectRatio?: number | null; // Configurable crop aspect ratio
 }
 
 export default function CloudinaryUploadWidget({
@@ -18,7 +18,7 @@ export default function CloudinaryUploadWidget({
   label = "Ảnh bìa",
   defaultImage,
   folder = 'school_uploads',
-  aspectRatio = 16/9
+  aspectRatio = null // Default to free crop, since users want to adjust
 }: CloudinaryUploadWidgetProps) {
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<string | null>(defaultImage || null);
@@ -52,7 +52,11 @@ export default function CloudinaryUploadWidget({
       setLoading(true);
 
       const formData = new FormData();
-      formData.append('file', croppedBlob);
+      // Ensure the blob is treated as a File with a correct filename and mime type,
+      // as some uploads fail without it.
+      const file = new File([croppedBlob], "cropped_image.jpg", { type: "image/jpeg" });
+      formData.append('file', file);
+
       // We will just use the default preset since Cloudinary allows folder overrides if unsigned preset permits it
       formData.append('upload_preset', UPLOAD_PRESET);
       // Optional: add folder if your preset supports dynamic folders, otherwise it goes to default

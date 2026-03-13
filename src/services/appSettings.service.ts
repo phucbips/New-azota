@@ -12,6 +12,7 @@ export interface AppSettings {
     payosClientId: string;
     payosApiKey: string;
     payosChecksumKey: string;
+    payosWebhookUrl: string;
   };
   features: {
     enableRegistration: boolean;
@@ -41,6 +42,7 @@ const DEFAULT_SETTINGS: AppSettings = {
     payosClientId: '',
     payosApiKey: '',
     payosChecksumKey: '',
+    payosWebhookUrl: '',
   },
   features: {
     enableRegistration: true,
