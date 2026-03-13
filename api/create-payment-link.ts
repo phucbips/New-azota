@@ -1,6 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { PayOS } = require('@payos/node');
+import { PayOS } from '@payos/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS configuration
@@ -28,11 +27,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Missing required parameters' });
     }
 
-    const payOS = new PayOS(
-      process.env.PAYOS_CLIENT_ID || '',
-      process.env.PAYOS_API_KEY || '',
-      process.env.PAYOS_CHECKSUM_KEY || ''
-    );
+    const payOS = new PayOS({
+      clientId: process.env.PAYOS_CLIENT_ID || '',
+      apiKey: process.env.PAYOS_API_KEY || '',
+      checksumKey: process.env.PAYOS_CHECKSUM_KEY || ''
+    });
 
     const body = {
       orderCode: Number(orderCode),

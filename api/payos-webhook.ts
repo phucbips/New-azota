@@ -1,6 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { PayOS } = require('@payos/node');
+import { PayOS } from '@payos/node';
 import * as admin from 'firebase-admin';
 
 if (!admin.apps.length) {
@@ -24,11 +23,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-        const payOS = new PayOS(
-            process.env.PAYOS_CLIENT_ID || '',
-            process.env.PAYOS_API_KEY || '',
-            process.env.PAYOS_CHECKSUM_KEY || ''
-        );
+        const payOS = new PayOS({
+            clientId: process.env.PAYOS_CLIENT_ID || '',
+            apiKey: process.env.PAYOS_API_KEY || '',
+            checksumKey: process.env.PAYOS_CHECKSUM_KEY || ''
+        });
 
         // This verifies the signature and throws an error if invalid
         const webhookData = payOS.webhooks.verify(req.body);
