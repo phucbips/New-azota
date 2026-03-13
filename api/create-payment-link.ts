@@ -1,5 +1,21 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { PayOS } from '@payos/node';
+import * as admin from 'firebase-admin';
+
+if (!admin.apps.length) {
+    try {
+        let credential;
+        if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+            const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+            credential = admin.credential.cert(serviceAccount);
+        } else {
+            credential = admin.credential.applicationDefault();
+        }
+        admin.initializeApp({ credential });
+    } catch (e) {
+        console.error('Firebase Admin init error in create-payment-link', e);
+    }
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS configuration
@@ -27,10 +43,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Missing required parameters' });
     }
 
+    // Fetch PayOS configuration from Firebase Firestore (Admin Settings)
+    let payosClientId = process.env.PAYOS_CLIENT_ID || '';
+    let payosApiKey = process.env.PAYOS_API_KEY || '';
+    let payosChecksumKey = process.env.PAYOS_CHECKSUM_KEY || '';
+
+    try {
+        const db = admin.firestore();
+        const settingsSnap = await db.collection('app_settings').doc('general').get();
+        if (settingsSnap.exists) {
+            const settingsData = settingsSnap.data();
+            if (settingsData?.integrations) {
+                payosClientId = settingsData.integrations.payosClientId || payosClientId;
+                payosApiKey = settingsData.integrations.payosApiKey || payosApiKey;
+                payosChecksumKey = settingsData.integrations.payosChecksumKey || payosChecksumKey;
+            }
+        }
+    } catch (dbError) {
+        console.warn('Could not fetch app_settings from Firestore, falling back to process.env', dbError);
+    }
+
+    if (!payosClientId || !payosApiKey || !payosChecksumKey) {
+        throw new Error('PayOS credentials are not fully configured in Admin Settings.');
+    }
+
     const payOS = new PayOS({
-      clientId: process.env.PAYOS_CLIENT_ID || '',
-      apiKey: process.env.PAYOS_API_KEY || '',
-      checksumKey: process.env.PAYOS_CHECKSUM_KEY || ''
+      clientId: payosClientId,
+      apiKey: payosApiKey,
+      checksumKey: payosChecksumKey
     });
 
     const body = {

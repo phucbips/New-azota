@@ -28,10 +28,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
+        // Fetch PayOS configuration from Firebase Firestore (Admin Settings)
+        let payosClientId = process.env.PAYOS_CLIENT_ID || '';
+        let payosApiKey = process.env.PAYOS_API_KEY || '';
+        let payosChecksumKey = process.env.PAYOS_CHECKSUM_KEY || '';
+
+        try {
+            const db = admin.firestore();
+            const settingsSnap = await db.collection('app_settings').doc('general').get();
+            if (settingsSnap.exists) {
+                const settingsData = settingsSnap.data();
+                if (settingsData?.integrations) {
+                    payosClientId = settingsData.integrations.payosClientId || payosClientId;
+                    payosApiKey = settingsData.integrations.payosApiKey || payosApiKey;
+                    payosChecksumKey = settingsData.integrations.payosChecksumKey || payosChecksumKey;
+                }
+            }
+        } catch (dbError) {
+            console.warn('Could not fetch app_settings from Firestore, falling back to process.env', dbError);
+        }
+
+        if (!payosClientId || !payosApiKey || !payosChecksumKey) {
+            return res.status(500).json({ error: 'PayOS credentials are not fully configured in Admin Settings.' });
+        }
+
         const payOS = new PayOS({
-            clientId: process.env.PAYOS_CLIENT_ID || '',
-            apiKey: process.env.PAYOS_API_KEY || '',
-            checksumKey: process.env.PAYOS_CHECKSUM_KEY || ''
+            clientId: payosClientId,
+            apiKey: payosApiKey,
+            checksumKey: payosChecksumKey
         });
 
         // This verifies the signature and throws an error if invalid
