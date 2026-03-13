@@ -10,6 +10,24 @@ import { SubjectFilterBar } from '../../components/student/SubjectFilterBar';
 import { StudentSupportWidget } from '../../components/student/StudentSupportWidget';
 import { Skeleton } from '../../components/shared/Skeleton';
 
+// Helper component to isolate native HTML code via Shadow DOM
+// This prevents injected <style> tags from bleeding out and shrinking/corrupting the main app UI
+const ShadowDomWrapper: React.FC<{ html: string, className?: string }> = ({ html, className }) => {
+    const containerRef = React.useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (containerRef.current) {
+            let shadow = containerRef.current.shadowRoot;
+            if (!shadow) {
+                shadow = containerRef.current.attachShadow({ mode: 'open' });
+            }
+            shadow.innerHTML = html;
+        }
+    }, [html]);
+
+    return <div ref={containerRef} className={className} />;
+};
+
 export const StudentAssignments: React.FC = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
@@ -155,9 +173,9 @@ export const StudentAssignments: React.FC = () => {
                         Thu nhỏ
                     </button>
                 </div>
-                <div
+                <ShadowDomWrapper
                     className="flex-1 w-full max-w-5xl mx-auto p-4 md:p-8"
-                    dangerouslySetInnerHTML={{ __html: selectedAssignment.embedUrl }}
+                    html={selectedAssignment.embedUrl}
                 />
             </div>
         );
@@ -198,9 +216,9 @@ export const StudentAssignments: React.FC = () => {
 
            <div className={`flex-1 w-full relative overflow-hidden ${selectedAssignment.type !== 'native_code' ? 'bg-slate-50 rounded-lg border border-slate-200' : ''}`}>
               {selectedAssignment.type === 'native_code' ? (
-                  <div
+                  <ShadowDomWrapper
                       className="w-full h-full text-foreground"
-                      dangerouslySetInnerHTML={{ __html: selectedAssignment.embedUrl }}
+                      html={selectedAssignment.embedUrl}
                   />
               ) : selectedAssignment.type === 'video' ? (
                   <div className="w-full h-full flex items-center justify-center bg-black absolute inset-0">
