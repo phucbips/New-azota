@@ -137,7 +137,24 @@ export const StudentAssignments: React.FC = () => {
            )}
 
            <div className="flex-1 w-full bg-slate-50 rounded-lg border border-slate-200 relative overflow-hidden">
-              {embed.startsWith('<iframe') ? (
+              {selectedAssignment.type === 'native_code' ? (
+                  <iframe
+                      srcDoc={selectedAssignment.embedUrl}
+                      className="w-full h-full absolute inset-0"
+                      title={title}
+                      sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin"
+                  />
+              ) : selectedAssignment.type === 'video' ? (
+                  <div className="w-full h-full flex items-center justify-center bg-black">
+                      <iframe
+                          src={selectedAssignment.embedUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
+                          className="w-full h-full max-w-4xl max-h-[600px] aspect-video"
+                          title={title}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                      />
+                  </div>
+              ) : embed.startsWith('<iframe') ? (
                   <div dangerouslySetInnerHTML={{ __html: embed }} className="w-full h-full absolute inset-0 [&>iframe]:w-full [&>iframe]:h-full" />
               ) : (
                   <iframe
