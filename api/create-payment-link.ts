@@ -49,9 +49,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (error: any) {
     console.error('PayOS Error:', error);
+    // Ensure we always return a valid JSON object, even if PayOS throws an unexpected type of error
     return res.status(500).json({
       error: 'Failed to create payment link',
-      message: error.message
+      message: typeof error === 'string' ? error : (error.message || 'Lỗi hệ thống hoặc Cổng thanh toán chưa kích hoạt')
     });
   }
 }

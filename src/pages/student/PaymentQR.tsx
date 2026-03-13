@@ -48,8 +48,17 @@ export const PaymentQR: React.FC = () => {
                 });
 
                 if (!response.ok) {
-                    const errData = await response.json();
-                    throw new Error(errData.message || 'Lỗi server');
+                    let errMessage = 'Lỗi server kết nối đến Cổng thanh toán';
+                    try {
+                        const cloned = response.clone();
+                        const errData = await cloned.json();
+                        errMessage = errData.message || errData.error || errMessage;
+                    } catch (e) {
+                        // If it fails to parse JSON, meaning it's an HTML error page from Vercel/proxy
+                        const errText = await response.text();
+                        console.error('Server HTML error:', errText);
+                    }
+                    throw new Error(errMessage);
                 }
 
                 const result = await response.json();
@@ -57,7 +66,7 @@ export const PaymentQR: React.FC = () => {
             } catch (err: any) {
                 console.error("Lỗi tạo PayOS link:", err);
                 // Fallback or display error
-                setError("Không thể tạo link thanh toán tự động lúc này. Vui lòng chuyển khoản thủ công.");
+                setError(err.message || "Không thể tạo link thanh toán tự động lúc này. Vui lòng chuyển khoản thủ công.");
             }
         };
 
