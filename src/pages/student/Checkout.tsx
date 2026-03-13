@@ -65,18 +65,23 @@ export const Checkout: React.FC = () => {
       try {
           const items = cartItems.map(c => ({ courseId: c.id, courseTitle: c.title, price: c.price }));
 
-          const orderId = await orderService.createOrder({
+          const orderData: any = {
               userId: user.uid,
               userEmail: user.email,
               userName: user.displayName || 'Student',
               items: items,
               originalAmount: totalPrice,
               discount: discount,
-              voucherCode: appliedVoucherId ? voucher : undefined,
               amount: finalPrice,
               status: finalPrice === 0 ? 'paid' : 'pending',
               paymentMethod: paymentMethod,
-          });
+          };
+
+          if (appliedVoucherId && voucher) {
+              orderData.voucherCode = voucher;
+          }
+
+          const orderId = await orderService.createOrder(orderData);
 
           if (appliedVoucherId) {
               await voucherService.incrementUsage(appliedVoucherId);

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { Modal } from '../shared/Modal';
 import { School, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export const LoginPage: React.FC = () => {
   const { signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
@@ -11,18 +11,13 @@ export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [modalState, setModalState] = useState({ isOpen: false, title: '', message: '' });
-
-  const showModal = (message: string, title = 'Thông báo') => {
-    setModalState({ isOpen: true, title, message });
-  };
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
       await signInWithGoogle();
     } catch (error: any) {
-      showModal(error.message, 'Lỗi Đăng nhập');
+      toast.error(error.message || 'Lỗi đăng nhập Google');
     } finally {
         setLoading(false);
     }
@@ -38,7 +33,7 @@ export const LoginPage: React.FC = () => {
             await signUpWithEmail(email, password);
         }
     } catch (error: any) {
-      showModal(error.message, isLogin ? 'Lỗi Đăng nhập' : 'Lỗi Đăng ký');
+      toast.error(error.message || (isLogin ? 'Lỗi đăng nhập' : 'Lỗi đăng ký'));
     } finally {
         setLoading(false);
     }
@@ -47,7 +42,6 @@ export const LoginPage: React.FC = () => {
   const toggleMode = (e: React.MouseEvent) => {
       e.preventDefault();
       setIsLogin(!isLogin);
-      setModalState({ ...modalState, isOpen: false }); // Clear any errors
   };
 
   return (
@@ -148,13 +142,6 @@ export const LoginPage: React.FC = () => {
           </div>
         </div>
       </div>
-
-      <Modal
-        isOpen={modalState.isOpen}
-        onClose={() => setModalState({ ...modalState, isOpen: false })}
-        title={modalState.title}
-        message={modalState.message}
-      />
     </div>
   );
 };
