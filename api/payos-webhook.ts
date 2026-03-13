@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import PayOS from '@payos/node';
+const PayOS = require('@payos/node');
 import * as admin from 'firebase-admin';
 
 if (!admin.apps.length) {

@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import PayOS from '@payos/node';
+const PayOS = require('@payos/node');
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS configuration
