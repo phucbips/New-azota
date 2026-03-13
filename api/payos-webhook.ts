@@ -1,5 +1,4 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-const { PayOS } = require('@payos/node');
 import * as admin from 'firebase-admin';
 import { createHmac } from 'crypto';
 
