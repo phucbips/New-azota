@@ -120,13 +120,14 @@ export const StudentAssignments: React.FC = () => {
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => setSelectedAssignment(null)}
-                            className="p-2 hover:bg-muted rounded-full transition-colors flex items-center justify-center text-muted-foreground hover:text-foreground"
+                            className="mr-2 flex items-center gap-2 text-muted-foreground hover:text-foreground font-medium transition-colors text-sm"
                         >
-                           <ArrowLeft className="w-5 h-5" />
+                           <ArrowLeft className="w-4 h-4" />
+                           Back to Assignments
                         </button>
-                        <div>
-                            <h1 className="font-bold text-foreground leading-none">{title}</h1>
-                            <p className="text-xs text-muted-foreground mt-0.5">{topic}</p>
+                        <div className="border-l border-border pl-4">
+                            <h1 className="font-bold text-foreground leading-tight">{safeString(selectedAssignment.subject || 'Chung')}</h1>
+                            <p className="text-xs text-muted-foreground mt-0.5">Grade {targetGrade} • {topic}</p>
                         </div>
                     </div>
                 </div>
@@ -198,18 +199,6 @@ export const StudentAssignments: React.FC = () => {
   }
 
   // Handle Loading/Empty/Error States
-  if (!user?.isWhitelisted) {
-    return (
-        <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-           <div className="p-4 bg-yellow-100 rounded-full mb-4">
-             <AlertCircle className="w-8 h-8 text-yellow-600" />
-           </div>
-           <h2 className="text-xl font-bold text-slate-900 mb-2">Account Not Active</h2>
-           <p className="text-slate-500 max-w-md">Please contact the administrator to approve your access.</p>
-        </div>
-    );
-  }
-
   if (!user.grade) {
     return (
         <div className="flex flex-col items-center justify-center h-[60vh] text-center">
@@ -304,12 +293,15 @@ export const StudentAssignments: React.FC = () => {
             ))}
             </div>
         ) : (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-xl border border-slate-200 shadow-sm p-6">
                 <div className="bg-blue-50 rounded-full p-6 mb-6">
                     <BookOpen className="w-16 h-16 text-blue-600" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">No assignments found</h3>
-                <p className="text-slate-500 max-w-sm mx-auto">Try adjusting your search or check back later.</p>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">Bạn chưa có bài tập nào</h3>
+                <p className="text-slate-500 max-w-sm mx-auto mb-6">Hãy tham gia hoặc mua thêm khóa học để mở khóa bài tập mới nhé.</p>
+                <Link to="/student/courses" className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-md">
+                    Khám phá Khóa học
+                </Link>
             </div>
         )}
 

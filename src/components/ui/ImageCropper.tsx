@@ -75,6 +75,7 @@ const ImageCropper = ({ imageSrc, onCropDone, onCancel, aspect = 1 }: ImageCropp
         ].map(ratio => (
             <button
                 key={ratio.label}
+                type="button"
                 onClick={() => setCurrentAspect(ratio.value)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                     currentAspect === ratio.value
@@ -89,7 +90,7 @@ const ImageCropper = ({ imageSrc, onCropDone, onCancel, aspect = 1 }: ImageCropp
       </div>
 
       <div className="flex flex-col sm:flex-row items-center justify-between bg-background p-4 gap-4">
-        <button onClick={onCancel} className="w-full sm:w-auto flex justify-center items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted">
+        <button type="button" onClick={onCancel} className="w-full sm:w-auto flex justify-center items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted">
           <X className="h-4 w-4" /> Hủy
         </button>
         <div className="flex items-center gap-3">
@@ -105,7 +106,7 @@ const ImageCropper = ({ imageSrc, onCropDone, onCancel, aspect = 1 }: ImageCropp
           />
           <ZoomIn className="h-4 w-4 text-muted-foreground" />
         </div>
-        <button onClick={handleDone} className="flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:bg-primary/90">
+        <button type="button" onClick={handleDone} className="flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:bg-primary/90">
           <Check className="h-4 w-4" /> Xong
         </button>
       </div>

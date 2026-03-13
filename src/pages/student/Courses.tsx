@@ -51,16 +51,26 @@ export const StudentCourses: React.FC = () => {
       if (!user) return;
       setPurchasing(course.id);
       try {
+          const items = [{ courseId: course.id, courseTitle: course.title, price: course.price }];
+
           const orderId = await orderService.createOrder({
               userId: user!.uid,
               userEmail: user!.email,
               userName: user!.displayName || 'Student',
-              courseId: course.id,
-              courseTitle: course.title,
+              items: items,
               amount: course.price,
+              originalAmount: course.price,
               status: initialStatus,
               paymentMethod: method,
           });
+
+          if (initialStatus === 'paid') {
+               // Update enrollments (simulate)
+               await courseService.updateCourse(course.id, {
+                   enrollmentCount: (course.enrollmentCount || 0) + 1
+               });
+          }
+
           setSelectedCourse(null);
 
           if (initialStatus === 'paid') {
@@ -81,7 +91,8 @@ export const StudentCourses: React.FC = () => {
   };
 
   const getCourseStatus = (courseId: string) => {
-      const order = orders.find(o => o.courseId === courseId);
+      // Find any order that contains this course in its items array, or use legacy courseId
+      const order = orders.find(o => o.courseId === courseId || (o.items && o.items.some(i => i.courseId === courseId)));
       if (!order) return 'unpurchased';
       return order.status; // 'pending' | 'paid' | 'cancelled'
   };

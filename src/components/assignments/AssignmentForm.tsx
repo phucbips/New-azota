@@ -131,7 +131,7 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
               >
                 <option value="embed">Bài tập (Azota, Quizlet...)</option>
                 <option value="video">Video (Youtube...)</option>
-                <option value="native_code">Code HTML/JS Trực tiếp</option>
+                <option value="native_code">Thiết kế Trực tiếp (HTML/JS)</option>
               </select>
             </div>
         </div>
@@ -140,21 +140,35 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
         {type === 'native_code' ? (
             <div className="flex flex-col gap-3">
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
-                  <p className="font-bold mb-1">Mẹo tạo bài tập Code (Native HTML/CSS):</p>
-                  <p>Bạn có thể sử dụng cấu trúc HTML có sẵn của hệ thống hoặc dán mã HTML/JS thuần tùy chỉnh vào ô bên dưới. Học sinh sẽ trải nghiệm bài thi với giao diện nguyên bản.</p>
+                  <p className="font-bold mb-1">Tạo bài tập tự động (HTML/JS Native):</p>
+                  <p>Bạn có thể dán mã HTML/CSS/JS thuần túy của mình vào ô bên dưới. Hệ thống sẽ tự động hiển thị nó dưới dạng một ứng dụng web thu nhỏ trong bài học của học viên.</p>
+                  <p className="mt-2 text-xs opacity-80">Gợi ý: Dùng prompt "Trợ lý Trích xuất Đề thi Azota" với AI để chuyển đổi ảnh đề thi thành mảng text, sau đó dán vào mã HTML mẫu để có ngay form trắc nghiệm tương tác!</p>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <div className="flex justify-between items-center">
-                    <label className="text-sm font-bold text-slate-700">Mã HTML/JS (Native Code) <span className="text-red-500">*</span></label>
-                    <span className="text-xs text-slate-500">Hỗ trợ Bootstrap, TailwindCDN, jQuery...</span>
-                </div>
-                <textarea
-                  {...register('embedUrl')}
-                  className="w-full h-[400px] p-4 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-mono bg-[#1e1e1e] text-[#d4d4d4] resize-y"
-                  placeholder="<!DOCTYPE html>\n<html lang='vi'>\n<head>\n  <meta charset='UTF-8'>\n  <title>Quiz</title>\n</head>\n<body>\n  <h1>Bài kiểm tra của bạn</h1>\n</body>\n</html>"
-                />
-                <p className="text-xs text-slate-500 mt-1">Mã này sẽ được chạy an toàn trong môi trường sandbox của trình duyệt học viên (Cho phép Scripts, Forms).</p>
-                {errors.embedUrl && <span className="text-xs text-red-500">{errors.embedUrl.message}</span>}
+
+              <div className="flex flex-col md:flex-row gap-4 h-[500px]">
+                  <div className="flex-1 flex flex-col gap-1.5 h-full">
+                      <div className="flex justify-between items-center">
+                          <label className="text-sm font-bold text-slate-700">Mã HTML/JS (Editor) <span className="text-red-500">*</span></label>
+                      </div>
+                      <textarea
+                        {...register('embedUrl')}
+                        className="flex-1 w-full p-4 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-mono bg-[#1e1e1e] text-[#d4d4d4] resize-none"
+                        placeholder="<!DOCTYPE html>\n<html lang='vi'>\n<head>\n  <meta charset='UTF-8'>\n  <title>Quiz</title>\n</head>\n<body>\n  <h1>Bài kiểm tra của bạn</h1>\n</body>\n</html>"
+                      />
+                      {errors.embedUrl && <span className="text-xs text-red-500">{errors.embedUrl.message}</span>}
+                  </div>
+
+                  {/* Live Preview Pane */}
+                  <div className="flex-1 flex flex-col gap-1.5 h-full hidden md:flex">
+                      <label className="text-sm font-bold text-slate-700">Xem trước (Live Preview)</label>
+                      <div className="flex-1 border border-slate-300 rounded-xl overflow-hidden bg-white">
+                          <iframe
+                             srcDoc={watch('embedUrl') || '<h3>Preview will appear here...</h3>'}
+                             className="w-full h-full border-none"
+                             sandbox="allow-scripts allow-modals"
+                          />
+                      </div>
+                  </div>
               </div>
             </div>
         ) : (

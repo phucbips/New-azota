@@ -4,20 +4,31 @@ import { db } from '../config/firebase';
 export type OrderStatus = 'pending' | 'paid' | 'pay_later' | 'cancelled';
 export type PaymentMethod = 'bank_transfer' | 'cash';
 
+export interface OrderItem {
+  courseId: string;
+  courseTitle: string;
+  price: number;
+}
+
 export interface Order {
   id: string;
   orderCode: string;
   userId: string;
   userEmail: string;
   userName: string;
-  courseId: string;
-  courseTitle: string;
-  amount: number;
+  items: OrderItem[];
+  amount: number; // Final amount after discount
+  originalAmount?: number;
+  discount?: number;
+  voucherCode?: string;
   status: OrderStatus;
   paymentMethod: PaymentMethod;
   createdAt: Date | any;
   updatedAt: Date | any;
   notes?: string;
+  // Backward compatibility:
+  courseId?: string;
+  courseTitle?: string;
 }
 
 class OrderService {

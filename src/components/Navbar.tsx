@@ -118,7 +118,7 @@ export const Navbar = () => {
                               </span>
                           </div>
                           <Link
-                              to="/student/courses"
+                              to="/student/checkout"
                               className="w-full py-2.5 bg-primary text-white rounded-xl font-bold flex items-center justify-center transition-all hover:bg-primary/90 hover:shadow-md"
                           >
                               Thanh toán ngay
