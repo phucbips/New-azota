@@ -138,15 +138,24 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
 
         {/* Content Input (Depends on type) */}
         {type === 'native_code' ? (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-bold text-slate-700">Mã HTML/JS (Native Code) <span className="text-red-500">*</span></label>
-              <textarea
-                {...register('embedUrl')}
-                className="w-full h-48 p-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-mono bg-slate-50"
-                placeholder="<h1>Hello World</h1>\n<script>alert('Test');</script>"
-              />
-              <p className="text-xs text-slate-500">Mã này sẽ được chạy an toàn trong môi trường sandbox của trình duyệt học viên.</p>
-              {errors.embedUrl && <span className="text-xs text-red-500">{errors.embedUrl.message}</span>}
+            <div className="flex flex-col gap-3">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+                  <p className="font-bold mb-1">Mẹo tạo bài tập Code (Native HTML/CSS):</p>
+                  <p>Bạn có thể sử dụng cấu trúc HTML có sẵn của hệ thống hoặc dán mã HTML/JS thuần tùy chỉnh vào ô bên dưới. Học sinh sẽ trải nghiệm bài thi với giao diện nguyên bản.</p>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between items-center">
+                    <label className="text-sm font-bold text-slate-700">Mã HTML/JS (Native Code) <span className="text-red-500">*</span></label>
+                    <span className="text-xs text-slate-500">Hỗ trợ Bootstrap, TailwindCDN, jQuery...</span>
+                </div>
+                <textarea
+                  {...register('embedUrl')}
+                  className="w-full h-[400px] p-4 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-mono bg-[#1e1e1e] text-[#d4d4d4] resize-y"
+                  placeholder="<!DOCTYPE html>\n<html lang='vi'>\n<head>\n  <meta charset='UTF-8'>\n  <title>Quiz</title>\n</head>\n<body>\n  <h1>Bài kiểm tra của bạn</h1>\n</body>\n</html>"
+                />
+                <p className="text-xs text-slate-500 mt-1">Mã này sẽ được chạy an toàn trong môi trường sandbox của trình duyệt học viên (Cho phép Scripts, Forms).</p>
+                {errors.embedUrl && <span className="text-xs text-red-500">{errors.embedUrl.message}</span>}
+              </div>
             </div>
         ) : (
             <div className="flex flex-col gap-1.5">
