@@ -9,7 +9,6 @@ export interface User {
   photoURL: string;
   role: UserRole;
   grade: string | null; // null for admin/teacher, '10', '11', '12' for student. Keeping as string for now to avoid massive refactor of user service.
-  isWhitelisted: boolean;
   sessionId: string;
   joinedAt: Timestamp;
   lastDevice?: string;

@@ -19,12 +19,6 @@ service cloud.firestore {
       return getUserData().role == 'teacher';
     }
 
-    // Kiểm tra tài khoản đã được kích hoạt (Student/Teacher)
-    function isWhitelisted() {
-      // Safe check if field exists, though usually it should
-      return getUserData().isWhitelisted == true;
-    }
-
     // --- COLLECTION: USERS ---
     match /users/{userId} {
       allow read: if request.auth != null;
@@ -35,13 +29,8 @@ service cloud.firestore {
 
     // --- COLLECTION: ASSIGNMENTS (Bài tập) ---
     match /assignments/{assignmentId} {
-      allow read: if request.auth != null && (
-        resource.data.teacherId == request.auth.uid ||
-        resource.data.createdByTeacherId == request.auth.uid ||
-        isWhitelisted() ||
-        isAdmin() ||
-        isTeacher()
-      );
+      // Assignments are read freely by all authenticated users (students rely on client-side mapping to their purchased courses)
+      allow read: if request.auth != null;
 
       allow create: if request.auth != null && (
         isAdmin() ||

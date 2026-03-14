@@ -37,7 +37,7 @@ export const StudentAssignments: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!user || !user.isWhitelisted) {
+    if (!user) {
         setIsFetchingCourses(false);
         return;
     }
@@ -49,7 +49,7 @@ export const StudentAssignments: React.FC = () => {
   }, [user]);
 
   useEffect(() => {
-    if (!user || !user.isWhitelisted) {
+    if (!user) {
         setIsFetchingAssignments(false);
         return;
     }
@@ -396,10 +396,7 @@ ${embed}
                     <BookOpen className="w-16 h-16 text-blue-600" />
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 mb-2">Bạn chưa có bài tập nào</h3>
-                <p className="text-slate-500 max-w-sm mx-auto mb-6">Hãy tham gia hoặc mua thêm khóa học để mở khóa bài tập mới nhé.</p>
-                <Link to="/student/courses" className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-md">
-                    Khám phá Khóa học
-                </Link>
+                <p className="text-slate-500 max-w-sm mx-auto mb-6">Bạn chưa được cấp quyền truy cập khóa học nào. Vui lòng liên hệ Admin để được hỗ trợ nhé.</p>
             </div>
         )}
 

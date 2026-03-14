@@ -53,7 +53,6 @@ class UserService {
         photoURL: `https://ui-avatars.com/api/?name=${normalizedEmail[0]}&background=667eea&color=fff&size=200`,
         role,
         grade,
-        isWhitelisted: true, // Auto whitelist invited users
         sessionId: '',
         joinedAt: Timestamp.now(),
         enrolledCourses: [],
@@ -116,7 +115,7 @@ class UserService {
 
     // Only log significant admin updates (e.g. role change), avoid logging self-updates (lastLogin) if possible
     // Checking if current user is admin and different from target or if critical fields changed
-    const sensitiveFields = ['role', 'isWhitelisted', 'grade', 'enrolledCourses'];
+    const sensitiveFields = ['role', 'grade', 'enrolledCourses'];
     const hasSensitiveUpdate = sensitiveFields.some(field => Object.keys(updates).includes(field));
 
     if (this.currentAdmin && hasSensitiveUpdate) {
@@ -227,16 +226,6 @@ class UserService {
     console.log(`Migration complete. Updated ${count} users.`);
   }
 
-  // Deprecated/Modified methods below to support legacy or specific needs
-
-  async whitelistStudent(email: string): Promise<boolean> {
-     // Re-implement if needed, but createInvitation handles new users.
-     // For existing users:
-     const user = await this.findUserByEmail(email);
-     if (!user) return false;
-     await this.updateUser(user.uid, { isWhitelisted: true, role: 'student' });
-     return true;
-  }
 }
 
 export const userService = new UserService();

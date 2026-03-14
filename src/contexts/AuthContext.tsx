@@ -125,9 +125,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         updates.lastLoginAt = Timestamp.now();
         needsUpdate = true;
 
-        if (isSuperAdmin && (existingUser.role !== 'admin' || !existingUser.isWhitelisted)) {
+        if (isSuperAdmin && existingUser.role !== 'admin') {
           updates.role = 'admin';
-          updates.isWhitelisted = true;
           needsUpdate = true;
         }
 
@@ -145,7 +144,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           photoURL: firebaseUser.photoURL || `https://ui-avatars.com/api/?name=${userEmail?.[0]}&background=667eea&color=fff&size=200`,
           role: isSuperAdmin ? 'admin' : 'student',
           grade: null, // Default to null
-          isWhitelisted: isSuperAdmin,
           sessionId: sessionId,
           joinedAt: Timestamp.now(),
           lastDevice: currentDevice,
