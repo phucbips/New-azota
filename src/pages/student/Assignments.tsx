@@ -10,24 +10,6 @@ import { SubjectFilterBar } from '../../components/student/SubjectFilterBar';
 import { StudentSupportWidget } from '../../components/student/StudentSupportWidget';
 import { Skeleton } from '../../components/shared/Skeleton';
 
-// Helper component to isolate native HTML code via Shadow DOM
-// This prevents injected <style> tags from bleeding out and shrinking/corrupting the main app UI
-const ShadowDomWrapper: React.FC<{ html: string, className?: string }> = ({ html, className }) => {
-    const containerRef = React.useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (containerRef.current) {
-            let shadow = containerRef.current.shadowRoot;
-            if (!shadow) {
-                shadow = containerRef.current.attachShadow({ mode: 'open' });
-            }
-            shadow.innerHTML = html;
-        }
-    }, [html]);
-
-    return <div ref={containerRef} className={className} />;
-};
-
 export const StudentAssignments: React.FC = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
@@ -163,20 +145,24 @@ export const StudentAssignments: React.FC = () => {
 
     if (isFullscreen && selectedAssignment.type === 'native_code') {
         return (
-            <div className="fixed inset-0 z-[100] bg-white flex flex-col overflow-auto animate-in fade-in duration-200">
-                <div className="sticky top-0 right-0 w-full flex justify-end p-4 pointer-events-none z-10">
+            <div className="fixed inset-0 z-[100] bg-background flex flex-col overflow-hidden animate-in fade-in duration-200">
+                <div className="absolute top-4 right-4 z-10">
                     <button
                         onClick={() => setIsFullscreen(false)}
-                        className="bg-slate-900/80 hover:bg-slate-900 text-white p-3 rounded-full shadow-lg backdrop-blur-sm transition-all pointer-events-auto flex items-center gap-2 font-medium"
+                        className="bg-slate-900/80 hover:bg-slate-900 text-white p-3 rounded-full shadow-lg backdrop-blur-sm transition-all flex items-center gap-2 font-medium"
                     >
                         <Minimize className="w-5 h-5" />
                         Thu nhỏ
                     </button>
                 </div>
-                <ShadowDomWrapper
-                    className="flex-1 w-full max-w-5xl mx-auto p-4 md:p-8"
-                    html={selectedAssignment.embedUrl}
-                />
+                <div className="flex-1 w-full relative">
+                    <iframe
+                        srcDoc={selectedAssignment.embedUrl}
+                        className="w-full h-full border-none absolute inset-0"
+                        title={title}
+                        sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin"
+                    />
+                </div>
             </div>
         );
     }
@@ -214,11 +200,13 @@ export const StudentAssignments: React.FC = () => {
                </button>
            )}
 
-           <div className={`flex-1 w-full relative overflow-hidden ${selectedAssignment.type !== 'native_code' ? 'bg-slate-50 rounded-lg border border-slate-200' : ''}`}>
+           <div className={`flex-1 w-full relative overflow-hidden ${selectedAssignment.type !== 'native_code' ? 'bg-slate-50 rounded-lg border border-slate-200' : 'bg-white rounded-lg border border-slate-200'}`}>
               {selectedAssignment.type === 'native_code' ? (
-                  <ShadowDomWrapper
-                      className="w-full h-full text-foreground"
-                      html={selectedAssignment.embedUrl}
+                  <iframe
+                      srcDoc={selectedAssignment.embedUrl}
+                      className="w-full h-full border-none absolute inset-0"
+                      title={title}
+                      sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin"
                   />
               ) : selectedAssignment.type === 'video' ? (
                   <div className="w-full h-full flex items-center justify-center bg-black absolute inset-0">
