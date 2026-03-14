@@ -25,6 +25,17 @@ export const StudentAssignments: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const fullscreenContainerRef = React.useRef<HTMLDivElement>(null);
 
+  // Sync state if user presses ESC to exit fullscreen
+  useEffect(() => {
+      const onFullscreenChange = () => {
+          if (!document.fullscreenElement) {
+              setIsFullscreen(false);
+          }
+      };
+      document.addEventListener('fullscreenchange', onFullscreenChange);
+      return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, []);
+
   useEffect(() => {
     if (!user || !user.isWhitelisted) {
         setIsFetchingCourses(false);
@@ -189,17 +200,6 @@ ${embed}
         }
         setIsFullscreen(false);
     };
-
-    // Sync state if user presses ESC to exit fullscreen
-    useEffect(() => {
-        const onFullscreenChange = () => {
-            if (!document.fullscreenElement) {
-                setIsFullscreen(false);
-            }
-        };
-        document.addEventListener('fullscreenchange', onFullscreenChange);
-        return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
-    }, []);
 
     if (isFullscreen && selectedAssignment.type === 'native_code') {
         return (
