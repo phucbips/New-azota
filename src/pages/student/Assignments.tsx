@@ -100,6 +100,33 @@ export const StudentAssignments: React.FC = () => {
     if (!selectedAssignment) return '';
     const embed = safeString(selectedAssignment.embedUrl);
 
+    if (selectedAssignment.type === 'native_code') {
+        // For HTML code, ensure it has a viewport meta tag so mobile browsers scale it correctly.
+        // If it's just a raw snippet, wrap it in a basic HTML5 boilerplate.
+        if (embed.toLowerCase().includes('<html')) {
+            if (!embed.toLowerCase().includes('name="viewport"')) {
+                return embed.replace(/<head>/i, '<head>\n<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">');
+            }
+            return embed;
+        } else {
+            return `<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.5; padding: 1rem; margin: 0; color: #1e293b; }
+        img { max-width: 100%; height: auto; }
+        @media (max-width: 640px) { body { font-size: 16px; padding: 0.75rem; } }
+    </style>
+</head>
+<body>
+${embed}
+</body>
+</html>`;
+        }
+    }
+
     if (!embed.startsWith('<iframe')) return embed;
 
     try {
@@ -145,7 +172,7 @@ export const StudentAssignments: React.FC = () => {
 
     if (isFullscreen && selectedAssignment.type === 'native_code') {
         return (
-            <div className="fixed inset-0 z-[100] bg-background flex flex-col overflow-hidden animate-in fade-in duration-200">
+            <div className="fixed inset-0 z-[9999] h-[100dvh] w-screen bg-background flex flex-col overflow-hidden animate-in fade-in duration-200">
                 <div className="absolute top-4 right-4 z-10">
                     <button
                         onClick={() => setIsFullscreen(false)}
@@ -157,7 +184,7 @@ export const StudentAssignments: React.FC = () => {
                 </div>
                 <div className="flex-1 w-full relative">
                     <iframe
-                        srcDoc={selectedAssignment.embedUrl}
+                        srcDoc={embed}
                         className="w-full h-full border-none absolute inset-0"
                         title={title}
                         sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin"
@@ -203,7 +230,7 @@ export const StudentAssignments: React.FC = () => {
            <div className={`flex-1 w-full relative overflow-hidden ${selectedAssignment.type !== 'native_code' ? 'bg-slate-50 rounded-lg border border-slate-200' : 'bg-white rounded-lg border border-slate-200'}`}>
               {selectedAssignment.type === 'native_code' ? (
                   <iframe
-                      srcDoc={selectedAssignment.embedUrl}
+                      srcDoc={embed}
                       className="w-full h-full border-none absolute inset-0"
                       title={title}
                       sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin"
