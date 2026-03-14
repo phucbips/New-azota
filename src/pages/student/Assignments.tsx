@@ -23,6 +23,7 @@ export const StudentAssignments: React.FC = () => {
   // Filter States
   const [selectedSubject, setSelectedSubject] = useState('All');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const fullscreenContainerRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!user || !user.isWhitelisted) {
@@ -170,19 +171,49 @@ ${embed}
     const targetGrade = String(selectedAssignment.gradeLevel);
     const subjectTitle = safeString(selectedAssignment.subject || 'Chung');
 
+    const handleEnterFullscreen = () => {
+        setIsFullscreen(true);
+        // Delay slightly to ensure the DOM element is rendered before requesting
+        setTimeout(() => {
+            if (fullscreenContainerRef.current) {
+                fullscreenContainerRef.current.requestFullscreen().catch(err => {
+                    console.log("Error attempting to enable fullscreen:", err.message);
+                });
+            }
+        }, 50);
+    };
+
+    const handleExitFullscreen = () => {
+        if (document.fullscreenElement) {
+            document.exitFullscreen().catch(err => console.log(err));
+        }
+        setIsFullscreen(false);
+    };
+
+    // Sync state if user presses ESC to exit fullscreen
+    useEffect(() => {
+        const onFullscreenChange = () => {
+            if (!document.fullscreenElement) {
+                setIsFullscreen(false);
+            }
+        };
+        document.addEventListener('fullscreenchange', onFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+    }, []);
+
     if (isFullscreen && selectedAssignment.type === 'native_code') {
         return (
-            <div className="fixed inset-0 z-[9999] h-[100dvh] w-screen bg-background flex flex-col overflow-hidden animate-in fade-in duration-200">
+            <div ref={fullscreenContainerRef} className="fixed inset-0 z-[9999] h-[100dvh] w-screen bg-background flex flex-col overflow-hidden animate-in fade-in duration-200">
                 <div className="absolute top-4 right-4 z-10">
                     <button
-                        onClick={() => setIsFullscreen(false)}
+                        onClick={handleExitFullscreen}
                         className="bg-slate-900/80 hover:bg-slate-900 text-white p-3 rounded-full shadow-lg backdrop-blur-sm transition-all flex items-center gap-2 font-medium"
                     >
                         <Minimize className="w-5 h-5" />
                         Thu nhỏ
                     </button>
                 </div>
-                <div className="flex-1 w-full relative">
+                <div className="flex-1 w-full relative bg-white">
                     <iframe
                         srcDoc={embed}
                         className="w-full h-full border-none absolute inset-0"
@@ -219,7 +250,7 @@ ${embed}
 
            {selectedAssignment.type === 'native_code' && (
                <button
-                   onClick={() => setIsFullscreen(true)}
+                   onClick={handleEnterFullscreen}
                    className="absolute top-6 right-6 p-2 bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 rounded-lg transition-colors border border-slate-200 shadow-sm z-10"
                    title="Phóng to (Mở toàn màn hình)"
                >
