@@ -215,6 +215,7 @@ ${embed}
                 </div>
                 <div className="flex-1 w-full relative bg-white">
                     <iframe
+                        key={`fullscreen-${selectedAssignment.id}`}
                         srcDoc={embed}
                         className="w-full h-full border-none absolute inset-0"
                         title={title}
@@ -261,6 +262,7 @@ ${embed}
            <div className={`flex-1 w-full relative overflow-hidden ${selectedAssignment.type !== 'native_code' ? 'bg-slate-50 rounded-lg border border-slate-200' : 'bg-white rounded-lg border border-slate-200'}`}>
               {selectedAssignment.type === 'native_code' ? (
                   <iframe
+                      key={`inline-${selectedAssignment.id}`}
                       srcDoc={embed}
                       className="w-full h-full border-none absolute inset-0"
                       title={title}
