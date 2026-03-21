@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { useNavigate } from 'react-router-dom';
 import { assignmentService } from '../../services/assignment.service';
 import { Assignment } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
