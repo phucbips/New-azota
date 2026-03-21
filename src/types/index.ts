@@ -41,7 +41,17 @@ export interface Announcement {
   isActive: boolean;
 }
 
-export type AssignmentType = 'embed' | 'video' | 'native_code';
+export type AssignmentType = 'embed' | 'video' | 'native_code' | 'smart_exam';
+export type QuestionType = 'multiple_choice' | 'checkbox' | 'short_answer' | 'essay';
+
+export interface Question {
+  id: string;
+  type: QuestionType;
+  text: string;
+  options?: string[]; // for multiple_choice, checkbox
+  correctAnswers: string[]; // array of exact matches or correct options
+  points: number;
+}
 
 export interface Assignment {
   id?: string;
@@ -51,6 +61,10 @@ export interface Assignment {
   description?: string; // Optional/Deprecated
   type?: AssignmentType; // Make optional for backward compatibility
   embedUrl: string; // Renamed from embedCode (holds URL for embed/video, or default HTML for native_code)
+  questions?: Question[]; // Array of structured questions for 'smart_exam' type
+  totalPoints?: number; // Pre-calculated total points
+  timeLimit?: number; // In minutes, optional
+  shuffleQuestions?: boolean; // Setting for exams
   coverImageUrl?: string; // New
   teacherId: string; // Renamed from createdByTeacherId
   creatorName?: string; // Optional field for displaying the creator name without a lookup

@@ -7,6 +7,8 @@ import CloudinaryUploadWidget from '../ui/CloudinaryUploadWidget';
 import { SubjectSelector } from './SubjectSelector';
 import { Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { SmartExamBuilder } from './SmartExamBuilder';
+import { Question } from '../../types';
 
 const extractIframeSrc = (input: string) => {
   // Check if input looks like an iframe tag
@@ -24,7 +26,7 @@ const assignmentSchema = z.object({
   subject: z.string().min(1, "Subject is required"),
   topic: z.string().min(2, "Topic is required"),
   gradeLevel: z.coerce.number().min(10).max(12),
-  type: z.enum(['embed', 'video', 'native_code']).default('embed'),
+  type: z.enum(['embed', 'video', 'native_code', 'smart_exam']).default('embed'),
   embedUrl: z.string().transform(extractIframeSrc), // Removed strict URL validation to allow raw HTML/code when type is native_code
   coverImageUrl: z.string().optional(),
 });
@@ -67,9 +69,15 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
   const type = watch('type');
   const coverImageUrl = watch('coverImageUrl');
 
+  const [smartQuestions, setSmartQuestions] = React.useState<Question[]>(defaultValues?.questions || []);
+
   const handleFormSubmit = async (data: AssignmentFormData) => {
     try {
-      await onSubmit(data);
+      // Pass the questions array if it's a smart exam
+      const finalData = data.type === 'smart_exam'
+          ? { ...data, questions: smartQuestions }
+          : data;
+      await onSubmit(finalData as any);
     } catch (error) {
       console.error(error);
       toast.error('Failed to save assignment');
@@ -132,12 +140,20 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
                 <option value="embed">Bài tập (Azota, Quizlet...)</option>
                 <option value="video">Video (Youtube...)</option>
                 <option value="native_code">Thiết kế Trực tiếp (HTML/JS)</option>
+                <option value="smart_exam">Đề thi Thông minh (DOCX/AI)</option>
               </select>
             </div>
         </div>
 
         {/* Content Input (Depends on type) */}
-        {type === 'native_code' ? (
+        {type === 'smart_exam' ? (
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                <SmartExamBuilder
+                    questions={smartQuestions}
+                    onChange={setSmartQuestions}
+                />
+            </div>
+        ) : type === 'native_code' ? (
             <div className="flex flex-col gap-3">
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
                   <p className="font-bold mb-1">Tạo bài tập tự động (HTML/JS Native):</p>
