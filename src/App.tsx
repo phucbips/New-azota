@@ -19,6 +19,7 @@ const TeacherLayout = React.lazy(() => import('./layouts/TeacherLayout').then(mo
 const StudentLayout = React.lazy(() => import('./layouts/StudentLayout').then(module => ({ default: module.StudentLayout })));
 
 // Lazy load Admin Pages
+const SmartAssignmentBuilderPage = React.lazy(() => import('./pages/shared/SmartAssignmentBuilderPage').then(module => ({ default: module.SmartAssignmentBuilderPage })));
 const AdminOverview = React.lazy(() => import('./pages/admin/Overview').then(module => ({ default: module.AdminOverview })));
 const AdminUsers = React.lazy(() => import('./pages/admin/Users').then(module => ({ default: module.AdminUsers })));
 const AdminAssignments = React.lazy(() => import('./pages/admin/Assignments').then(module => ({ default: module.AdminAssignments })));
@@ -90,6 +91,7 @@ function App() {
               <Route index element={<AdminOverview />} />
               <Route path="users" element={<AdminUsers />} />
               <Route path="assignments" element={<AdminAssignments />} />
+              <Route path="assignments/builder" element={<SmartAssignmentBuilderPage />} />
               <Route path="courses" element={<AdminCourses />} />
               <Route path="orders" element={<AdminOrders />} />
               <Route path="vouchers" element={<AdminVouchers />} />
@@ -110,6 +112,7 @@ function App() {
             >
               <Route index element={<TeacherOverview />} />
               <Route path="assignments" element={<TeacherAssignments />} />
+              <Route path="assignments/builder" element={<SmartAssignmentBuilderPage />} />
               <Route path="courses" element={<TeacherCourses />} />
               <Route path="settings" element={<TeacherSettings />} />
               <Route path="profile" element={<TeacherProfile />} />

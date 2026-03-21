@@ -67,6 +67,8 @@ export const AdminAssignments: React.FC = () => {
       }
   };
 
+  const navigate = useNavigate();
+
   const handleSubmit = async (data: any) => {
       setLoading(true);
       try {
@@ -76,15 +78,25 @@ export const AdminAssignments: React.FC = () => {
                   gradeLevel: Number(data.gradeLevel)
               });
               toast.success('Assignment updated');
+              if (data.type === 'smart_exam') {
+                  // We need to pass courseId, but Assignment schema might not enforce it at top-level if it's not tied to a course in this list.
+                  // If courseId is available in data, pass it, otherwise pass a generic 'admin' or empty string.
+                  navigate(`/admin/assignments/builder?id=${editingAssignment.id}&courseId=${data.courseId || 'general'}`);
+                  return;
+              }
           } else {
               if (!user) return;
-              await assignmentService.createAssignment({
+              const newAssignmentId = await assignmentService.createAssignment({
                   ...data,
                   gradeLevel: Number(data.gradeLevel),
                   teacherId: user.uid, // Admin creating assignment
                   creatorName: user.displayName || user.email || 'Admin'
               });
               toast.success('Assignment created');
+              if (data.type === 'smart_exam' && newAssignmentId) {
+                  navigate(`/admin/assignments/builder?id=${newAssignmentId}&courseId=${data.courseId || 'general'}`);
+                  return;
+              }
           }
           setIsModalOpen(false);
       } catch (error) {
