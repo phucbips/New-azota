@@ -47,11 +47,6 @@ export const ProfilePage: React.FC = () => {
                 alt={user?.displayName || 'Profile'}
                 className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md bg-slate-100"
               />
-              {user?.isWhitelisted && (
-                <span className="absolute -bottom-1 -right-1 bg-green-500 text-white rounded-full p-1.5 shadow">
-                  <BadgeCheck className="w-4 h-4" />
-                </span>
-              )}
               <button
                 onClick={() => setIsEditingAvatar(true)}
                 className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
@@ -79,7 +74,7 @@ export const ProfilePage: React.FC = () => {
             )}
             <span className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1 rounded-full bg-emerald-50 text-emerald-700">
               <BadgeCheck className="w-4 h-4" />
-              {user?.isWhitelisted ? 'Active' : 'Inactive'}
+              Active
             </span>
           </div>
         </div>
@@ -99,9 +94,7 @@ export const ProfilePage: React.FC = () => {
             Account Status
           </div>
           <p className="text-sm text-slate-600 mt-2">
-            {user?.isWhitelisted
-              ? 'Tài khoản đã được kích hoạt.'
-              : 'Tài khoản đang chờ kích hoạt.'}
+            Tài khoản đã được kích hoạt.
           </p>
         </div>
       </div>

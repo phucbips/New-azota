@@ -1,6 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import PayOS from '@payos/node';
 import * as admin from 'firebase-admin';
+import { createHmac } from 'crypto';
 
 if (!admin.apps.length) {
     try {
@@ -23,26 +23,61 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-        const payOS = new PayOS(
-            process.env.PAYOS_CLIENT_ID || '',
-            process.env.PAYOS_API_KEY || '',
-            process.env.PAYOS_CHECKSUM_KEY || ''
-        );
+        const checksumKey = process.env.PAYOS_CHECKSUM_KEY || '';
 
-        // PayOS Dashboard often sends a test webhook to verify the URL
-        // It might not have the full structure. We should wrap verification in a try/catch
-        // but ALWAYS return 200 OK so PayOS accepts our URL.
-        let webhookData;
-        try {
-            webhookData = payOS.verifyPaymentWebhookData(req.body);
-        } catch (verifyError: any) {
-            console.error('PayOS Signature Verification Failed (might be a test ping):', verifyError.message);
-            // Return 200 OK anyway so the Webhook can be successfully added in the PayOS dashboard
-            return res.status(200).json({ success: true, message: 'Webhook URL verified (signature check failed but accepted)' });
+        if (!checksumKey) {
+            console.error('Missing PayOS Checksum Key.');
+            return res.status(200).json({ success: false, message: 'Server missing config' });
         }
 
-        if (webhookData.code === '00' && webhookData.success) {
-            const orderCode = webhookData.data.orderCode;
+        // --- Custom Manual Signature Verification (from PayOS documentation) ---
+        const webhookDataRaw = req.body;
+
+        // If it's just a test ping to add webhook URL
+        if (!webhookDataRaw.data || !webhookDataRaw.signature) {
+            return res.status(200).json({ success: true, message: 'Webhook URL verified' });
+        }
+
+        function sortObjDataByKey(object: any) {
+            return Object.keys(object)
+                .sort()
+                .reduce((obj: any, key: string) => {
+                    obj[key] = object[key];
+                    return obj;
+                }, {});
+        }
+
+        function convertObjToQueryStr(object: any) {
+            return Object.keys(object)
+                .filter((key) => object[key] !== undefined)
+                .map((key) => {
+                    let value = object[key];
+                    if (value && Array.isArray(value)) {
+                        value = JSON.stringify(value.map((val) => sortObjDataByKey(val)));
+                    }
+                    if ([null, undefined, 'undefined', 'null'].includes(value)) {
+                        value = '';
+                    }
+                    return `${key}=${value}`;
+                })
+                .join('&');
+        }
+
+        const sortedDataByKey = sortObjDataByKey(webhookDataRaw.data);
+        const dataQueryStr = convertObjToQueryStr(sortedDataByKey);
+        const expectedSignature = createHmac('sha256', checksumKey).update(dataQueryStr).digest('hex');
+
+        if (expectedSignature !== webhookDataRaw.signature) {
+            console.error('PayOS Invalid Signature:', {
+                expected: expectedSignature,
+                received: webhookDataRaw.signature
+            });
+            // Still return 200 to satisfy webhook tests, but do NOT process order
+            return res.status(200).json({ success: false, message: 'Invalid Signature' });
+        }
+
+        if (webhookDataRaw.code === '00' && webhookDataRaw.data && webhookDataRaw.data.orderCode) {
+            const orderCode = webhookDataRaw.data.orderCode;
 
             // Check if Firebase Admin is initialized
             if (!admin.apps.length) {
@@ -68,15 +103,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     paidAt: admin.firestore.FieldValue.serverTimestamp()
                 });
 
-                // Update course enrollments
+                // Update course enrollments & user access
                 if (orderData.items && Array.isArray(orderData.items)) {
+                    const courseIds: string[] = [];
                     for (const item of orderData.items) {
+                        courseIds.push(item.courseId);
                         const cRef = db.collection('courses').doc(item.courseId);
                         await db.runTransaction(async (t) => {
                             const cDoc = await t.get(cRef);
                             if (cDoc.exists) {
                                 t.update(cRef, { enrollmentCount: admin.firestore.FieldValue.increment(1) });
                             }
+                        });
+                    }
+
+                    // Automatically add the courses to the user's enrolledCourses array
+                    if (orderData.userId && courseIds.length > 0) {
+                        const userRef = db.collection('users').doc(orderData.userId);
+                        await userRef.update({
+                            enrolledCourses: admin.firestore.FieldValue.arrayUnion(...courseIds)
                         });
                     }
                 }

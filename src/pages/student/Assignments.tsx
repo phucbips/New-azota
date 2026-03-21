@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { assignmentService } from '../../services/assignment.service';
+import { Course, courseService } from '../../services/course.service';
 import { Assignment } from '../../types';
-import { BookOpen, ChevronRight, AlertCircle, Clock, ArrowLeft } from 'lucide-react';
+import { BookOpen, ChevronRight, AlertCircle, Clock, ArrowLeft, Maximize, Minimize } from 'lucide-react';
 import { formatDate, safeString } from '../../lib/formatters';
 import { SubjectFilterBar } from '../../components/student/SubjectFilterBar';
 import { StudentSupportWidget } from '../../components/student/StudentSupportWidget';
@@ -13,27 +14,68 @@ export const StudentAssignments: React.FC = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const searchQuery = (searchParams.get('q') || '').toLowerCase();
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [allAssignments, setAllAssignments] = useState<Assignment[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
-  const [isFetching, setIsFetching] = useState(true);
+  const [isFetchingAssignments, setIsFetchingAssignments] = useState(true);
+  const [isFetchingCourses, setIsFetchingCourses] = useState(true);
 
   // Filter States
   const [selectedSubject, setSelectedSubject] = useState('All');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const fullscreenContainerRef = React.useRef<HTMLDivElement>(null);
+
+  // Sync state if user presses ESC to exit fullscreen
+  useEffect(() => {
+      const onFullscreenChange = () => {
+          if (!document.fullscreenElement) {
+              setIsFullscreen(false);
+          }
+      };
+      document.addEventListener('fullscreenchange', onFullscreenChange);
+      return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, []);
 
   useEffect(() => {
-    // Only fetch if user has a grade
-    if (!user || !user.grade || !user.isWhitelisted) return;
-
-    // The service now expects a number for gradeLevel, but user.grade is string '10', '11', '12'
-    const gradeNum = parseInt(user.grade, 10);
-    if (isNaN(gradeNum)) return;
-
-    const unsubscribe = assignmentService.subscribeToGradeAssignments(gradeNum, (data) => {
-      setAssignments(data);
-      setIsFetching(false);
+    if (!user) {
+        setIsFetchingCourses(false);
+        return;
+    }
+    const unsubCourses = courseService.subscribeToCourses((data) => {
+        setCourses(data);
+        setIsFetchingCourses(false);
     });
-    return () => unsubscribe();
+    return () => unsubCourses();
   }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+        setIsFetchingAssignments(false);
+        return;
+    }
+    const unsubAssignments = assignmentService.subscribeToAllAssignments((data) => {
+        setAllAssignments(data);
+        setIsFetchingAssignments(false);
+    });
+    return () => unsubAssignments();
+  }, [user]);
+
+  const isLoading = isFetchingAssignments || isFetchingCourses;
+
+  const assignments = useMemo(() => {
+      if (!user) return [];
+      const enrolledCourseIds = user.enrolledCourses || [];
+      const activeEnrolledCourses = courses.filter(c => enrolledCourseIds.includes(c.id));
+
+      const allowedAssignmentIds = new Set<string>();
+      activeEnrolledCourses.forEach(c => {
+          if (c.assignmentIds) {
+              c.assignmentIds.forEach(id => allowedAssignmentIds.add(id));
+          }
+      });
+
+      return allAssignments.filter(a => a.id && allowedAssignmentIds.has(a.id));
+  }, [user, courses, allAssignments]);
 
   // Extract unique subjects
   const availableSubjects = useMemo(() => {
@@ -69,6 +111,33 @@ export const StudentAssignments: React.FC = () => {
   const embedHtml = useMemo(() => {
     if (!selectedAssignment) return '';
     const embed = safeString(selectedAssignment.embedUrl);
+
+    if (selectedAssignment.type === 'native_code') {
+        // For HTML code, ensure it has a viewport meta tag so mobile browsers scale it correctly.
+        // If it's just a raw snippet, wrap it in a basic HTML5 boilerplate.
+        if (embed.toLowerCase().includes('<html')) {
+            if (!embed.toLowerCase().includes('name="viewport"')) {
+                return embed.replace(/<head>/i, '<head>\n<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">');
+            }
+            return embed;
+        } else {
+            return `<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.5; padding: 1rem; margin: 0; color: #1e293b; }
+        img { max-width: 100%; height: auto; }
+        @media (max-width: 640px) { body { font-size: 16px; padding: 0.75rem; } }
+    </style>
+</head>
+<body>
+${embed}
+</body>
+</html>`;
+        }
+    }
 
     if (!embed.startsWith('<iframe')) return embed;
 
@@ -113,24 +182,41 @@ export const StudentAssignments: React.FC = () => {
     const targetGrade = String(selectedAssignment.gradeLevel);
     const subjectTitle = safeString(selectedAssignment.subject || 'Chung');
 
-    // If it's native code, we want to render it as fully and natively as possible.
-    if (selectedAssignment.type === 'native_code') {
+    const handleEnterFullscreen = () => {
+        setIsFullscreen(true);
+        // Delay slightly to ensure the DOM element is rendered before requesting
+        setTimeout(() => {
+            if (fullscreenContainerRef.current) {
+                fullscreenContainerRef.current.requestFullscreen().catch(err => {
+                    console.log("Error attempting to enable fullscreen:", err.message);
+                });
+            }
+        }, 50);
+    };
+
+    const handleExitFullscreen = () => {
+        if (document.fullscreenElement) {
+            document.exitFullscreen().catch(err => console.log(err));
+        }
+        setIsFullscreen(false);
+    };
+
+    if (isFullscreen && selectedAssignment.type === 'native_code') {
         return (
-            <div className="fixed inset-0 z-[100] bg-background flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
-                <div className="h-14 border-b border-border bg-card flex items-center justify-between px-4 shrink-0 shadow-sm z-10">
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => setSelectedAssignment(null)}
-                            className="mr-2 flex items-center gap-2 text-muted-foreground hover:text-foreground font-medium transition-colors text-sm"
-                        >
-                           <ArrowLeft className="w-4 h-4" />
-                           Back to Assignments {subjectTitle} Grade {targetGrade} • {topic}
-                        </button>
-                    </div>
+            <div ref={fullscreenContainerRef} className="fixed inset-0 z-[9999] h-[100dvh] w-screen bg-background flex flex-col overflow-hidden animate-in fade-in duration-200">
+                <div className="absolute top-4 right-4 z-10">
+                    <button
+                        onClick={handleExitFullscreen}
+                        className="bg-slate-900/80 hover:bg-slate-900 text-white p-3 rounded-full shadow-lg backdrop-blur-sm transition-all flex items-center gap-2 font-medium"
+                    >
+                        <Minimize className="w-5 h-5" />
+                        Thu nhỏ
+                    </button>
                 </div>
-                <div className="flex-1 w-full bg-background relative">
+                <div className="flex-1 w-full relative bg-white">
                     <iframe
-                        srcDoc={selectedAssignment.embedUrl}
+                        key={`fullscreen-${selectedAssignment.id}`}
+                        srcDoc={embed}
                         className="w-full h-full border-none absolute inset-0"
                         title={title}
                         sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin"
@@ -156,16 +242,34 @@ export const StudentAssignments: React.FC = () => {
             </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 min-h-[600px] flex flex-col">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 min-h-[600px] flex flex-col relative group">
            {description && description !== topic && (
-               <div className="mb-6">
+               <div className="mb-6 pr-12">
                    <p className="text-slate-600 leading-relaxed">{description}</p>
                </div>
            )}
 
-           <div className="flex-1 w-full bg-slate-50 rounded-lg border border-slate-200 relative overflow-hidden">
-              {selectedAssignment.type === 'video' ? (
-                  <div className="w-full h-full flex items-center justify-center bg-black">
+           {selectedAssignment.type === 'native_code' && (
+               <button
+                   onClick={handleEnterFullscreen}
+                   className="absolute top-6 right-6 p-2 bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 rounded-lg transition-colors border border-slate-200 shadow-sm z-10"
+                   title="Phóng to (Mở toàn màn hình)"
+               >
+                   <Maximize className="w-5 h-5" />
+               </button>
+           )}
+
+           <div className={`flex-1 w-full relative overflow-hidden ${selectedAssignment.type !== 'native_code' ? 'bg-slate-50 rounded-lg border border-slate-200' : 'bg-white rounded-lg border border-slate-200'}`}>
+              {selectedAssignment.type === 'native_code' ? (
+                  <iframe
+                      key={`inline-${selectedAssignment.id}`}
+                      srcDoc={embed}
+                      className="w-full h-full border-none absolute inset-0"
+                      title={title}
+                      sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin"
+                  />
+              ) : selectedAssignment.type === 'video' ? (
+                  <div className="w-full h-full flex items-center justify-center bg-black absolute inset-0">
                       <iframe
                           src={selectedAssignment.embedUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
                           className="w-full h-full max-w-4xl max-h-[600px] aspect-video"
@@ -226,7 +330,7 @@ export const StudentAssignments: React.FC = () => {
             />
         </div>
 
-        {isFetching ? (
+        {isLoading ? (
             <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
                 <Skeleton className="h-6 w-1/3" />
                 <Skeleton className="h-40 w-full" />
@@ -294,10 +398,7 @@ export const StudentAssignments: React.FC = () => {
                     <BookOpen className="w-16 h-16 text-blue-600" />
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 mb-2">Bạn chưa có bài tập nào</h3>
-                <p className="text-slate-500 max-w-sm mx-auto mb-6">Hãy tham gia hoặc mua thêm khóa học để mở khóa bài tập mới nhé.</p>
-                <Link to="/student/courses" className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-md">
-                    Khám phá Khóa học
-                </Link>
+                <p className="text-slate-500 max-w-sm mx-auto mb-6">Bạn chưa được cấp quyền truy cập khóa học nào. Vui lòng liên hệ Admin để được hỗ trợ nhé.</p>
             </div>
         )}
 

@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { useNavigate } from 'react-router-dom';
 import { assignmentService } from '../../services/assignment.service';
 import { Assignment } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
@@ -67,6 +68,8 @@ export const TeacherAssignments: React.FC = () => {
       }
   };
 
+  const navigate = useNavigate();
+
   const handleSubmit = async (data: any) => {
       setLoading(true);
       try {
@@ -76,14 +79,22 @@ export const TeacherAssignments: React.FC = () => {
                   gradeLevel: Number(data.gradeLevel)
               });
               toast.success('Assignment updated');
+              if (data.type === 'smart_exam') {
+                  navigate(`/teacher/assignments/builder?id=${editingAssignment.id}&courseId=${data.courseId || 'general'}`);
+                  return;
+              }
           } else {
-              await assignmentService.createAssignment({
+              const newAssignmentId = await assignmentService.createAssignment({
                   ...data,
                   gradeLevel: Number(data.gradeLevel),
                   teacherId: user!.uid,
                   creatorName: user!.displayName || user!.email
               });
               toast.success('Assignment created');
+              if (data.type === 'smart_exam' && newAssignmentId) {
+                  navigate(`/teacher/assignments/builder?id=${newAssignmentId}&courseId=${data.courseId || 'general'}`);
+                  return;
+              }
           }
           setIsModalOpen(false);
       } catch (error) {

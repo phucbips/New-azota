@@ -9,6 +9,25 @@ import { useCart } from '../../contexts/CartContext';
 import { toast } from 'sonner';
 
 export const PublicCourses: React.FC = () => {
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      <Navbar />
+      <div className="flex-1 flex flex-col items-center justify-center py-20 px-4 text-center">
+        <div className="bg-muted p-6 rounded-full mb-6">
+          <BookOpen className="w-16 h-16 text-muted-foreground" />
+        </div>
+        <h1 className="text-3xl font-bold text-foreground mb-4">Hệ thống đang bảo trì thanh toán</h1>
+        <p className="text-muted-foreground max-w-lg mb-8">
+          Tính năng đăng ký và mua khóa học tự động hiện đang tạm ngưng để nâng cấp. Vui lòng liên hệ trực tiếp với Quản trị viên (Admin) hoặc qua Fanpage để được tư vấn và cấp quyền truy cập khóa học.
+        </p>
+        <Link to="/" className="px-6 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-colors">
+          Quay lại trang chủ
+        </Link>
+      </div>
+      <Footer />
+    </div>
+  );
+
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();

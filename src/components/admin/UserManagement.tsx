@@ -33,7 +33,6 @@ export const UserManagement: React.FC = () => {
   // Edit Mode State
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [enrollingUser, setEnrollingUser] = useState<User | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
 
   // Filter States - Simplified as Table handles search, but we might want advanced filtering later
@@ -197,27 +196,9 @@ export const UserManagement: React.FC = () => {
         cell: ({ row }) => formatLastActive(row.original)
     },
     {
-        accessorKey: "isWhitelisted",
-        header: "Trạng thái",
-        cell: ({ row }) => (
-            <div className="flex items-center gap-2">
-                <div className={`h-2 w-2 rounded-full ${row.original.isWhitelisted ? 'bg-green-500' : 'bg-slate-300'}`}></div>
-                <span className="text-sm text-muted-foreground">{row.original.isWhitelisted ? 'Active' : 'Inactive'}</span>
-            </div>
-        )
-    },
-    {
         id: "actions",
         cell: ({ row }) => (
             <div className="flex items-center justify-end gap-2">
-                {row.original.role === 'student' && (
-                    <button
-                        onClick={() => setEnrollingUser(row.original)}
-                        className="text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 px-2 py-1 rounded-md transition-colors"
-                    >
-                        Cấp khóa học
-                    </button>
-                )}
                 <button onClick={() => handleEdit(row.original)} className="text-muted-foreground hover:text-primary p-1"><Edit2 className="w-5 h-5" /></button>
                 <button onClick={() => handleDelete(row.original.uid)} className="text-muted-foreground hover:text-destructive p-1"><Trash2 className="w-5 h-5" /></button>
             </div>
@@ -320,6 +301,7 @@ export const UserManagement: React.FC = () => {
       {isEditModalOpen && editingUser && (
           <EditUserModal
              user={editingUser}
+             courses={courses}
              onClose={() => setIsEditModalOpen(false)}
              onUpdate={() => {
                  setIsEditModalOpen(false);
@@ -328,110 +310,28 @@ export const UserManagement: React.FC = () => {
           />
       )}
 
-      {/* Enroll Modal */}
-      {enrollingUser && (
-          <EnrollUserModal
-              user={enrollingUser}
-              courses={courses}
-              onClose={() => setEnrollingUser(null)}
-          />
-      )}
     </div>
   );
 };
 
-const EnrollUserModal: React.FC<{ user: User, courses: Course[], onClose: () => void }> = ({ user, courses, onClose }) => {
-    const [selectedCourseId, setSelectedCourseId] = useState('');
-    const [loading, setLoading] = useState(false);
-
-    const handleEnroll = async () => {
-        if (!selectedCourseId) return toast.error("Vui lòng chọn khóa học");
-        setLoading(true);
-        try {
-            const course = courses.find(c => c.id === selectedCourseId);
-            if (!course) return;
-
-            // Admin manual enrollment bypasses payment, direct to paid status
-            await orderService.createOrder({
-                userId: user.uid,
-                userEmail: user.email,
-                userName: user.displayName || user.email,
-                items: [{ courseId: course.id, courseTitle: course.title, price: 0 }],
-                originalAmount: 0,
-                discount: 0,
-                amount: 0,
-                paymentMethod: 'cash',
-                status: 'paid', // Immediately paid/active
-            });
-
-            // Update course enrollment count
-            await courseService.updateCourse(course.id, {
-                enrollmentCount: (course.enrollmentCount || 0) + 1
-            });
-
-            toast.success(`Đã cấp khóa học cho ${user.email}`);
-            onClose();
-        } catch (error) {
-            console.error(error);
-            toast.error("Lỗi cấp khóa học");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn px-4">
-            <div className="bg-card p-6 rounded-xl w-full max-w-md shadow-2xl border border-border">
-                <h3 className="text-xl font-bold mb-4 text-card-foreground">Cấp khóa học cho học sinh</h3>
-                <p className="text-sm text-muted-foreground mb-4">Học sinh: {user.email}</p>
-
-                <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium mb-1 text-muted-foreground">Chọn khóa học</label>
-                        <select
-                            value={selectedCourseId}
-                            onChange={(e) => setSelectedCourseId(e.target.value)}
-                            className="w-full p-2.5 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary outline-none"
-                        >
-                            <option value="">-- Chọn khóa học --</option>
-                            {courses.map(course => (
-                                <option key={course.id} value={course.id}>{course.title}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-4">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-4 py-2 text-muted-foreground hover:bg-muted rounded-lg transition-colors"
-                        >
-                            Hủy
-                        </button>
-                        <button
-                            onClick={handleEnroll}
-                            disabled={loading || !selectedCourseId}
-                            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
-                        >
-                            {loading ? 'Đang cấp...' : 'Cấp quyền truy cập'}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const EditUserModal: React.FC<{ user: User, onClose: () => void, onUpdate: () => void }> = ({ user, onClose, onUpdate }) => {
+const EditUserModal: React.FC<{ user: User, courses: Course[], onClose: () => void, onUpdate: () => void }> = ({ user, courses, onClose, onUpdate }) => {
     const { register, handleSubmit, watch } = useForm({
         defaultValues: {
             role: user.role,
             grade: user.grade || '10',
-            isWhitelisted: user.isWhitelisted
         }
     });
     const [loading, setLoading] = useState(false);
+    const [selectedCourses, setSelectedCourses] = useState<string[]>(user.enrolledCourses || []);
     const selectedRole = watch('role');
+
+    const toggleCourse = (courseId: string) => {
+        if (selectedCourses.includes(courseId)) {
+            setSelectedCourses(selectedCourses.filter(id => id !== courseId));
+        } else {
+            setSelectedCourses([...selectedCourses, courseId]);
+        }
+    };
 
     const onSubmit = async (data: any) => {
         setLoading(true);
@@ -439,12 +339,12 @@ const EditUserModal: React.FC<{ user: User, onClose: () => void, onUpdate: () =>
             await userService.updateUser(user.uid, {
                 role: data.role,
                 grade: data.role === 'student' ? data.grade : null,
-                isWhitelisted: data.isWhitelisted
+                enrolledCourses: selectedCourses,
             });
-            toast.success('User updated successfully');
+            toast.success('Cập nhật người dùng thành công');
             onUpdate();
         } catch (error) {
-            toast.error('Update failed');
+            toast.error('Cập nhật thất bại');
             console.error(error);
         } finally {
             setLoading(false);
@@ -484,14 +384,31 @@ const EditUserModal: React.FC<{ user: User, onClose: () => void, onUpdate: () =>
                         </div>
                     )}
 
-                    <div className="flex items-center gap-2 pt-2">
-                        <input
-                            type="checkbox"
-                            id="isWhitelisted"
-                            {...register('isWhitelisted')}
-                            className="w-4 h-4 text-primary rounded focus:ring-primary"
-                        />
-                        <label htmlFor="isWhitelisted" className="text-sm font-medium text-muted-foreground">Active Account (Whitelisted)</label>
+                    <div className="pt-2">
+                        <label className="block text-sm font-medium mb-2 text-foreground">Phân quyền Khóa học / Môn học</label>
+                        <div className="space-y-2 max-h-48 overflow-y-auto border border-border p-3 rounded-lg bg-background">
+                            {courses.map(course => (
+                                <div key={course.id} className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        id={`course-${course.id}`}
+                                        checked={selectedCourses.includes(course.id)}
+                                        onChange={() => toggleCourse(course.id)}
+                                        className="w-4 h-4 text-primary rounded focus:ring-primary"
+                                    />
+                                    <label htmlFor={`course-${course.id}`} className="text-sm font-medium text-muted-foreground flex-1 cursor-pointer flex justify-between">
+                                        <span>{course.title}</span>
+                                        <span className={selectedCourses.includes(course.id) ? "text-emerald-600 font-bold" : "text-slate-400"}>
+                                            {selectedCourses.includes(course.id) ? "(Đã mua)" : "(Chưa mua)"}
+                                        </span>
+                                    </label>
+                                </div>
+                            ))}
+                            {courses.length === 0 && (
+                                <p className="text-xs text-muted-foreground">Chưa có khóa học nào hoạt động.</p>
+                            )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">Người dùng sẽ nhận được tất cả bài tập thuộc các khóa học được chọn.</p>
                     </div>
 
                     <div className="flex justify-end gap-3 pt-4">

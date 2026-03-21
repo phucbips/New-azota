@@ -7,6 +7,8 @@ import CloudinaryUploadWidget from '../ui/CloudinaryUploadWidget';
 import { SubjectSelector } from './SubjectSelector';
 import { Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { SmartExamBuilder } from './SmartExamBuilder';
+import { Question } from '../../types';
 
 const extractIframeSrc = (input: string) => {
   // Check if input looks like an iframe tag
@@ -24,7 +26,7 @@ const assignmentSchema = z.object({
   subject: z.string().min(1, "Subject is required"),
   topic: z.string().min(2, "Topic is required"),
   gradeLevel: z.coerce.number().min(10).max(12),
-  type: z.enum(['embed', 'video', 'native_code']).default('embed'),
+  type: z.enum(['embed', 'video', 'native_code', 'smart_exam']).default('embed'),
   embedUrl: z.string().transform(extractIframeSrc), // Removed strict URL validation to allow raw HTML/code when type is native_code
   coverImageUrl: z.string().optional(),
 });
@@ -67,9 +69,15 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
   const type = watch('type');
   const coverImageUrl = watch('coverImageUrl');
 
+  const [smartQuestions, setSmartQuestions] = React.useState<Question[]>(defaultValues?.questions || []);
+
   const handleFormSubmit = async (data: AssignmentFormData) => {
     try {
-      await onSubmit(data);
+      // Pass the questions array if it's a smart exam
+      const finalData = data.type === 'smart_exam'
+          ? { ...data, questions: smartQuestions }
+          : data;
+      await onSubmit(finalData as any);
     } catch (error) {
       console.error(error);
       toast.error('Failed to save assignment');
@@ -132,12 +140,24 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
                 <option value="embed">Bài tập (Azota, Quizlet...)</option>
                 <option value="video">Video (Youtube...)</option>
                 <option value="native_code">Thiết kế Trực tiếp (HTML/JS)</option>
+                <option value="smart_exam">Đề thi Thông minh (DOCX/AI)</option>
               </select>
             </div>
         </div>
 
         {/* Content Input (Depends on type) */}
-        {type === 'native_code' ? (
+        {type === 'smart_exam' ? (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 shadow-sm flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m10 10-2 2 2 2"/><path d="m14 14 2-2-2-2"/></svg>
+                </div>
+                <h4 className="text-lg font-bold text-slate-800 mb-2">Đề thi Thông minh</h4>
+                <p className="text-slate-600 mb-6 max-w-sm">Tạo đề thi từ file DOCX hoặc văn bản thô, hỗ trợ nhận diện tự động bằng AI và Regex.</p>
+                <div className="text-sm text-amber-700 bg-amber-50 px-4 py-3 rounded-lg border border-amber-200 font-medium">
+                    Tính năng này yêu cầu không gian làm việc rộng. Sau khi nhấn "Save", bạn sẽ được chuyển đến trang Builder toàn màn hình để tải lên đề và biên tập chi tiết.
+                </div>
+            </div>
+        ) : type === 'native_code' ? (
             <div className="flex flex-col gap-3">
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
                   <p className="font-bold mb-1">Tạo bài tập tự động (HTML/JS Native):</p>

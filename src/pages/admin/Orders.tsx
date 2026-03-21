@@ -33,7 +33,9 @@ export const AdminOrders: React.FC = () => {
                   items.push({ courseId: order.courseId, courseTitle: order.courseTitle || '', price: order.amount });
               }
 
+              const courseIds: string[] = [];
               for (const item of items) {
+                  courseIds.push(item.courseId);
                   // This is a naive increment for demo. A real app uses Firestore increment() in the service
                   const cInfo = await courseService.getCourses();
                   const target = cInfo.find(c => c.id === item.courseId);
@@ -42,6 +44,18 @@ export const AdminOrders: React.FC = () => {
                           enrollmentCount: (target.enrollmentCount || 0) + 1
                       });
                   }
+              }
+
+              // Automatically add courses to the user's enrolledCourses array
+              if (order.userId && courseIds.length > 0) {
+                  import('../../services/user.service').then(({ userService }) => {
+                      userService.getUser(order.userId).then(u => {
+                          if (u) {
+                              const newEnrolled = new Set([...(u.enrolledCourses || []), ...courseIds]);
+                              userService.updateUser(u.uid, { enrolledCourses: Array.from(newEnrolled) });
+                          }
+                      });
+                  });
               }
           }
 

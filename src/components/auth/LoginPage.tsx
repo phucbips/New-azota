@@ -3,10 +3,17 @@ import { useAuth } from '../../hooks/useAuth';
 import { Modal } from '../shared/Modal';
 import { School, Loader2 } from 'lucide-react';
 
+import { useLocation, useNavigate } from 'react-router-dom';
+
 export const LoginPage: React.FC = () => {
   const { signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
-  // 'login' mode by default. 'register' when "Create account" is clicked.
-  const [isLogin, setIsLogin] = useState(true);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [isLogin, setIsLogin] = useState(!location.pathname.includes('/register'));
+
+  React.useEffect(() => {
+      setIsLogin(!location.pathname.includes('/register'));
+  }, [location.pathname]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -46,7 +53,13 @@ export const LoginPage: React.FC = () => {
 
   const toggleMode = (e: React.MouseEvent) => {
       e.preventDefault();
-      setIsLogin(!isLogin);
+      if (isLogin) {
+          navigate('/register');
+          setIsLogin(false);
+      } else {
+          navigate('/login');
+          setIsLogin(true);
+      }
       setModalState({ ...modalState, isOpen: false }); // Clear any errors
   };
 

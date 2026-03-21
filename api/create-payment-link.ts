@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import PayOS from '@payos/node';
+import { PayOS } from '@payos/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS configuration
@@ -27,11 +27,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Missing required parameters' });
     }
 
-    const payOS = new PayOS(
-      process.env.PAYOS_CLIENT_ID || '',
-      process.env.PAYOS_API_KEY || '',
-      process.env.PAYOS_CHECKSUM_KEY || ''
-    );
+    // Read directly from Environment Variables to prevent DB timeout/crash on Vercel
+    const clientId = process.env.PAYOS_CLIENT_ID || '';
+    const apiKey = process.env.PAYOS_API_KEY || '';
+    const checksumKey = process.env.PAYOS_CHECKSUM_KEY || '';
+
+    if (!clientId || !apiKey || !checksumKey) {
+        return res.status(500).json({
+            error: 'Missing PayOS Configuration',
+            message: 'Client ID, API Key, or Checksum Key is not configured. Please check Admin Settings or Environment Variables.'
+        });
+    }
+
+    const payOS = new PayOS({
+      clientId,
+      apiKey,
+      checksumKey
+    });
 
     const body = {
       orderCode: Number(orderCode),
@@ -41,7 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       cancelUrl,
     };
 
-    const paymentLinkResponse = await payOS.createPaymentLink(body);
+    const paymentLinkResponse = await payOS.paymentRequests.create(body);
 
     return res.status(200).json({
       checkoutUrl: paymentLinkResponse.checkoutUrl,
@@ -51,7 +63,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error('PayOS Error:', error);
     return res.status(500).json({
       error: 'Failed to create payment link',
-      message: error.message
+      message: error.message || String(error)
     });
   }
 }
