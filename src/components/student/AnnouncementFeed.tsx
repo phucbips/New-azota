@@ -19,7 +19,7 @@ export const AnnouncementFeed: React.FC = () => {
   }, []);
 
   if (loading) {
-    return <div className="animate-pulse h-40 bg-slate-100 rounded-xl"></div>;
+    return <div className="animate-pulse h-40 bg-muted rounded-xl"></div>;
   }
 
   if (announcements.length === 0) {
@@ -29,13 +29,13 @@ export const AnnouncementFeed: React.FC = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-2">
-        <Megaphone className="w-5 h-5 text-blue-600" />
-        <h2 className="text-lg font-bold text-slate-900">{t('home.announcements')}</h2>
+        <Megaphone className="w-5 h-5 text-primary" />
+        <h2 className="text-lg font-bold text-foreground">{t('home.announcements')}</h2>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {announcements.map((item) => (
-          <div key={item.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full">
+          <div key={item.id} className="bg-card border border-border rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full">
             {item.imageUrl && (
               <img
                 src={item.imageUrl}
@@ -43,10 +43,10 @@ export const AnnouncementFeed: React.FC = () => {
                 className="w-full h-40 object-cover rounded-lg mb-4"
               />
             )}
-            <h3 className="font-bold text-slate-900 mb-2 line-clamp-2">{item.title}</h3>
-            <p className="text-slate-600 text-sm mb-4 flex-1 whitespace-pre-wrap line-clamp-4">{item.content}</p>
+            <h3 className="font-bold text-card-foreground mb-2 line-clamp-2">{item.title}</h3>
+            <p className="text-muted-foreground text-sm mb-4 flex-1 whitespace-pre-wrap line-clamp-4">{item.content}</p>
 
-            <div className="flex items-center text-xs text-slate-400 mt-auto pt-2 border-t border-slate-100">
+            <div className="flex items-center text-xs text-muted-foreground mt-auto pt-2 border-t border-border">
               <Calendar className="w-3 h-3 mr-1" />
               {item.createdAt?.toMillis ? format(item.createdAt.toDate(), 'dd/MM/yyyy') : 'Unknown'}
             </div>

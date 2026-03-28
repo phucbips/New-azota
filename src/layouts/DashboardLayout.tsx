@@ -2,45 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import {
-  Menu, X, LogOut, LayoutDashboard, Users, BookOpen,
-  Settings, GraduationCap, FileText, Search, UserCircle, MessageSquare
+  Menu, X, LogOut, GraduationCap, Settings, Search
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { NotificationList } from '../components/shared/NotificationList';
 import { useTranslation } from 'react-i18next';
-
-interface NavItem {
-  label: string;
-  href: string;
-  icon: React.ReactNode;
-}
-
-// Helper to get nav items (moved inside component or made functional to support translation)
-const getNavItems = (t: any, role: string): NavItem[] => {
-    const items = {
-        admin: [
-            { label: t('sidebar.overview'), href: '/admin', icon: <LayoutDashboard className="w-6 h-6" /> },
-            { label: t('sidebar.users'), href: '/admin/users', icon: <Users className="w-6 h-6" /> },
-            { label: t('sidebar.assignments'), href: '/admin/assignments', icon: <FileText className="w-6 h-6" /> },
-            { label: t('sidebar.courses'), href: '/admin/courses', icon: <BookOpen className="w-6 h-6" /> },
-            { label: t('sidebar.communication'), href: '/admin/communication', icon: <MessageSquare className="w-6 h-6" /> },
-            { label: t('sidebar.profile'), href: '/admin/profile', icon: <UserCircle className="w-6 h-6" /> },
-        ],
-        teacher: [
-            { label: t('sidebar.dashboard'), href: '/teacher', icon: <LayoutDashboard className="w-6 h-6" /> },
-            { label: t('sidebar.assignments'), href: '/teacher/assignments', icon: <FileText className="w-6 h-6" /> },
-            { label: t('sidebar.courses'), href: '/teacher/courses', icon: <BookOpen className="w-6 h-6" /> },
-            { label: t('sidebar.profile'), href: '/teacher/profile', icon: <UserCircle className="w-6 h-6" /> },
-        ],
-        student: [
-            { label: t('sidebar.dashboard'), href: '/student', icon: <LayoutDashboard className="w-6 h-6" /> },
-            { label: t('sidebar.assignments'), href: '/student/assignments', icon: <BookOpen className="w-6 h-6" /> },
-            { label: t('sidebar.courses'), href: '/student/courses', icon: <GraduationCap className="w-6 h-6" /> },
-            { label: t('sidebar.profile'), href: '/student/profile', icon: <UserCircle className="w-6 h-6" /> },
-        ]
-    };
-    return items[role as keyof typeof items] || [];
-};
+import { useTheme } from '../contexts/ThemeContext';
+import { NAVIGATION_CONFIG } from '../config/navigation';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -55,7 +23,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchValue, setSearchValue] = useState(searchParams.get('q') || '');
 
-  const navItems = getNavItems(t, role);
+  // Fetch nav items from config
+  const navItems = NAVIGATION_CONFIG[role] || [];
 
   useEffect(() => {
     setSearchValue(searchParams.get('q') || '');
@@ -73,47 +42,46 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
   };
 
   return (
-    // Updated to use min-h-dvh for mobile browser address bar support
-    <div className="flex min-h-dvh w-full bg-[#f5f6f8] text-slate-900 font-sans overflow-hidden">
+    <div className="flex min-h-dvh w-full bg-background text-foreground font-sans overflow-hidden transition-colors duration-300">
       {/* Mobile Overlay */}
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden animate-fade-in"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
-      {/* Sidebar (Desktop & Mobile Slide-over) */}
+      {/* Sidebar */}
       <aside className={cn(
-        "fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200 flex flex-col transition-transform duration-300 ease-in-out lg:transform-none",
+        "fixed lg:static inset-y-0 left-0 z-40 w-64 bg-card border-r border-border flex flex-col transition-transform duration-300 ease-in-out lg:transform-none",
         isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         {/* Logo */}
-        <div className="h-16 flex items-center px-6 border-b border-slate-100">
-          <div className="bg-blue-600/10 rounded-lg p-1.5 mr-3">
-            <GraduationCap className="w-6 h-6 text-blue-600" />
+        <div className="h-16 flex items-center px-6 border-b border-border">
+          <div className="bg-primary/10 rounded-lg p-1.5 mr-3">
+            <GraduationCap className={cn("w-6 h-6 text-primary")} />
           </div>
-          <h1 className="text-lg font-bold tracking-tight text-slate-900">LMS {role === 'admin' ? 'Admin' : role === 'teacher' ? 'Teacher' : 'Student'}</h1>
+          <h1 className="text-lg font-bold tracking-tight text-foreground">LMS {role === 'admin' ? 'Admin' : role === 'teacher' ? 'Teacher' : 'Student'}</h1>
           <button
-            className="ml-auto lg:hidden text-slate-400 hover:text-slate-600"
+            className="ml-auto lg:hidden text-muted-foreground hover:text-foreground"
             onClick={() => setIsMobileMenuOpen(false)}
           >
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        {/* User Profile Summary (Student Sidebar Style) */}
+        {/* User Profile Summary */}
         {role === 'student' && (
             <div className="p-4 flex flex-col gap-6">
                 <div className="flex gap-3 items-center px-2">
                     <img
                         src={user?.photoURL}
                         alt="Profile"
-                        className="w-12 h-12 rounded-full object-cover shadow-sm bg-slate-200"
+                        className="w-12 h-12 rounded-full object-cover shadow-sm bg-muted"
                     />
                     <div className="flex flex-col">
-                        <h1 className="text-base font-bold leading-tight text-slate-900">{user?.displayName}</h1>
-                        <p className="text-xs font-medium text-slate-500 capitalize">{role} Account</p>
+                        <h1 className="text-base font-bold leading-tight text-foreground">{user?.displayName}</h1>
+                        <p className="text-xs font-medium text-muted-foreground capitalize">{role} Account</p>
                     </div>
                 </div>
             </div>
@@ -121,62 +89,45 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
 
         {/* Navigation */}
         <nav className={cn("flex-1 px-4 py-4 space-y-1 overflow-y-auto scrollbar-hide", role !== 'student' ? 'flex flex-col gap-1' : 'flex flex-col gap-2')}>
-          {role !== 'student' && (
-             // Admin/Teacher Profile in Sidebar Top (Optional/Alternative style)
-             <div className="lg:hidden flex items-center gap-3 px-3 py-4 mb-2 border-b border-slate-100">
-                <img src={user?.photoURL} className="w-8 h-8 rounded-full bg-slate-200" />
-                <div className="flex flex-col">
-                    <span className="text-sm font-semibold">{user?.displayName}</span>
-                    <span className="text-xs text-slate-500 capitalize">{role}</span>
-                </div>
-             </div>
-          )}
-
           {navItems.map((item) => {
-            // Enhanced Active State Logic
             let isActive = false;
-
-            if (item.href === '/student') {
-                isActive = location.pathname === '/student';
-            } else if (item.href === '/admin' || item.href === '/teacher') {
-                isActive = location.pathname === item.href;
-            } else {
-                 isActive = location.pathname.startsWith(item.href) && item.href !== '#';
-            }
+            if (item.href === '/student') isActive = location.pathname === '/student';
+            else if (item.href === '/admin' || item.href === '/teacher') isActive = location.pathname === item.href;
+            else isActive = location.pathname.startsWith(item.href) && item.href !== '#';
 
             return (
               <Link
-                key={item.label}
+                key={item.href}
                 to={item.href}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors group",
                   isActive
-                    ? "bg-blue-600/10 text-blue-600"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
-                <span className={cn("transition-colors", isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-900")}>
+                <span className={cn("transition-colors", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")}>
                     {item.icon}
                 </span>
-                {item.label}
+                {t(item.labelKey)}
               </Link>
             );
           })}
         </nav>
 
         {/* Bottom Actions */}
-        <div className="p-4 border-t border-slate-100 mt-auto">
+        <div className="p-4 border-t border-border mt-auto">
           <Link
             to={`/${role}/settings`}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors group"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-muted transition-colors group"
           >
-            <Settings className="w-5 h-5 text-slate-400 group-hover:text-slate-900" />
-            <span className="text-sm font-medium group-hover:text-slate-900">{t('sidebar.settings')}</span>
+            <Settings className="w-5 h-5 text-muted-foreground group-hover:text-foreground" />
+            <span className="text-sm font-medium group-hover:text-foreground">{t('sidebar.settings')}</span>
           </Link>
           <button
             onClick={() => signOut()}
-            className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors mt-1"
+            className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-destructive hover:bg-destructive/10 transition-colors mt-1"
           >
             <LogOut className="w-5 h-5" />
             <span className="text-sm font-medium">{t('sidebar.logout')}</span>
@@ -187,10 +138,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
       {/* Main Content Wrapper */}
       <div className="flex-1 flex flex-col h-full relative min-w-0">
         {/* Sticky Header */}
-        <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 sm:px-8 h-16 flex items-center justify-between shrink-0">
+        <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-border px-4 sm:px-8 h-16 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-4 w-full max-w-xl">
                 <button
-                    className="lg:hidden text-slate-500 hover:text-slate-700 p-1.5 rounded-md hover:bg-slate-100"
+                    className="lg:hidden text-muted-foreground hover:text-foreground p-1.5 rounded-md hover:bg-muted"
                     onClick={() => setIsMobileMenuOpen(true)}
                 >
                     <Menu className="w-6 h-6" />
@@ -200,21 +151,18 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
                 <div className="hidden md:flex items-center gap-3">
                     <div className="relative w-full md:w-64 lg:w-96">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Search className="w-5 h-5 text-slate-400" />
+                            <Search className="w-5 h-5 text-muted-foreground" />
                         </div>
                         <input
                             type="text"
                             placeholder="Search..."
                             value={searchValue}
                             onChange={(event) => handleSearchChange(event.target.value)}
-                            className="block w-full pl-10 pr-3 py-2 border-none bg-slate-100 rounded-lg text-sm focus:ring-0 placeholder-slate-500 text-slate-900"
+                            className="block w-full pl-10 pr-3 py-2 border-none bg-muted/50 rounded-lg text-sm focus:ring-1 focus:ring-primary placeholder-muted-foreground text-foreground"
                         />
                     </div>
-                    {role === 'teacher' && (
-                         <span className="text-sm font-semibold text-slate-600">Teacher workspace</span>
-                    )}
                 </div>
-                <h2 className="md:hidden text-lg font-bold text-slate-900 tracking-tight">LMS</h2>
+                <h2 className="md:hidden text-lg font-bold text-foreground tracking-tight">LMS</h2>
             </div>
 
             {/* Right Actions */}
@@ -222,23 +170,23 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
                 <NotificationList />
 
                 {/* User Profile Dropdown / Avatar */}
-                <div className="h-8 w-px bg-slate-200 hidden sm:block"></div>
+                <div className="h-8 w-px bg-border hidden sm:block"></div>
                 <div className="flex items-center gap-3">
                     <div className="text-right hidden sm:block">
-                        <p className="text-sm font-semibold text-slate-900 leading-none">{user?.displayName}</p>
-                        <p className="text-xs text-slate-500 mt-0.5 capitalize">{user?.role}</p>
+                        <p className="text-sm font-semibold text-foreground leading-none">{user?.displayName}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 capitalize">{user?.role}</p>
                     </div>
                     <img
                         src={user?.photoURL}
                         alt="Avatar"
-                        className="w-9 h-9 rounded-full bg-slate-200 object-cover border border-slate-200"
+                        className="w-9 h-9 rounded-full bg-muted object-cover border border-border"
                     />
                 </div>
             </div>
         </header>
 
         {/* Main Scrollable Area */}
-        <main className="flex-1 overflow-y-auto bg-[#f5f6f8] p-4 sm:p-8 scroll-smooth pb-24 relative z-0">
+        <main className="flex-1 overflow-y-auto bg-background p-4 sm:p-8 scroll-smooth pb-24 relative z-0">
             <div className="max-w-7xl mx-auto h-full flex flex-col">
                 {children}
             </div>

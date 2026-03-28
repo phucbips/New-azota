@@ -1,14 +1,40 @@
 {
+  "analytics": {
+    "title": "Web Analytics",
+    "visitors": "Visitors",
+    "page_views": "Page Views",
+    "online": "online",
+    "last_7_days": "Last 7 Days",
+    "devices": "Devices",
+    "browsers": "Browsers",
+    "os": "OS",
+    "no_data": "No data available."
+  },
+  "admin": {
+    "title": "Overview",
+    "subtitle": "Welcome back, here's what's happening today.",
+    "total_users": "Total Users",
+    "total_assignments": "Total Assignments",
+    "trend_realtime": "Realtime update",
+    "trend_system": "System wide",
+    "device_stats": "Device Statistics",
+    "pc": "PC",
+    "ios": "iOS",
+    "android": "Android",
+    "trend_pc": "Active",
+    "trend_apple": "Apple Devices",
+    "trend_android": "Android Devices"
+  },
   "sidebar": {
-    "dashboard": "Dashboard",
     "overview": "Overview",
     "users": "Users",
     "assignments": "Assignments",
     "courses": "Courses",
-    "settings": "Settings",
-    "profile": "Profile",
     "communication": "Communication",
-    "logout": "Log out"
+    "settings": "Settings",
+    "logout": "Logout",
+    "profile": "Profile",
+    "dashboard": "Dashboard"
   },
   "home": {
     "welcome": "Welcome back, {{name}}!",
@@ -19,20 +45,5 @@
     "cta_desc": "Check your assignments list to see pending tasks and coursework for Grade {{grade}}.",
     "cta_button": "Go to Assignments",
     "announcements": "Announcements"
-  },
-  "admin": {
-    "title": "System Management",
-    "subtitle": "Overview and statistics",
-    "total_users": "Total Users",
-    "total_assignments": "Total Assignments",
-    "device_stats": "Device Statistics",
-    "pc": "PC / Desktop",
-    "ios": "iOS (iPhone/iPad)",
-    "android": "Android",
-    "trend_realtime": "Real-time Update",
-    "trend_system": "System-wide",
-    "trend_pc": "Desktop",
-    "trend_apple": "Apple Mobile",
-    "trend_android": "Android Mobile"
   }
 }

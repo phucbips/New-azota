@@ -1,5 +1,3 @@
-import { GEMINI_API_KEY, GEMINI_API_URL } from '../config/constants';
-
 export interface GeminiResponse {
   candidates?: Array<{
     content?: {
@@ -11,40 +9,39 @@ export interface GeminiResponse {
 }
 
 class AIService {
-  private apiKey: string;
-  private apiUrl: string;
-
-  constructor() {
-    this.apiKey = GEMINI_API_KEY;
-    this.apiUrl = GEMINI_API_URL;
-  }
-
   async generateContent(
     prompt: string,
-    systemInstruction?: string
+    systemInstruction?: string,
+    signal?: AbortSignal
   ): Promise<string> {
-    const payload: any = {
-      contents: [{ parts: [{ text: prompt }] }],
-    };
-
-    if (systemInstruction) {
-      payload.systemInstruction = {
-        parts: [{ text: systemInstruction }],
-      };
-    }
-
     const maxRetries = 3;
     let delay = 1000;
 
     for (let i = 0; i < maxRetries; i++) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+      // Combine signals: if external signal aborts, we abort our controller
+      const handleExternalAbort = () => controller.abort();
+      if (signal) {
+        signal.addEventListener('abort', handleExternalAbort);
+        if (signal.aborted) {
+           controller.abort();
+        }
+      }
+
       try {
-        const response = await fetch(`${this.apiUrl}?key=${this.apiKey}`, {
+        const response = await fetch('/api/generate-content', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ prompt, systemInstruction }),
+          signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
+        if (signal) signal.removeEventListener('abort', handleExternalAbort);
 
         if (response.status === 429) {
           if (i < maxRetries - 1) {
@@ -57,7 +54,7 @@ class AIService {
         if (!response.ok) {
           const errorBody = await response.json();
           throw new Error(
-            `API call failed: ${response.status} - ${errorBody.error?.message || 'Unknown error'}`
+            `API call failed: ${response.status} - ${errorBody.error || 'Unknown error'}`
           );
         }
 
@@ -66,7 +63,18 @@ class AIService {
           result.candidates?.[0]?.content?.parts?.[0]?.text ||
           'Không thể tạo nội dung.';
         return text;
-      } catch (error) {
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        if (signal) signal.removeEventListener('abort', handleExternalAbort);
+
+        // Don't retry if aborted by user
+        if (error.name === 'AbortError') {
+             if (signal?.aborted) {
+                 throw new Error('Request cancelled by user.');
+             }
+             throw new Error('Request timed out.');
+        }
+
         console.error('Gemini API Error:', error);
         if (i === maxRetries - 1) throw error;
       }
