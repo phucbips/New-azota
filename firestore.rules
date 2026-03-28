@@ -63,6 +63,19 @@ service cloud.firestore {
       );
     }
 
+    // --- COLLECTION: COURSES (Khóa học) ---
+    match /courses/{courseId} {
+      allow read: if request.auth != null || true; // Public can read courses
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // --- COLLECTION: ORDERS (Đơn hàng) ---
+    match /orders/{orderId} {
+      allow read: if request.auth != null && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if request.auth != null; // Any logged in user can create an order
+      allow update, delete: if request.auth != null && isAdmin();
+    }
+
     // --- COLLECTION: SUBJECTS (Môn học) ---
     match /subjects/{subjectId} {
       allow read: if request.auth != null;
@@ -84,18 +97,29 @@ service cloud.firestore {
       allow read: if request.auth != null;
     }
 
+    // --- COLLECTION: APP SETTINGS ---
+    match /app_settings/{settingId} {
+      allow read: if true; // Public read cho landing page
+      allow write: if request.auth != null && isAdmin(); // Chỉ Admin có quyền ghi/sửa cấu hình
+    }
+
     // --- COLLECTION: ANALYTICS (Thống kê) ---
     // Fixed: Explicitly allow list/query by not restricting to a single docId match for read
     // The previous rule `match /analytics_daily/{dateId}` was fine for get/list, but `allow read` is broad.
     // However, for complex queries like `where`, rules must validate the query constraints.
     // Since we are building an internal tool, we keep it simple: allow all authenticated reads.
     match /analytics_daily/{dateId} {
-      allow read, list: if request.auth != null;
-      allow write: if request.auth != null;
+      allow read, list: if true; // Public write/read for anonymous visitors
+      allow write: if true;
+
+      // Allow operations on the subcollection
+      match /visitors/{visitorId} {
+        allow read, write: if true;
+      }
     }
     match /analytics_aggregates/{docId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow read: if true;
+      allow write: if true;
     }
   }
 }

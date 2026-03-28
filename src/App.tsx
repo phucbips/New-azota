@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ThemeSettingsProvider } from './contexts/ThemeSettingsContext';
 import { DashboardConfigProvider } from './contexts/DashboardConfigContext';
+import { AppSettingsProvider } from './contexts/AppSettingsContext';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './components/auth/LoginPage';
 import { Loading } from './components/shared/Loading';
@@ -24,6 +25,7 @@ const AdminOverview = React.lazy(() => import('./pages/admin/Overview').then(mod
 const AdminUsers = React.lazy(() => import('./pages/admin/Users').then(module => ({ default: module.AdminUsers })));
 const AdminAssignments = React.lazy(() => import('./pages/admin/Assignments').then(module => ({ default: module.AdminAssignments })));
 const AdminCourses = React.lazy(() => import('./pages/admin/Courses').then(module => ({ default: module.AdminCourses })));
+const AdminOrders = React.lazy(() => import('./pages/admin/Orders').then(module => ({ default: module.AdminOrders })));
 const AdminCommunication = React.lazy(() => import('./pages/admin/Communication').then(module => ({ default: module.AdminCommunication })));
 const AdminAuditLogs = React.lazy(() => import('./pages/admin/AuditLogs').then(module => ({ default: module.AuditLogs })));
 const AdminSettings = React.lazy(() => import('./pages/admin/Settings').then(module => ({ default: module.AdminSettings })));
@@ -42,19 +44,8 @@ const StudentAssignments = React.lazy(() => import('./pages/student/Assignments'
 const StudentCourses = React.lazy(() => import('./pages/student/Courses').then(module => ({ default: module.StudentCourses })));
 const StudentSettings = React.lazy(() => import('./pages/student/Settings').then(module => ({ default: module.StudentSettings })));
 const StudentProfile = React.lazy(() => import('./pages/student/Profile').then(module => ({ default: module.StudentProfile })));
-
-// Component to handle root redirect based on role
-const RootRedirect: React.FC = () => {
-  const { user, loading } = useAuth();
-
-  if (loading) return <Loading message="Checking session..." fullScreen />;
-
-  if (!user) return <Navigate to="/login" replace />;
-
-  if (user.role === 'admin') return <Navigate to="/admin" replace />;
-  if (user.role === 'teacher') return <Navigate to="/teacher" replace />;
-  return <Navigate to="/student" replace />;
-};
+const LandingPage = React.lazy(() => import('./pages/public/Landing').then(module => ({ default: module.LandingPage })));
+const PublicCourses = React.lazy(() => import('./pages/public/PublicCourses').then(module => ({ default: module.PublicCourses })));
 
 // Specialized Login Wrapper to redirect if already logged in
 const LoginWrapper: React.FC = () => {
@@ -74,6 +65,7 @@ function App() {
       <AuthProvider>
        <ThemeProvider>
         <ThemeSettingsProvider>
+         <AppSettingsProvider>
          <DashboardConfigProvider>
           <PageTracker />
           <Toaster richColors position="top-right" />
@@ -81,7 +73,8 @@ function App() {
           <SpeedInsights />
           <Suspense fallback={<Loading fullScreen />}>
           <Routes>
-            <Route path="/" element={<RootRedirect />} />
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/courses" element={<PublicCourses />} />
             <Route path="/login" element={<LoginWrapper />} />
 
             {/* Admin Route Group */}
@@ -97,6 +90,7 @@ function App() {
               <Route path="users" element={<AdminUsers />} />
               <Route path="assignments" element={<AdminAssignments />} />
               <Route path="courses" element={<AdminCourses />} />
+              <Route path="orders" element={<AdminOrders />} />
               <Route path="communication" element={<AdminCommunication />} />
               <Route path="audit-logs" element={<AdminAuditLogs />} />
               <Route path="settings" element={<AdminSettings />} />
@@ -140,6 +134,7 @@ function App() {
           </Routes>
         </Suspense>
          </DashboardConfigProvider>
+         </AppSettingsProvider>
         </ThemeSettingsProvider>
        </ThemeProvider>
       </AuthProvider>

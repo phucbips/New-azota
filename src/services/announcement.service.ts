@@ -46,24 +46,29 @@ class AnnouncementService {
     if (isAdmin) {
       q = query(this.collection, orderBy('createdAt', 'desc'));
     } else {
+      // To avoid requiring a composite index in Firebase (isActive ASC, createdAt DESC),
+      // we just filter by isActive and sort on the client side.
       q = query(
         this.collection,
-        where('isActive', '==', true),
-        orderBy('createdAt', 'desc')
+        where('isActive', '==', true)
       );
     }
 
     return onSnapshot(q, (snapshot) => {
-      const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Announcement));
+      let items = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Announcement));
+
+      if (!isAdmin) {
+          // Client-side sort by createdAt desc
+          items = items.sort((a, b) => {
+              const timeA = a.createdAt?.toMillis?.() || 0;
+              const timeB = b.createdAt?.toMillis?.() || 0;
+              return timeB - timeA;
+          });
+      }
+
       callback(items);
     }, (error) => {
-        // Fallback if index is missing for compound query (isActive + createdAt)
         console.error("Error fetching announcements:", error);
-        if (!isAdmin && error.code === 'failed-precondition') {
-             // Fallback: fetch all active without sort (or client side sort) if index missing
-             // This is just a safeguard during dev
-             console.warn("Index might be missing. Attempting fallback query.");
-        }
     });
   }
 }

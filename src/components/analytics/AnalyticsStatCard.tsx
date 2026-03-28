@@ -17,14 +17,14 @@ export const AnalyticsStatCard: React.FC<StatCardProps> = ({
   className
 }) => {
   return (
-    <div className={cn("p-6 bg-card border border-border rounded-lg flex flex-col justify-between h-full", className)}>
-      <h3 className="text-sm font-medium text-muted-foreground">{label}</h3>
-      <div className="flex items-end gap-3 mt-2">
-        <span className="text-3xl font-bold text-foreground">{value}</span>
+    <div className={cn("p-6 bg-card border border-border rounded-2xl flex flex-col justify-between h-full hover:shadow-md transition-shadow", className)}>
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{label}</h3>
+      <div className="flex items-end gap-3 mt-3">
+        <span className="text-4xl font-bold text-foreground">{value}</span>
         {trend !== undefined && (
           <span className={cn(
-            "text-xs font-medium px-1.5 py-0.5 rounded flex items-center mb-1.5",
-            trend >= 0 ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
+            "text-xs font-bold px-2 py-0.5 rounded-full flex items-center mb-1.5",
+            trend >= 0 ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-red-500/15 text-red-600 dark:text-red-400"
           )}>
             {trend > 0 ? '+' : ''}{trend}%
           </span>
