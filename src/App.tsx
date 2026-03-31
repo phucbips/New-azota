@@ -43,13 +43,17 @@ const StudentCourses = React.lazy(() => import('./pages/student/Courses').then(m
 const StudentSettings = React.lazy(() => import('./pages/student/Settings').then(module => ({ default: module.StudentSettings })));
 const StudentProfile = React.lazy(() => import('./pages/student/Profile').then(module => ({ default: module.StudentProfile })));
 
+// Lazy load Landing Page
+const LandingPage = React.lazy(() => import('./pages/LandingPage').then(module => ({ default: module.LandingPage })));
+
 // Component to handle root redirect based on role
 const RootRedirect: React.FC = () => {
   const { user, loading } = useAuth();
 
   if (loading) return <Loading message="Checking session..." fullScreen />;
 
-  if (!user) return <Navigate to="/login" replace />;
+  // If not logged in, show Landing Page instead of redirecting to login
+  if (!user) return <LandingPage />;
 
   if (user.role === 'admin') return <Navigate to="/admin" replace />;
   if (user.role === 'teacher') return <Navigate to="/teacher" replace />;

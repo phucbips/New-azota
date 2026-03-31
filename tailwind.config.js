@@ -17,8 +17,9 @@ module.exports = {
 		},
 		extend: {
             fontFamily: {
-                sans: ['Inter', 'sans-serif'],
-                display: ['Inter', 'sans-serif'],
+                sans: ['Fira Sans', 'sans-serif'],
+                display: ['Fira Sans', 'sans-serif'],
+                mono: ['Fira Code', 'monospace'],
             },
 			colors: {
 				border: 'hsl(var(--border))',
