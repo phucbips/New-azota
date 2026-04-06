@@ -276,6 +276,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           message = 'Lỗi cấu hình Firebase: Phương thức Đăng nhập Email/Password chưa được kích hoạt.';
         }
         
+        toast.error(message);
         throw new Error(message);
       }
     },

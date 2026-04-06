@@ -51,15 +51,18 @@ class CourseService {
   }
 
   async getActiveCourses(): Promise<Course[]> {
-    const q = query(this.collection, where('isActive', '==', true), orderBy('createdAt', 'desc'));
+    const q = query(this.collection, where('isActive', '==', true));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Course));
+    const courses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course));
+    // Sort in memory to avoid needing a composite index [isActive, createdAt]
+    return courses.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
   }
 
   subscribeToCourses(callback: (courses: Course[]) => void): () => void {
-    const q = query(this.collection, orderBy('createdAt', 'desc'));
+    const q = query(this.collection);
     return onSnapshot(q, (snapshot) => {
       const courses = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Course));
+      courses.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
       callback(courses);
     });
   }

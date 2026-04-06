@@ -81,7 +81,7 @@ export const HeroSection = ({
                     Bắt đầu học miễn phí
                     </Link>
                     <Link
-                    to="/courses"
+                    to="/student/courses"
                     className="inline-block rounded-full border-2 border-white bg-transparent px-8 py-4 text-base font-bold text-white transition-all hover:bg-white hover:text-primary"
                     >
                     Khám phá Khóa học

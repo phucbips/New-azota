@@ -23,12 +23,16 @@ export const PublicCourses: React.FC = () => {
   }, []);
 
   const handlePurchaseClick = (course: Course) => {
-      addToCart(course);
-      toast.success("Đã thêm vào giỏ hàng");
-      if (user) {
+      if (course.price === 0 && user) {
           navigate('/student/courses');
       } else {
-          navigate('/login');
+          addToCart(course);
+          toast.success("Đã thêm vào giỏ hàng");
+          if (user) {
+              navigate('/student/checkout');
+          } else {
+              navigate('/login');
+          }
       }
   };
 
