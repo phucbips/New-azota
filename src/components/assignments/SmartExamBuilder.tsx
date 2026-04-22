@@ -53,23 +53,23 @@ export const SmartExamBuilder: React.FC<SmartExamBuilderProps> = ({ questions, o
         try {
             // Very basic regex parser following common Vietnamese exam formats
             // Looks for "Câu X: ..." or "Câu X. ..."
-            const questionBlocks = rawText.split(/(?=Câu\s*\d+[:.])/i).filter(b => b.trim());
+            const questionBlocks = rawText.split(/(?=Câu.*.+[:.])/i).filter(b => b.trim());
             const parsedQuestions: Question[] = [];
 
             questionBlocks.forEach((block, index) => {
-                const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
+                const lines = block.split('.').map(l => l.trim()).filter(Boolean);
                 if (lines.length < 2) return; // Skip invalid blocks
 
                 let questionText = '';
                 const options: string[] = [];
-                let correctAnswers: string[] = [];
-                let currentOptionStr = '';
+                const correctAnswers: string[] = [];
+                const currentOptionStr = '';
 
                 // Try to separate question text from A, B, C, D options
                 lines.forEach(line => {
-                    const isOption = /^[A-D][\.\:]\s*/i.test(line);
+                    const isOption = /^[A-D][..].*/i.test(line);
                     if (isOption) {
-                        const optText = line.replace(/^[A-D][\.\:]\s*/i, '').trim();
+                        const optText = line.replace(/^[A-D][..].*/i, '').trim();
                         options.push(optText);
 
                         // Heuristic: If option text has an asterisk or underline marker (often lost in rawText, but maybe marked manually by teacher like *A.)
@@ -77,7 +77,7 @@ export const SmartExamBuilder: React.FC<SmartExamBuilderProps> = ({ questions, o
                         // For a true Azota experience, we'd use mammoth.convertToHtml and parse DOM to find <u> tags.
                         // But for MVP raw text, we'll leave correctAnswers empty for manual selection.
                     } else if (options.length === 0) {
-                        questionText += line + '\n';
+                        questionText += line + '.';
                     }
                 });
 
@@ -115,7 +115,7 @@ export const SmartExamBuilder: React.FC<SmartExamBuilderProps> = ({ questions, o
         toast.info('Đang gửi dữ liệu cho AI phân tích. Vui lòng chờ...', { duration: 5000 });
 
         try {
-            const prompt = `Phân tích đoạn văn bản đề thi sau và trích xuất thành mảng JSON chứa các câu hỏi trắc nghiệm. Định dạng JSON bắt buộc: [{"question": "Nội dung câu hỏi", "options": ["Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D"], "correctAnswers": ["Chỉ chứa nội dung của đáp án đúng, ví dụ: 'Đáp án B'"], "points": 1}]. Hãy xử lý thông minh kể cả khi định dạng lộn xộn. Nếu không có đáp án đúng, để mảng correctAnswers rỗng. Đoạn văn bản: \n\n${rawText}`;
+            const prompt = `Phân tích đoạn văn bản đề thi sau và trích xuất thành mảng JSON chứa các câu hỏi trắc nghiệm. Định dạng JSON bắt buộc: [{"question": "Nội dung câu hỏi", "options": ["Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D"], "correctAnswers": ["Chỉ chứa nội dung của đáp án đúng, ví dụ: 'Đáp án B'"], "points": 1}]. Hãy xử lý thông minh kể cả khi định dạng lộn xộn. Nếu không có đáp án đúng, để mảng correctAnswers rỗng. Đoạn văn bản: ..${rawText}`;
 
             const response = await fetch('/api/generate-content', {
                 method: 'POST',
@@ -127,7 +127,7 @@ export const SmartExamBuilder: React.FC<SmartExamBuilderProps> = ({ questions, o
             const data = await response.json();
 
             // Clean up Markdown formatting from AI response if present
-            let cleanJson = data.content.replace(/```json/g, '').replace(/```/g, '').trim();
+            const cleanJson = data.content.replace(/```json/g, '').replace(/```/g, '').trim();
             const parsedArray = JSON.parse(cleanJson);
 
             const newQs: Question[] = parsedArray.map((q: any, i: number) => ({
@@ -213,7 +213,7 @@ export const SmartExamBuilder: React.FC<SmartExamBuilderProps> = ({ questions, o
                     <textarea
                         value={rawText}
                         onChange={(e) => setRawText(e.target.value)}
-                        placeholder="Ví dụ:\nCâu 1: Thủ đô của Việt Nam là gì?\nA. Hà Nội\nB. TP.HCM\nC. Đà Nẵng\nD. Huế\n\nCâu 2: ..."
+                        placeholder="Ví dụ:.Câu 1: Thủ đô của Việt Nam là gì?.A. Hà Nội.B. TP.HCM.C. Đà Nẵng.D. Huế..Câu 2: ..."
                         className="w-full min-h-[300px] flex-1 p-4 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500/20 outline-none text-sm resize-y font-mono bg-white shadow-inner"
                     />
                 </div>

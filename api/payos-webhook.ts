@@ -1,7 +1,8 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import * as admin from 'firebase-admin';
-import { createHmac } from 'crypto';
+import { PayOS } from '@payos/node';
 
+// Initialize Firebase Admin
 if (!admin.apps.length) {
     try {
         let credential;
@@ -18,76 +19,57 @@ if (!admin.apps.length) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+    // 1. Phản hồi giao thức (Protocol Response Layer)
+    // Luôn ưu tiên phản hồi nhanh để đáp ứng Timeout Budget của PayOS
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
     try {
+        // Khởi tạo PayOS SDK
+        const clientId = process.env.PAYOS_CLIENT_ID || '';
+        const apiKey = process.env.PAYOS_API_KEY || '';
         const checksumKey = process.env.PAYOS_CHECKSUM_KEY || '';
 
-        if (!checksumKey) {
-            console.error('Missing PayOS Checksum Key.');
-            return res.status(200).json({ success: false, message: 'Server missing config' });
+        if (!clientId || !apiKey || !checksumKey) {
+            console.error('Missing PayOS config in Webhook');
+            // Vẫn trả về 200 để tránh PayOS block Webhook endpoint
+            return res.status(200).json({ success: true, message: 'Missing config but ok' });
         }
 
-        // --- Custom Manual Signature Verification (from PayOS documentation) ---
+        const payOS = new PayOS(clientId, apiKey, checksumKey);
         const webhookDataRaw = req.body;
 
-        // If it's just a test ping to add webhook URL
+        // Xử lý gói tin Handshake (bắt tay / confirm webhook)
+        // Khi PayOS gửi test payload, webhookDataRaw.data có thể null hoặc không có
         if (!webhookDataRaw.data || !webhookDataRaw.signature) {
             return res.status(200).json({ success: true, message: 'Webhook URL verified' });
         }
 
-        function sortObjDataByKey(object: any) {
-            return Object.keys(object)
-                .sort()
-                .reduce((obj: any, key: string) => {
-                    obj[key] = object[key];
-                    return obj;
-                }, {});
+        // 2. Lớp Ràng buộc Mật mã (Cryptographic Layer)
+        // Sử dụng phương thức verifyPaymentWebhookData từ SDK để phân tích cú pháp (serialization)
+        // chính xác theo chuẩn của PayOS, tránh lỗi "Phần mềm trung gian làm đột biến khối dữ liệu"
+        let verifiedData;
+        try {
+            verifiedData = payOS.verifyPaymentWebhookData(webhookDataRaw);
+        } catch (error) {
+            console.error('PayOS Invalid Signature:', error);
+            // Phản hồi 200 OK để kháng lỗi timeout, nhưng không thực hiện logic cập nhật
+            return res.status(200).json({ success: true, message: 'Invalid Signature ignored' });
         }
 
-        function convertObjToQueryStr(object: any) {
-            return Object.keys(object)
-                .filter((key) => object[key] !== undefined)
-                .map((key) => {
-                    let value = object[key];
-                    if (value && Array.isArray(value)) {
-                        value = JSON.stringify(value.map((val) => sortObjDataByKey(val)));
-                    }
-                    if ([null, undefined, 'undefined', 'null'].includes(value)) {
-                        value = '';
-                    }
-                    return `${key}=${value}`;
-                })
-                .join('&');
-        }
+        // 3. Cơ chế Idempotency & Cập nhật hệ thống (Database Transaction & Idempotency)
+        if (webhookDataRaw.code === '00' && verifiedData && verifiedData.orderCode) {
+            const orderCode = verifiedData.orderCode;
 
-        const sortedDataByKey = sortObjDataByKey(webhookDataRaw.data);
-        const dataQueryStr = convertObjToQueryStr(sortedDataByKey);
-        const expectedSignature = createHmac('sha256', checksumKey).update(dataQueryStr).digest('hex');
-
-        if (expectedSignature !== webhookDataRaw.signature) {
-            console.error('PayOS Invalid Signature:', {
-                expected: expectedSignature,
-                received: webhookDataRaw.signature
-            });
-            // Still return 200 to satisfy webhook tests, but do NOT process order
-            return res.status(200).json({ success: false, message: 'Invalid Signature' });
-        }
-
-        if (webhookDataRaw.code === '00' && webhookDataRaw.data && webhookDataRaw.data.orderCode) {
-            const orderCode = webhookDataRaw.data.orderCode;
-
-            // Check if Firebase Admin is initialized
             if (!admin.apps.length) {
-                console.error('Firebase Admin not initialized, cannot update Firestore.');
-                return res.status(200).json({ success: true, message: 'Received but Firebase Admin not ready' });
+                console.error('Firebase Admin not initialized.');
+                return res.status(200).json({ success: true, message: 'App not ready' });
             }
 
             const db = admin.firestore();
 
-            // Search order by orderCode (number or string)
+            // Tìm kiếm đơn hàng
             let snapshot = await db.collection('orders').where('orderCode', '==', Number(orderCode)).limit(1).get();
             if (snapshot.empty) {
                 snapshot = await db.collection('orders').where('orderCode', '==', String(orderCode)).limit(1).get();
@@ -97,17 +79,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const orderDoc = snapshot.docs[0];
                 const orderData = orderDoc.data();
 
-                // Update order status
+                // Tính Lũy Đẳng (Idempotency Check)
+                // Nếu đơn hàng đã được đánh dấu thanh toán (bởi webhook trước đó hoặc check thủ công),
+                // ta bỏ qua việc cộng dồn thông tin khóa học / số lượng học viên
+                if (orderData.status === 'paid') {
+                    console.log(`Order ${orderCode} already marked as paid. Idempotency constraint hit.`);
+                    return res.status(200).json({ success: true, message: 'Order already processed' });
+                }
+
+                // Cập nhật trạng thái đơn hàng an toàn
                 await orderDoc.ref.update({
                     status: 'paid',
                     paidAt: admin.firestore.FieldValue.serverTimestamp()
                 });
 
-                // Update course enrollments & user access
+                // Cấp quyền và cộng dồn học viên
                 if (orderData.items && Array.isArray(orderData.items)) {
                     const courseIds: string[] = [];
                     for (const item of orderData.items) {
                         courseIds.push(item.courseId);
+
+                        // Transaction cộng dồn số lượng học viên an toàn
                         const cRef = db.collection('courses').doc(item.courseId);
                         await db.runTransaction(async (t) => {
                             const cDoc = await t.get(cRef);
@@ -117,7 +109,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         });
                     }
 
-                    // Automatically add the courses to the user's enrolledCourses array
+                    // Tự động cấp quyền (Array Union là phép toán lũy đẳng tự nhiên trong Firestore)
                     if (orderData.userId && courseIds.length > 0) {
                         const userRef = db.collection('users').doc(orderData.userId);
                         await userRef.update({
@@ -126,14 +118,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     }
                 }
             } else {
-                console.error(`Webhook matched signature but order ${orderCode} not found in DB.`);
+                console.warn(`Webhook validated but orderCode ${orderCode} not found in database.`);
             }
         }
 
+        // Hoàn tất chu trình nhanh gọn
         return res.status(200).json({ success: true });
+
     } catch (error: any) {
-        console.error('PayOS Webhook Execution Error:', error);
-        // Always return 200 to prevent PayOS from disabling the webhook
-        return res.status(200).json({ success: false, message: 'Internal error occurred but webhook accepted' });
+        console.error('PayOS Webhook Internal Server Error:', error);
+        // Luôn trả về 200 để kháng lỗi retry bão (Webhook Storm)
+        return res.status(200).json({ success: true, message: 'Error handled gracefully' });
     }
 }
