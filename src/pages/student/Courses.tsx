@@ -9,23 +9,7 @@ import { toast } from 'sonner';
 import { Link, useNavigate } from 'react-router-dom';
 
 export const StudentCourses: React.FC = () => {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 px-4 text-center min-h-[60vh] bg-card rounded-2xl border border-border mt-6">
-        <div className="bg-muted p-6 rounded-full mb-6">
-            <BookOpen className="w-16 h-16 text-muted-foreground" />
-        </div>
-        <h1 className="text-3xl font-bold text-foreground mb-4">Hệ thống đang bảo trì thanh toán</h1>
-        <p className="text-muted-foreground max-w-lg mb-8">
-            Tính năng đăng ký và mua khóa học tự động hiện đang tạm ngưng để nâng cấp.
-            Bạn vui lòng liên hệ trực tiếp với Quản trị viên (Admin) hoặc qua nhóm hỗ trợ Zalo/Facebook để được cấp quyền truy cập các khóa học mới.
-        </p>
-        <Link to="/student" className="px-6 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-colors shadow-sm">
-            Quay lại Tổng quan
-        </Link>
-    </div>
-  );
-
-  const { user } = useAuth();
+const { user } = useAuth();
   const navigate = useNavigate();
   const [courses, setCourses] = useState<Course[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);

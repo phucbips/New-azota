@@ -22,7 +22,7 @@ export const Navbar = () => {
 
   const menuItems = [
     { label: "Trang chủ", href: "/" },
-    // { label: "Khóa học", href: "/courses" }, // Tạm thời ẩn theo yêu cầu bảo trì thanh toán
+    { label: "Khóa học", href: "/courses" },
     { label: "Về chúng tôi", href: "/about" },
     { label: "Liên hệ", href: "/contact" },
   ];
@@ -74,7 +74,7 @@ export const Navbar = () => {
           </nav>
 
           <div className="hidden items-center gap-4 md:flex">
-            {/* Shopping Cart Tạm ẩn bảo trì */}
+            <Link to="/student/checkout" className="relative p-2 text-foreground hover:bg-muted rounded-full transition-colors"><ShoppingCart className="w-5 h-5" /></Link>
 
             {user ? (
               <Link
