@@ -37,7 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(200).json({ success: true, message: 'Missing config but ok' });
         }
 
-        const payOS = new PayOS(clientId, apiKey, checksumKey);
+        const payOS = new PayOS({ clientId, apiKey, checksumKey });
         const webhookDataRaw = req.body;
 
         // Xử lý gói tin Handshake (bắt tay / confirm webhook)
@@ -51,7 +51,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // chính xác theo chuẩn của PayOS, tránh lỗi "Phần mềm trung gian làm đột biến khối dữ liệu"
         let verifiedData;
         try {
-            verifiedData = payOS.verifyPaymentWebhookData(webhookDataRaw);
+            verifiedData = payOS.webhooks.verify(webhookDataRaw);
         } catch (error) {
             console.error('PayOS Invalid Signature:', error);
             // Phản hồi 200 OK để kháng lỗi timeout, nhưng không thực hiện logic cập nhật
