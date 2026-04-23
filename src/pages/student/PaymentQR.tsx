@@ -79,15 +79,7 @@ export const PaymentQR: React.FC = () => {
                 onSuccess: async (event: any) => {
                     // Fast track local state update
                     await orderService.updateOrderStatus(order.id, 'paid');
-                    // Update course enrollment counts securely upon successful payment
-                    if (order && order.items) {
-                        for (const item of order.items) {
-                            const c = await courseService.getCourse(item.courseId);
-                            if (c) {
-                                await courseService.updateCourse(c.id, { enrollmentCount: (c.enrollmentCount || 0) + 1 });
-                            }
-                        }
-                    }
+                    /* Webhook will handle enrollment update safely on server side */
                     navigate('/student/courses');
                 },
                 onCancel: (event: any) => {

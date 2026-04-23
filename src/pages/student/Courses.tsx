@@ -66,12 +66,7 @@ const { user } = useAuth();
               paymentMethod: method,
           });
 
-          if (initialStatus === 'paid') {
-               // Update enrollments (simulate)
-               await courseService.updateCourse(course.id, {
-                   enrollmentCount: (course.enrollmentCount || 0) + 1
-               });
-          }
+          // Note: Real enrollment count updates should happen via secure backend webhook/function to avoid permission errors
 
           setSelectedCourse(null);
 
