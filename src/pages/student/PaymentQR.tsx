@@ -64,56 +64,7 @@ export const PaymentQR: React.FC = () => {
         fetchOrderAndGenerateLink();
     }, [orderId, navigate]);
 
-    // Initialize PayOS embedded checkout when URL is available
-    useEffect(() => {
-        if (!checkoutUrl || !order) return;
 
-        let payosInstance: any = null;
-
-        const initPayOS = async () => {
-            const config = {
-                RETURN_URL: window.location.href,
-                ELEMENT_ID: "embeded-payment-container",
-                CHECKOUT_URL: checkoutUrl,
-                embedded: true,
-                onSuccess: async (event: any) => {
-                    // Fast track local state update
-
-                    /* Webhook will handle enrollment update safely on server side */
-                    navigate('/student/courses');
-                },
-                onCancel: (event: any) => {
-
-                    navigate('/student/courses');
-                }
-            };
-
-            const checkAndInit = () => {
-                if (window.PayOSCheckout) {
-                    try {
-                        const { open, exit } = window.PayOSCheckout.usePayOS(config);
-                        payosInstance = { exit };
-                        open();
-                    } catch (e) {
-                        console.error("PayOS init error:", e);
-                    }
-                } else {
-                    // Retry after 500ms if script is still loading
-                    setTimeout(checkAndInit, 500);
-                }
-            };
-            checkAndInit();
-        };
-
-        // Give React a moment to render the div
-        setTimeout(initPayOS, 100);
-
-        return () => {
-            if (payosInstance) {
-                payosInstance.exit();
-            }
-        };
-    }, [checkoutUrl, order, navigate]);
 
     // Timer logic
     useEffect(() => {
@@ -214,14 +165,20 @@ export const PaymentQR: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Right Side - PayOS Embedded Container */}
-                <div className="lg:w-2/3 bg-white w-full h-full relative flex flex-col items-center justify-center" id="embeded-payment-container">
-                    <div className="text-center p-8 z-0">
-                        <p className="text-muted-foreground mb-4">Nếu mã QR không tự động hiển thị, vui lòng nhấn nút bên dưới để thanh toán.</p>
-                        <a href={checkoutUrl} target="_blank" rel="noopener noreferrer" className="px-6 py-3 bg-primary text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all inline-block">
-                            Mở Cổng Thanh Toán
-                        </a>
-                    </div>
+                {/* Right Side - PayOS Iframe */}
+                <div className="lg:w-2/3 bg-white w-full h-full relative" id="embeded-payment-container">
+                     {checkoutUrl ? (
+                        <iframe
+                            src={checkoutUrl}
+                            title="Thanh toán PayOS"
+                            className="w-full h-full border-0"
+                            allow="payment"
+                        />
+                     ) : (
+                         <div className="flex items-center justify-center h-full">
+                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                         </div>
+                     )}
                 </div>
             </div>
         </div>
