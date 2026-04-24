@@ -14,6 +14,7 @@ Dự án này sử dụng một bộ kỹ năng đặc biệt cho AI Agent đư�
    - Các lỗi 403 thường xuất phát từ `firestore.rules` (hoặc RLS). **Tuyệt đối không cấp quyền ghi (write)** cho user thường trên các bảng dữ liệu nhạy cảm (như `courses`, `app_settings`).
    - Hãy xử lý ở backend (Webhook, Vercel Serverless Function) với Admin SDK thay vì lỏng lẻo ở client.
    - Khi làm chức năng gửi OTP hoặc đếm ngược, luôn quản lý state cẩn thận, ưu tiên tách component nếu file quá lớn (như đã phân tích trong kế hoạch Lovable/Supabase cũ).
+   - **ĐẶC BIỆT LƯU Ý VỀ GIAO DIỆN (UI/UX):** Khi thiết kế hoặc chỉnh sửa bất kỳ giao diện nào, **bắt buộc** phải tối ưu hóa Responsive cho cả 2 nền tảng: **PC và Mobile (bao gồm Android và iPhone)**. Hãy sử dụng các class Tailwind như `min-h-[100dvh]` thay cho `h-screen` để tránh bị che bởi thanh công cụ trình duyệt di động, và luôn dùng `flex-col md:flex-row` để đảm bảo giao diện không bị vỡ.
 
 
 ## 🔍 Cẩm Nang Tính Năng (Feature Inventory)

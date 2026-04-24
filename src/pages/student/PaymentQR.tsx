@@ -41,7 +41,7 @@ export const PaymentQR: React.FC = () => {
                     body: JSON.stringify({
                         orderCode: o.orderCode,
                         amount: o.amount,
-                        description: `Thanh toan don hang ${o.orderCode}`,
+                        description: `${o.orderCode}`,
                         returnUrl: `${baseUrl}/student/courses`,
                         cancelUrl: `${baseUrl}/student/courses`,
                     })
@@ -130,7 +130,7 @@ export const PaymentQR: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-muted/30 flex flex-col items-center justify-center p-4">
-            <div className="bg-background max-w-4xl w-full rounded-3xl shadow-xl border border-border overflow-hidden flex flex-col lg:flex-row h-[80vh] min-h-[600px]">
+            <div className="bg-background max-w-4xl w-full rounded-3xl shadow-xl border border-border overflow-hidden flex flex-col lg:flex-row min-h-[100dvh] md:min-h-[600px] md:h-[80vh]">
 
                 {/* Left Side - Details & Timer */}
                 <div className="lg:w-1/3 p-8 border-b lg:border-b-0 lg:border-r border-border bg-card flex flex-col">
@@ -166,7 +166,7 @@ export const PaymentQR: React.FC = () => {
                 </div>
 
                 {/* Right Side - PayOS Iframe */}
-                <div className="lg:w-2/3 bg-white w-full h-full relative" id="embeded-payment-container">
+                <div className="lg:w-2/3 bg-white w-full flex-1 md:h-full min-h-[500px] relative" id="embeded-payment-container">
                      {checkoutUrl ? (
                         <iframe
                             src={checkoutUrl}
