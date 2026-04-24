@@ -45,8 +45,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       checksumKey
     });
 
+    const parsedOrderCode = Number(orderCode);
+    if (isNaN(parsedOrderCode)) {
+      return res.status(400).json({
+        error: 'Invalid Order Code format',
+        message: 'Đơn hàng cũ có chứa chữ cái (VD: EDU-...) không được hỗ trợ thanh toán tự động qua cổng PayOS. Vui lòng tạo đơn hàng mới hoặc chuyển khoản thủ công.'
+      });
+    }
+
     const body = {
-      orderCode: Number(orderCode),
+      orderCode: parsedOrderCode,
       amount: Number(amount),
       description: String(description).substring(0, 25), // PayOS limit is 25 chars
       returnUrl,
