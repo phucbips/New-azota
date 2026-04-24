@@ -15,6 +15,14 @@ Dự án này sử dụng một bộ kỹ năng đặc biệt cho AI Agent đư�
    - Hãy xử lý ở backend (Webhook, Vercel Serverless Function) với Admin SDK thay vì lỏng lẻo ở client.
    - Khi làm chức năng gửi OTP hoặc đếm ngược, luôn quản lý state cẩn thận, ưu tiên tách component nếu file quá lớn (như đã phân tích trong kế hoạch Lovable/Supabase cũ).
 
+
+## 🔍 Cẩm Nang Tính Năng (Feature Inventory)
+👉 **HÃY ĐỌC FILE NÀY TRƯỚC KHI CODE:** [FEATURES_INVENTORY.md](./FEATURES_INVENTORY.md)
+Tài liệu này phân loại chi tiết các module/tính năng đã có (Auth, Student Portal, Admin, Webhooks, Design System...) và nhật ký cập nhật. Việc đọc file này giúp:
+- **Tái sử dụng (Reuse)** code có sẵn.
+- **Tránh trùng lặp (Anti-duplication)** gây phình to hệ thống.
+- **Hiểu mối liên kết (Linking)** giữa Frontend và Backend Serverless.
+
 ## 🚀 Tính năng
 
 - **Xác thực Firebase** - Đăng nhập/đăng ký an toàn
