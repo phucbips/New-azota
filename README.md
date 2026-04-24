@@ -2,136 +2,58 @@
 
 Hệ thống học tập hiện đại cho học sinh THPT được phát triển bằng React, TypeScript, và Tailwind CSS.
 
+## 🤖 Hướng dẫn cho AI Agents (Agent Skills)
+
+Dự án này sử dụng một bộ kỹ năng đặc biệt cho AI Agent được lưu trong thư mục `.agent/skills/`. Để hỗ trợ việc phát triển tiếp theo hiệu quả:
+
+1. **Hiểu về thư mục `.agent/skills/`**: Thư mục này chứa các công cụ/script kiểm tra mã nguồn trước khi commit (pre-commit checks). Hiện tại nó có thể bị thiếu trong repository hoặc đang nằm trong `.gitignore`.
+2. **Khi phát triển tính năng mới**:
+   - Nếu bạn là một AI Agent, hãy luôn ưu tiên đọc `AGENTS.md` (nếu có) hoặc xem xét các hướng dẫn trong `.jules/bolt.md`.
+   - **Ví dụ từ file `bolt.md`**: Hệ thống đã được cấu hình **Route-based Code Splitting** (`React.lazy` và `Suspense`) trong `App.tsx` để giảm kích thước bundle. Khi tạo trang mới, hãy tiếp tục sử dụng `React.lazy` thay vì import đồng bộ.
+3. **Cách phân tích lỗi (Bài học từ Fix 403 & OTP)**:
+   - Các lỗi 403 thường xuất phát từ `firestore.rules` (hoặc RLS). **Tuyệt đối không cấp quyền ghi (write)** cho user thường trên các bảng dữ liệu nhạy cảm (như `courses`, `app_settings`).
+   - Hãy xử lý ở backend (Webhook, Vercel Serverless Function) với Admin SDK thay vì lỏng lẻo ở client.
+   - Khi làm chức năng gửi OTP hoặc đếm ngược, luôn quản lý state cẩn thận, ưu tiên tách component nếu file quá lớn (như đã phân tích trong kế hoạch Lovable/Supabase cũ).
+
 ## 🚀 Tính năng
 
 - **Xác thực Firebase** - Đăng nhập/đăng ký an toàn
 - **Giao diện Admin** - Quản lý bài học và danh sách học sinh  
 - **Giao diện Student** - Xem bài học và chat với AI assistant
-- **UI/UX Hiện đại** - Glass morphism effects và responsive design
+- **Hệ thống thanh toán PayOS** - Tích hợp Webhook an toàn, tự động cấp quyền
 - **AI Assistant** - Chatbot hỗ trợ học tập (cần API key Gemini)
-- **Responsive** - Tối ưu cho mọi thiết bị
 
 ## 🛠 Công nghệ sử dụng
 
 - **Frontend**: React 18 + TypeScript + Vite
 - **Styling**: Tailwind CSS + Custom CSS
-- **Authentication**: Firebase Auth
-- **Database**: Firebase Firestore  
-- **AI**: Google Gemini API
-- **Icons**: Lucide React
-- **Build**: Vite + pnpm
+- **Backend/Serverless**: Vercel Functions (`api/` directory)
+- **Authentication/Database**: Firebase (Auth, Firestore)
+- **Payments**: PayOS Node SDK
 
 ## 📦 Cài đặt
 
-### Yêu cầu
-- Node.js >= 16
-- pnpm >= 8
-
-### Các bước cài đặt
-
-1. **Giải nén project**
-```bash
-unzip thpt-learning-system.zip
-cd thpt-learning-system
-```
-
-2. **Cài đặt dependencies**
+1. **Cài đặt dependencies**
 ```bash
 pnpm install
 ```
 
-3. **Cấu hình Firebase**
-   - Tạo project Firebase: https://console.firebase.google.com/
-   - Bật Authentication (Email/Password + Google)
-   - Tạo Firestore Database
-   - Copy cấu hình vào `src/config/firebase.ts`
+2. **Cấu hình môi trường**
+   - Copy file `.env.example` thành `.env`
+   - Điền Firebase keys, Gemini API key, và PayOS keys.
 
-4. **Cấu hình AI (tùy chọn)**
-   - Tạo Gemini API key: https://makersuite.google.com/
-   - Thêm vào file `.env`:
-```
-VITE_GEMINI_API_KEY=your_gemini_api_key_here
-```
-
-5. **Chạy development server**
+3. **Chạy server**
 ```bash
 pnpm dev
 ```
 
-6. **Build production**
+4. **Biên dịch**
 ```bash
 pnpm build
 ```
 
 ## 📁 Cấu trúc Project
-
-```
-src/
-├── components/           # React components
-│   ├── auth/            # Authentication components
-│   ├── admin/           # Admin dashboard components  
-│   ├── student/         # Student interface components
-│   └── shared/          # Shared components
-├── pages/               # Main pages
-├── services/            # Business logic
-├── config/              # Configuration files
-├── contexts/            # React contexts
-├── hooks/               # Custom hooks
-├── types/               # TypeScript types
-└── styles/              # Global styles
-```
-
-## 🎯 Sử dụng
-
-### Admin Dashboard
-- **Quản lý Bài học**: Thêm, sửa, xóa bài học
-- **Quản lý Whitelist**: Quản lý danh sách học sinh được phép
-
-### Student Dashboard  
-- **Xem Bài học**: Danh sách và chi tiết bài học
-- **AI Chat**: Trò chuyện với assistant để hỏi về bài học
-
-## 🔧 Tùy chỉnh
-
-### Đổi màu theme
-Chỉnh sửa trong `tailwind.config.js` và `src/styles/globals.css`
-
-### Thêm bài học mới
-1. Vào Admin Dashboard
-2. Chọn "Quản lý Bài học"  
-3. Nhấn "Thêm Bài học Mới"
-4. Điền thông tin và mã embed (iframe/HTML)
-
-### Cấu hình Firebase
-Cập nhật `src/config/firebase.ts` với config của project Firebase
-
-## 🚀 Deploy
-
-### Vercel
-```bash
-pnpm build
-vercel deploy
-```
-
-### Netlify
-```bash
-pnpm build  
-# Deploy thư mục dist/
-```
-
-### Firebase Hosting
-```bash
-pnpm build
-firebase deploy
-```
-
-## 📝 Ghi chú
-
-- Để Google Authentication hoạt động, cần thêm domain vào Firebase Console
-- AI Chat chỉ hoạt động khi có Gemini API key
-- Đảm bảo đã cấu hình Firebase Firestore rules phù hợp
-
-## 📞 Hỗ trợ
-
-Liên hệ qua GitHub Issues hoặc email để được hỗ trợ.
-# MaxPing
+- `src/` - Chứa toàn bộ source code frontend React.
+- `api/` - Chứa mã nguồn Vercel Serverless Functions (chạy trên Node.js).
+- `src/styles/globals.css` - Chứa biến màu thiết kế (Design Tokens) của Tailwind.
+- `DESIGN.md` - Tài liệu chuẩn quy định Design System và màu sắc của dự án.
