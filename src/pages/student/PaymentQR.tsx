@@ -78,12 +78,12 @@ export const PaymentQR: React.FC = () => {
                 embedded: true,
                 onSuccess: async (event: any) => {
                     // Fast track local state update
-                    await orderService.updateOrderStatus(order.id, 'paid');
+
                     /* Webhook will handle enrollment update safely on server side */
                     navigate('/student/courses');
                 },
                 onCancel: (event: any) => {
-                    orderService.updateOrderStatus(order.id, 'cancelled');
+
                     navigate('/student/courses');
                 }
             };
@@ -124,7 +124,7 @@ export const PaymentQR: React.FC = () => {
                 if (prev <= 1) {
                     clearInterval(timer);
                     // Cancel order
-                    orderService.updateOrderStatus(order.id, 'cancelled');
+
                     navigate('/student/courses');
                     return 0;
                 }
