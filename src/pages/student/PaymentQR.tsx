@@ -88,11 +88,21 @@ export const PaymentQR: React.FC = () => {
                 }
             };
 
-            if (window.PayOSCheckout) {
-                const { open, exit } = window.PayOSCheckout.usePayOS(config);
-                payosInstance = { exit };
-                open();
-            }
+            const checkAndInit = () => {
+                if (window.PayOSCheckout) {
+                    try {
+                        const { open, exit } = window.PayOSCheckout.usePayOS(config);
+                        payosInstance = { exit };
+                        open();
+                    } catch (e) {
+                        console.error("PayOS init error:", e);
+                    }
+                } else {
+                    // Retry after 500ms if script is still loading
+                    setTimeout(checkAndInit, 500);
+                }
+            };
+            checkAndInit();
         };
 
         // Give React a moment to render the div
@@ -205,8 +215,13 @@ export const PaymentQR: React.FC = () => {
                 </div>
 
                 {/* Right Side - PayOS Embedded Container */}
-                <div className="lg:w-2/3 bg-white w-full h-full relative" id="embeded-payment-container">
-                     {/* PayOS UI will mount here */}
+                <div className="lg:w-2/3 bg-white w-full h-full relative flex flex-col items-center justify-center" id="embeded-payment-container">
+                    <div className="text-center p-8 z-0">
+                        <p className="text-muted-foreground mb-4">Nếu mã QR không tự động hiển thị, vui lòng nhấn nút bên dưới để thanh toán.</p>
+                        <a href={checkoutUrl} target="_blank" rel="noopener noreferrer" className="px-6 py-3 bg-primary text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all inline-block">
+                            Mở Cổng Thanh Toán
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
