@@ -56,8 +56,8 @@ export const PaymentQR: React.FC = () => {
                 setCheckoutUrl(result.checkoutUrl);
             } catch (err: any) {
                 console.error("Lỗi tạo PayOS link:", err);
-                // Fallback or display error
-                setError("Không thể tạo link thanh toán tự động lúc này. Vui lòng chuyển khoản thủ công.");
+                // Display the specific error message from the server if available
+                setError(err.message || "Không thể tạo link thanh toán tự động lúc này. Vui lòng chuyển khoản thủ công.");
             }
         };
 
