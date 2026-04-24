@@ -4,6 +4,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { orderService } from '../../services/order.service';
 import { courseService } from '../../services/course.service';
+import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { db } from '../../config/firebase';
 import { voucherService } from '../../services/voucher.service';
 import { BookOpen, CreditCard, Banknote, Tag, Loader2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';

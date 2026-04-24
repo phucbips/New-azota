@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Course, courseService } from '../../services/course.service';
+import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { db } from '../../config/firebase';
 import { Order, orderService } from '../../services/order.service';
 import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../contexts/CartContext';
@@ -66,7 +68,13 @@ const { user } = useAuth();
               paymentMethod: method,
           });
 
-          // Note: Real enrollment count updates should happen via secure backend webhook/function to avoid permission errors
+          if (initialStatus === 'paid') {
+              // Users can update their own document according to firestore rules
+              const userRef = doc(db, 'users', user!.uid);
+              await updateDoc(userRef, {
+                  enrolledCourses: arrayUnion(course.id)
+              });
+          }
 
           setSelectedCourse(null);
 

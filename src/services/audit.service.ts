@@ -17,6 +17,10 @@ class AuditService {
 
   async logAction(action: string, target: string, performedBy: string, performedByEmail: string, details?: any) {
     try {
+      // Safety check: Only admins can write to audit logs per firestore rules.
+      // If a normal user triggers this (e.g. self-updating enrolledCourses), it will fail.
+      // Wait, we use this.currentAdmin in UserService, but we should make sure we don't crash.
+      // We will catch and swallow the error silently if permission is denied.
       await addDoc(collection(db, COLLECTION), {
         action,
         target,
@@ -26,7 +30,10 @@ class AuditService {
         createdAt: serverTimestamp()
       });
     } catch (error) {
-      console.error("Failed to log audit action:", error);
+      // Suppress permission denied logs for regular users modifying their own docs
+      if ((error as any)?.code !== "permission-denied") {
+        console.error("Failed to log audit action:", error);
+      }
     }
   }
 

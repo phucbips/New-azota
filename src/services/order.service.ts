@@ -37,7 +37,8 @@ class OrderService {
   async createOrder(orderData: Omit<Order, 'id' | 'orderCode' | 'createdAt' | 'updatedAt'>): Promise<string> {
     const newDoc = doc(this.collection);
     // Generate a readable order code like "EDU-12345"
-    const orderCode = `EDU-${Math.floor(10000 + Math.random() * 90000)}`;
+    // PayOS requires orderCode to be an Int32 number
+    const orderCode = String(Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 9000));
 
     const data = {
       ...orderData,
