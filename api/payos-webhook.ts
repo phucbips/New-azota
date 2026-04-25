@@ -19,6 +19,16 @@ if (!admin.apps.length) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+    // CORS Configuration
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
     // 1. Phản hồi giao thức (Protocol Response Layer)
     // Luôn ưu tiên phản hồi nhanh để đáp ứng Timeout Budget của PayOS
     if (req.method !== 'POST') {
