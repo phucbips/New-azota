@@ -159,9 +159,12 @@ const { user } = useAuth();
                                     {course.price === 0 ? 'Nhận khóa học' : (cartItems.find(c => c.id === course.id) ? 'Đã thêm vào giỏ' : 'Thêm vào giỏ hàng')}
                                 </button>
                             ) : status === 'pending' ? (
-                                <button disabled className="w-full py-3 bg-muted text-muted-foreground rounded-xl font-bold cursor-not-allowed">
-                                    Đang chờ thanh toán
-                                </button>
+                                <Link
+                                    to={`/student/payment?orderId=${orders.find(o => o.courseId === course.id || (o.items && o.items.some(i => i.courseId === course.id)))?.id}`}
+                                    className="w-full py-3 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-bold transition-colors shadow-md flex items-center justify-center"
+                                >
+                                    Tiếp tục thanh toán
+                                </Link>
                             ) : (
                                 <Link to="/student/assignments" className="w-full py-3 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-xl font-bold hover:bg-emerald-100 transition-colors flex items-center justify-center">
                                     Vào học ngay

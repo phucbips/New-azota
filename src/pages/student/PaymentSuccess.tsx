@@ -48,7 +48,8 @@ export const PaymentSuccess: React.FC = () => {
         );
     }
 
-    if (status !== 'PAID' && status !== 'success') {
+    const isSuccess = searchParams.get('code') === '00' || status === 'PAID' || status === 'success';
+    if (!isSuccess) {
          return (
              <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
                 <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-6">

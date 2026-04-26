@@ -73,16 +73,18 @@ export const PaymentQR: React.FC = () => {
         if (!order || order.status === 'paid' || order.status === 'cancelled') return;
 
         const timer = setInterval(() => {
-            setTimeLeft(prev => {
-                if (prev <= 1) {
-                    clearInterval(timer);
-                    // Cancel order
+            const now = new Date().getTime();
+            // order.createdAt is a firebase timestamp or date. We use toMillis() if available
+            const createdAtMs = order.createdAt?.toMillis?.() || new Date(order.createdAt).getTime();
+            const expiresAtMs = createdAtMs + 10 * 60 * 1000; // 10 minutes
+            const remaining = Math.max(0, Math.floor((expiresAtMs - now) / 1000));
 
-                    navigate('/student/courses');
-                    return 0;
-                }
-                return prev - 1;
-            });
+            setTimeLeft(remaining);
+
+            if (remaining <= 0) {
+                clearInterval(timer);
+                navigate('/student/courses');
+            }
         }, 1000);
 
         return () => clearInterval(timer);
