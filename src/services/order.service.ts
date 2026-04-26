@@ -72,6 +72,11 @@ class OrderService {
       return null;
   }
 
+  async getOrders(): Promise<Order[]> {
+    const snapshot = await getDocs(this.collection);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+  }
+
   subscribeToOrders(callback: (orders: Order[]) => void): () => void {
     const q = query(this.collection);
     return onSnapshot(q, (snapshot) => {

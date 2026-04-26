@@ -42,8 +42,8 @@ export const PaymentQR: React.FC = () => {
                         orderCode: o.orderCode,
                         amount: o.amount,
                         description: `${o.orderCode}`,
-                        returnUrl: `${baseUrl}/student/courses`,
-                        cancelUrl: `${baseUrl}/student/courses`,
+                        returnUrl: `${baseUrl}/student/payment/success`,
+                        cancelUrl: `${baseUrl}/student/payment/success`,
                     })
                 });
 
