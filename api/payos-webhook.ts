@@ -19,6 +19,8 @@ if (!admin.apps.length) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+    try {
+
     // CORS Configuration
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -144,5 +146,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.error('PayOS Webhook Internal Server Error:', error);
         // Luôn trả về 200 để kháng lỗi retry bão (Webhook Storm)
         return res.status(200).json({ success: true, message: 'Error handled gracefully' });
+    }
+    } catch (e: any) {
+        console.error('CRITICAL UNHANDLED ERROR IN WEBHOOK:', e);
+        return res.status(200).json({ success: true, message: 'Critical error caught, ignoring to prevent retry loops' });
     }
 }
