@@ -71,7 +71,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } catch (e: any) {
         // If order already exists (HTTP 200 / Code 231), retrieve it
         if (e.message && e.message.includes('231')) {
-            const existingPayment = await payOS.paymentRequests.getPaymentLinkInformation(body.orderCode);
+            const existingPayment = await payOS.paymentRequests.get(String(body.orderCode));
             if (existingPayment && existingPayment.status !== 'PAID') {
                  // PayOS doesn't directly return checkoutUrl on get.
                  // The checkout URL format is usually fixed: https://pay.payos.vn/web/{paymentLinkId}
