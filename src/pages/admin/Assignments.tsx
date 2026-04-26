@@ -82,7 +82,7 @@ export const AdminAssignments: React.FC = () => {
               if (data.type === 'smart_exam') {
                   // We need to pass courseId, but Assignment schema might not enforce it at top-level if it's not tied to a course in this list.
                   // If courseId is available in data, pass it, otherwise pass a generic 'admin' or empty string.
-                  navigate(`/admin/assignments/builder?id=${editingAssignment.id}&courseId=${data.courseId || 'general'}`);
+                  window.open(`/admin/assignments/builder?id=${editingAssignment.id}&courseId=${data.courseId || 'general'}`, '_blank'); setIsModalOpen(false);
                   return;
               }
           } else {
@@ -95,7 +95,7 @@ export const AdminAssignments: React.FC = () => {
               });
               toast.success('Assignment created');
               if (data.type === 'smart_exam' && newAssignmentId) {
-                  navigate(`/admin/assignments/builder?id=${newAssignmentId}&courseId=${data.courseId || 'general'}`);
+                  window.open(`/admin/assignments/builder?id=${newAssignmentId}&courseId=${data.courseId || 'general'}`, '_blank'); setIsModalOpen(false);
                   return;
               }
           }

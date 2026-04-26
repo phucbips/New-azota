@@ -61,11 +61,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       cancelUrl,
     };
 
-    const paymentLinkResponse = await payOS.paymentRequests.create(body);
+    let checkoutUrl = '';
+    let paymentLinkId = '';
+
+    try {
+        const paymentLinkResponse = await payOS.paymentRequests.create(body);
+        checkoutUrl = paymentLinkResponse.checkoutUrl;
+        paymentLinkId = paymentLinkResponse.paymentLinkId;
+    } catch (e: any) {
+        // If order already exists (HTTP 200 / Code 231), retrieve it
+        if (e.message && e.message.includes('231')) {
+            const existingPayment = await payOS.paymentRequests.getPaymentLinkInformation(body.orderCode);
+            if (existingPayment && existingPayment.status !== 'PAID') {
+                 // PayOS doesn't directly return checkoutUrl on get.
+                 // The checkout URL format is usually fixed: https://pay.payos.vn/web/{paymentLinkId}
+                 checkoutUrl = `https://pay.payos.vn/web/${existingPayment.id}`;
+                 paymentLinkId = existingPayment.id;
+            } else {
+                 return res.status(400).json({ error: 'Đơn hàng này đã được thanh toán hoặc không hợp lệ.' });
+            }
+        } else {
+            throw e;
+        }
+    }
 
     return res.status(200).json({
-      checkoutUrl: paymentLinkResponse.checkoutUrl,
-      paymentLinkId: paymentLinkResponse.paymentLinkId,
+      checkoutUrl,
+      paymentLinkId,
     });
   } catch (error: any) {
     console.error('PayOS Error:', error);
