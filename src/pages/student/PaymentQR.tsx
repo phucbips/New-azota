@@ -41,7 +41,7 @@ export const PaymentQR: React.FC = () => {
                     body: JSON.stringify({
                         orderCode: o.orderCode,
                         amount: o.amount,
-                        description: `${o.orderCode}`,
+                        description: o.displayCode ? o.displayCode.replace(/[^a-zA-Z0-9 ]/g, '').substring(0, 25) : `${o.orderCode}`,
                         returnUrl: `${baseUrl}/student/payment/success`,
                         cancelUrl: `${baseUrl}/student/payment/success`,
                     })
@@ -112,7 +112,7 @@ export const PaymentQR: React.FC = () => {
                     <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
                     <h2 className="text-xl font-bold mb-2">Lỗi kết nối Cổng Thanh Toán</h2>
                     <p className="text-muted-foreground mb-6">{error}</p>
-                    <p className="mb-4">Bạn có thể chuyển khoản thủ công với nội dung: <strong>{order.orderCode}</strong></p>
+                    <p className="mb-4">Bạn có thể chuyển khoản thủ công với nội dung: <strong>{order.displayCode || order.orderCode}</strong></p>
                     <p className="text-xl font-bold text-primary mb-6">{new Intl.NumberFormat('vi-VN').format(order.amount)}đ</p>
                     <button onClick={() => navigate('/student/courses')} className="w-full py-3 bg-primary text-white font-bold rounded-xl">Quay lại Khóa học</button>
                 </div>
@@ -139,7 +139,7 @@ export const PaymentQR: React.FC = () => {
                 {/* Left Side - Details & Timer */}
                 <div className="lg:w-1/3 p-8 border-b lg:border-b-0 lg:border-r border-border bg-card flex flex-col">
                     <h2 className="text-2xl font-bold font-display mb-1 text-foreground">Thanh toán</h2>
-                    <p className="text-sm text-muted-foreground mb-6">Mã đơn hàng: {order.orderCode}</p>
+                    <p className="text-sm text-muted-foreground mb-6">Mã đơn hàng: {order.displayCode || order.orderCode}</p>
 
                     <div className="flex-1">
                         <h3 className="text-lg font-bold text-foreground mb-4">Sản phẩm:</h3>

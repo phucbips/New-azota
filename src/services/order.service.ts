@@ -13,6 +13,7 @@ export interface OrderItem {
 export interface Order {
   id: string;
   orderCode: string;
+  displayCode?: string;
   userId: string;
   userEmail: string;
   userName: string;
@@ -38,12 +39,17 @@ class OrderService {
     const newDoc = doc(this.collection);
     // Generate a readable order code like "EDU-12345"
     // PayOS requires orderCode to be an Int32 number
-    const orderCode = String(Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 9000));
+    const orderCodeNum = Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 9000);
+    const orderCode = String(orderCodeNum);
+    // Generate a human readable display code (e.g. DH1234 KH5678)
+    const userSuffix = orderData.userId ? orderData.userId.substring(0, 4).toUpperCase() : 'GUst';
+    const displayCode = `DH${String(orderCodeNum).slice(-4)} KH${userSuffix}`;
 
     const data = {
       ...orderData,
       id: newDoc.id,
       orderCode,
+      displayCode,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };

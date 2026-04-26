@@ -81,7 +81,7 @@ export const PaymentSuccess: React.FC = () => {
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Thông tin đơn hàng</p>
                         <div className="flex justify-between items-center mb-3">
                             <span className="text-slate-600">Mã đơn:</span>
-                            <span className="font-mono font-bold text-slate-900">{order.orderCode}</span>
+                            <span className="font-mono font-bold text-slate-900">{order.displayCode || order.orderCode}</span>
                         </div>
                         <div className="flex justify-between items-center border-b border-slate-200 pb-3 mb-3">
                             <span className="text-slate-600">Tổng tiền:</span>
