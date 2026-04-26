@@ -54,6 +54,8 @@ export const PaymentQR: React.FC = () => {
 
                 const result = await response.json();
                 setCheckoutUrl(result.checkoutUrl);
+                // Automatically redirect to PayOS checkout page
+                window.location.href = result.checkoutUrl;
             } catch (err: any) {
                 console.error("Lỗi tạo PayOS link:", err);
                 // Display the specific error message from the server if available
@@ -165,18 +167,25 @@ export const PaymentQR: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Right Side - PayOS Iframe */}
-                <div className="lg:w-2/3 bg-white w-full flex-1 md:h-full min-h-[500px] relative" id="embeded-payment-container">
+                {/* Right Side - Redirecting */}
+                <div className="lg:w-2/3 bg-white w-full flex-1 md:h-full min-h-[500px] relative flex flex-col items-center justify-center p-8 text-center" id="embeded-payment-container">
                      {checkoutUrl ? (
-                        <iframe
-                            src={checkoutUrl}
-                            title="Thanh toán PayOS"
-                            className="w-full h-full border-0"
-                            allow="payment"
-                        />
+                         <div className="space-y-6">
+                            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                                <CheckCircle className="w-10 h-10 text-green-600" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-slate-900">Đơn hàng đã được tạo!</h3>
+                            <p className="text-slate-500 max-w-md mx-auto">
+                                Hệ thống đang chuyển hướng bạn đến cổng thanh toán an toàn của PayOS...
+                            </p>
+                            <a href={checkoutUrl} className="inline-block mt-4 px-8 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-700 transition-colors">
+                                Đi đến trang thanh toán ngay
+                            </a>
+                         </div>
                      ) : (
-                         <div className="flex items-center justify-center h-full">
-                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                         <div className="flex flex-col items-center justify-center h-full space-y-4">
+                            <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+                            <p className="text-slate-500">Đang khởi tạo kết nối bảo mật...</p>
                          </div>
                      )}
                 </div>
