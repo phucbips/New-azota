@@ -131,6 +131,7 @@ function App() {
               <Route path="assignments" element={<StudentAssignments />} />
               <Route path="courses" element={<StudentCourses />} />
               <Route path="payment" element={<PaymentQR />} />
+            <Route path="payment/success" element={<PaymentSuccess />} />
               <Route path="checkout" element={<Checkout />} />
               <Route path="settings" element={<StudentSettings />} />
               <Route path="profile" element={<StudentProfile />} />

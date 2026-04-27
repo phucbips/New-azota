@@ -14,6 +14,7 @@ export interface Order {
   id: string;
   orderCode: string;
   displayCode?: string;
+  checkoutUrl?: string;
   userId: string;
   userEmail: string;
   userName: string;
@@ -67,6 +68,11 @@ class OrderService {
       status,
       updatedAt: serverTimestamp(),
     });
+  }
+
+  async updateCheckoutUrl(id: string, checkoutUrl: string): Promise<void> {
+    const docRef = doc(db, 'orders', id);
+    await updateDoc(docRef, { checkoutUrl });
   }
 
   async getOrder(id: string): Promise<Order | null> {

@@ -31,6 +31,12 @@ export const PaymentQR: React.FC = () => {
                 return;
             }
 
+            if (o.checkoutUrl) {
+                setCheckoutUrl(o.checkoutUrl);
+                window.location.href = o.checkoutUrl;
+                return;
+            }
+
             try {
                 // Determine base URL dynamically depending on environment
                 const baseUrl = window.location.origin;
@@ -54,6 +60,8 @@ export const PaymentQR: React.FC = () => {
 
                 const result = await response.json();
                 setCheckoutUrl(result.checkoutUrl);
+                // Save checkoutUrl to prevent PayOS Error 231 on resume
+                await orderService.updateCheckoutUrl(orderId, result.checkoutUrl);
                 // Automatically redirect to PayOS checkout page
                 window.location.href = result.checkoutUrl;
             } catch (err: any) {

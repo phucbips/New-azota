@@ -80,9 +80,8 @@ export const Checkout: React.FC = () => {
               paymentMethod: paymentMethod,
           });
 
-          if (appliedVoucherId) {
-              await voucherService.incrementUsage(appliedVoucherId);
-          }
+          // Note: Voucher usage count should be incremented securely on the backend (e.g. within payos-webhook or an admin cloud function)
+          // to avoid 'Missing or insufficient permissions' errors.
 
           if (finalPrice === 0) {
                // Update course enrollment counts for free orders directly
