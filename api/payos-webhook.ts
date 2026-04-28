@@ -1,5 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import * as admin from 'firebase-admin';
+import crypto from 'crypto';
 
 // Initialize Firebase Admin dynamically inside handler to avoid top level crashes
 const initAdmin = () => {
@@ -49,6 +50,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const code = body?.code;
         const data = body?.data;
+        const signature = body?.signature;
+
+        // BẢO MẬT: Xác minh chữ ký (Signature Checksum) HMAC-SHA256
+        // Bước 1: Lấy CHECKSUM_KEY từ môi trường (chỉ server và PayOS biết)
+        const checksumKey = process.env.PAYOS_CHECKSUM_KEY;
+
+        if (checksumKey && data && signature) {
+            // Bước 2: Tạo mảng chứa các keys của object data, sắp xếp theo Alphabet (A-Z)
+            const sortedDataKeys = Object.keys(data).sort();
+
+            // Bước 3: Nối các value thành chuỗi với định dạng key=value, cách nhau bằng dấu &
+            const signData = sortedDataKeys
+                .map((key) => `${key}=${data[key]}`)
+                .join('&');
+
+            // Bước 4: Dùng thuật toán HMAC-SHA256 với CHECKSUM_KEY để băm (hash) chuỗi data ở bước 3
+            const generatedSignature = crypto
+                .createHmac('sha256', checksumKey)
+                .update(signData)
+                .digest('hex');
+
+            // Bước 5: So sánh chữ ký tạo ra với chữ ký PayOS gửi lên
+            if (generatedSignature !== signature) {
+                console.error('Invalid signature. Potential spoofing attack detected!');
+                // Ngắt ngay lập tức, không cập nhật CSDL
+                return res.status(200).json({ success: false, message: 'Invalid signature' });
+            }
+        }
 
         // Handle missing/invalid data gracefully
         if (!data || !data.orderCode) {
@@ -110,6 +139,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     const userRef = db.collection('users').doc(orderData.userId);
                     await userRef.update({
                         enrolledCourses: admin.firestore.FieldValue.arrayUnion(...courseIds)
+                    });
+                }
+
+                if (orderData.voucherCode) {
+                    const voucherRef = db.collection('vouchers').doc(orderData.voucherCode);
+                    await db.runTransaction(async (t) => {
+                        const vDoc = await t.get(voucherRef);
+                        if (vDoc.exists) {
+                            t.update(voucherRef, { usedCount: admin.firestore.FieldValue.increment(1) });
+                        }
                     });
                 }
             }

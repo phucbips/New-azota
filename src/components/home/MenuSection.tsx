@@ -26,7 +26,7 @@ export const MenuSection = () => {
       });
   }, []);
 
-  if (!hasEnoughSales || courses.length === 0) return null;
+  if (courses.length === 0) return null;
 
   return (
     <section className="bg-muted/10 py-20 md:py-32" id="courses">

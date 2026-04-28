@@ -15,6 +15,7 @@ Dự án này sử dụng một bộ kỹ năng đặc biệt cho AI Agent đư�
    - Hãy xử lý ở backend (Webhook, Vercel Serverless Function) với Admin SDK thay vì lỏng lẻo ở client.
    - Khi làm chức năng gửi OTP hoặc đếm ngược, luôn quản lý state cẩn thận, ưu tiên tách component nếu file quá lớn (như đã phân tích trong kế hoạch Lovable/Supabase cũ).
    - **ĐẶC BIỆT LƯU Ý VỀ GIAO DIỆN (UI/UX):** Khi thiết kế hoặc chỉnh sửa bất kỳ giao diện nào, **bắt buộc** phải tối ưu hóa Responsive cho cả 2 nền tảng: **PC và Mobile (bao gồm Android và iPhone)**. Hãy sử dụng các class Tailwind như `min-h-[100dvh]` thay cho `h-screen` để tránh bị che bởi thanh công cụ trình duyệt di động, và luôn dùng `flex-col md:flex-row` để đảm bảo giao diện không bị vỡ.
+   - **THÔNG BÁO THAO TÁC THỦ CÔNG:** Mỗi khi chỉnh sửa, AI Agent phải tóm tắt rõ ràng các thay đổi code và liệt kê các thao tác thủ công (như cập nhật Firebase Rules, thêm biến môi trường) mà con người cần làm.
 
 
 ## 🔍 Cẩm Nang Tính Năng (Feature Inventory)

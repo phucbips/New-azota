@@ -47,7 +47,15 @@ export const PaymentQR: React.FC = () => {
                     body: JSON.stringify({
                         orderCode: o.orderCode,
                         amount: o.amount,
-                        description: o.displayCode ? o.displayCode.replace(/[^a-zA-Z0-9 ]/g, '').substring(0, 25) : `${o.orderCode}`,
+                        description: (() => {
+                            // Extract name from email (before @)
+                            const emailStr = o.userEmail || '';
+                            let prefix = emailStr.split('@')[0];
+                            // Remove special chars to comply with PayOS
+                            prefix = prefix.replace(/[^a-zA-Z0-9 ]/g, '');
+                            if (!prefix) prefix = o.displayCode || `${o.orderCode}`;
+                            return prefix.substring(0, 25);
+                        })(),
                         returnUrl: `${baseUrl}/student/payment/success`,
                         cancelUrl: `${baseUrl}/student/payment/success`,
                     })
