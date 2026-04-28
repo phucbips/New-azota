@@ -45,6 +45,7 @@ const StudentCourses = React.lazy(() => import('./pages/student/Courses').then(m
 const StudentSettings = React.lazy(() => import('./pages/student/Settings').then(module => ({ default: module.StudentSettings })));
 const StudentProfile = React.lazy(() => import('./pages/student/Profile').then(module => ({ default: module.StudentProfile })));
 const PaymentQR = React.lazy(() => import('./pages/student/PaymentQR').then(module => ({ default: module.PaymentQR })));
+const PaymentSuccess = React.lazy(() => import('./pages/student/PaymentSuccess').then(module => ({ default: module.PaymentSuccess })));
 const Checkout = React.lazy(() => import('./pages/student/Checkout').then(module => ({ default: module.Checkout })));
 const LandingPage = React.lazy(() => import('./pages/public/Landing').then(module => ({ default: module.LandingPage })));
 const PublicCourses = React.lazy(() => import('./pages/public/PublicCourses').then(module => ({ default: module.PublicCourses })));
