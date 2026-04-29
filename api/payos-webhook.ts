@@ -6,14 +6,31 @@ import crypto from 'crypto';
 const initAdmin = () => {
     if (!admin.apps?.length) {
         try {
-            let credential;
             if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-                const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-                credential = admin.credential.cert(serviceAccount);
+                try {
+                    const serviceAccountStr = process.env.FIREBASE_SERVICE_ACCOUNT_KEY.trim();
+                    // Handle case where Vercel environment variables might escape newlines incorrectly
+                    const parsedStr = serviceAccountStr.replace(/\\\\n/g, '\\n');
+                    const serviceAccount = JSON.parse(parsedStr);
+                    admin.initializeApp({
+                        credential: admin.credential.cert(serviceAccount)
+                    });
+                } catch (parseError) {
+                    console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY as JSON', parseError);
+                }
+            } else if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+                admin.initializeApp({
+                    credential: admin.credential.cert({
+                        projectId: process.env.FIREBASE_PROJECT_ID,
+                        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+                        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\\\n/g, '\\n'),
+                    })
+                });
             } else {
-                credential = admin.credential.applicationDefault();
+                admin.initializeApp({
+                    credential: admin.credential.applicationDefault()
+                });
             }
-            admin.initializeApp({ credential });
         } catch (e) {
             console.error('Firebase Admin init error', e);
         }

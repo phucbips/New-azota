@@ -29,7 +29,7 @@ const [courses, setCourses] = useState<Course[]>([]);
           addToCart(course);
           toast.success("Đã thêm vào giỏ hàng");
           if (user) {
-              navigate('/student/checkout');
+              navigate('/student/cart');
           } else {
               navigate('/login');
           }

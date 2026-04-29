@@ -174,7 +174,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
                 {role === 'student' && (
                   <div className="relative group flex items-center">
                     <Link
-                      to="/student/checkout"
+                      to="/student/cart"
                       className="relative p-2 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                     >
                       <ShoppingCart className="w-5 h-5" />
@@ -214,7 +214,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role
                                     </span>
                                 </div>
                                 <Link
-                                    to="/student/checkout"
+                                    to="/student/cart"
                                     className="w-full py-2.5 bg-primary text-primary-foreground rounded-xl font-bold flex items-center justify-center transition-all hover:bg-primary/90 hover:shadow-md"
                                 >
                                     Thanh toán ngay

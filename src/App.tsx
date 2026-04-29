@@ -46,7 +46,7 @@ const StudentSettings = React.lazy(() => import('./pages/student/Settings').then
 const StudentProfile = React.lazy(() => import('./pages/student/Profile').then(module => ({ default: module.StudentProfile })));
 const PaymentQR = React.lazy(() => import('./pages/student/PaymentQR').then(module => ({ default: module.PaymentQR })));
 const PaymentSuccess = React.lazy(() => import('./pages/student/PaymentSuccess').then(module => ({ default: module.PaymentSuccess })));
-const Checkout = React.lazy(() => import('./pages/student/Checkout').then(module => ({ default: module.Checkout })));
+const CartOrders = React.lazy(() => import('./pages/student/CartOrders').then(module => ({ default: module.CartOrders })));
 const LandingPage = React.lazy(() => import('./pages/public/Landing').then(module => ({ default: module.LandingPage })));
 const PublicCourses = React.lazy(() => import('./pages/public/PublicCourses').then(module => ({ default: module.PublicCourses })));
 
@@ -133,7 +133,7 @@ function App() {
               <Route path="courses" element={<StudentCourses />} />
               <Route path="payment" element={<PaymentQR />} />
             <Route path="payment/success" element={<PaymentSuccess />} />
-              <Route path="checkout" element={<Checkout />} />
+              <Route path="cart" element={<CartOrders />} />
               <Route path="settings" element={<StudentSettings />} />
               <Route path="profile" element={<StudentProfile />} />
             </Route>
