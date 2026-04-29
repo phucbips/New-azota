@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Course, courseService } from '../../services/course.service';
+import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { db } from '../../config/firebase';
 import { Order, orderService } from '../../services/order.service';
 import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../contexts/CartContext';
@@ -9,23 +11,7 @@ import { toast } from 'sonner';
 import { Link, useNavigate } from 'react-router-dom';
 
 export const StudentCourses: React.FC = () => {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 px-4 text-center min-h-[60vh] bg-card rounded-2xl border border-border mt-6">
-        <div className="bg-muted p-6 rounded-full mb-6">
-            <BookOpen className="w-16 h-16 text-muted-foreground" />
-        </div>
-        <h1 className="text-3xl font-bold text-foreground mb-4">Hệ thống đang bảo trì thanh toán</h1>
-        <p className="text-muted-foreground max-w-lg mb-8">
-            Tính năng đăng ký và mua khóa học tự động hiện đang tạm ngưng để nâng cấp.
-            Bạn vui lòng liên hệ trực tiếp với Quản trị viên (Admin) hoặc qua nhóm hỗ trợ Zalo/Facebook để được cấp quyền truy cập các khóa học mới.
-        </p>
-        <Link to="/student" className="px-6 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-colors shadow-sm">
-            Quay lại Tổng quan
-        </Link>
-    </div>
-  );
-
-  const { user } = useAuth();
+const { user } = useAuth();
   const navigate = useNavigate();
   const [courses, setCourses] = useState<Course[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -83,10 +69,11 @@ export const StudentCourses: React.FC = () => {
           });
 
           if (initialStatus === 'paid') {
-               // Update enrollments (simulate)
-               await courseService.updateCourse(course.id, {
-                   enrollmentCount: (course.enrollmentCount || 0) + 1
-               });
+              // Users can update their own document according to firestore rules
+              const userRef = doc(db, 'users', user!.uid);
+              await updateDoc(userRef, {
+                  enrolledCourses: arrayUnion(course.id)
+              });
           }
 
           setSelectedCourse(null);
@@ -172,9 +159,12 @@ export const StudentCourses: React.FC = () => {
                                     {course.price === 0 ? 'Nhận khóa học' : (cartItems.find(c => c.id === course.id) ? 'Đã thêm vào giỏ' : 'Thêm vào giỏ hàng')}
                                 </button>
                             ) : status === 'pending' ? (
-                                <button disabled className="w-full py-3 bg-muted text-muted-foreground rounded-xl font-bold cursor-not-allowed">
-                                    Đang chờ thanh toán
-                                </button>
+                                <Link
+                                    to={`/student/payment?orderId=${orders.find(o => o.courseId === course.id || (o.items && o.items.some(i => i.courseId === course.id)))?.id}`}
+                                    className="w-full py-3 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-bold transition-colors shadow-md flex items-center justify-center"
+                                >
+                                    Tiếp tục thanh toán
+                                </Link>
                             ) : (
                                 <Link to="/student/assignments" className="w-full py-3 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-xl font-bold hover:bg-emerald-100 transition-colors flex items-center justify-center">
                                     Vào học ngay

@@ -55,14 +55,14 @@ class CourseService {
     const snapshot = await getDocs(q);
     const courses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course));
     // Sort in memory to avoid needing a composite index [isActive, createdAt]
-    return courses.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+    return courses.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
   }
 
   subscribeToCourses(callback: (courses: Course[]) => void): () => void {
     const q = query(this.collection);
     return onSnapshot(q, (snapshot) => {
       const courses = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Course));
-      courses.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+      courses.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
       callback(courses);
     });
   }

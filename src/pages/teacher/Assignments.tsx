@@ -80,7 +80,7 @@ export const TeacherAssignments: React.FC = () => {
               });
               toast.success('Assignment updated');
               if (data.type === 'smart_exam') {
-                  navigate(`/teacher/assignments/builder?id=${editingAssignment.id}&courseId=${data.courseId || 'general'}`);
+                  window.open(`/teacher/assignments/builder?id=${editingAssignment.id}&courseId=${data.courseId || 'general'}`, '_blank'); setIsModalOpen(false);
                   return;
               }
           } else {
@@ -92,7 +92,7 @@ export const TeacherAssignments: React.FC = () => {
               });
               toast.success('Assignment created');
               if (data.type === 'smart_exam' && newAssignmentId) {
-                  navigate(`/teacher/assignments/builder?id=${newAssignmentId}&courseId=${data.courseId || 'general'}`);
+                  window.open(`/teacher/assignments/builder?id=${newAssignmentId}&courseId=${data.courseId || 'general'}`, '_blank'); setIsModalOpen(false);
                   return;
               }
           }

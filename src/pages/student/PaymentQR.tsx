@@ -31,6 +31,12 @@ export const PaymentQR: React.FC = () => {
                 return;
             }
 
+            if (o.checkoutUrl) {
+                setCheckoutUrl(o.checkoutUrl);
+                window.location.href = o.checkoutUrl;
+                return;
+            }
+
             try {
                 // Determine base URL dynamically depending on environment
                 const baseUrl = window.location.origin;
@@ -41,9 +47,17 @@ export const PaymentQR: React.FC = () => {
                     body: JSON.stringify({
                         orderCode: o.orderCode,
                         amount: o.amount,
-                        description: `Thanh toan don hang ${o.orderCode}`,
-                        returnUrl: `${baseUrl}/student/courses`,
-                        cancelUrl: `${baseUrl}/student/courses`,
+                        description: (() => {
+                            // Extract name from email (before @)
+                            const emailStr = o.userEmail || '';
+                            let prefix = emailStr.split('@')[0];
+                            // Remove special chars to comply with PayOS
+                            prefix = prefix.replace(/[^a-zA-Z0-9 ]/g, '');
+                            if (!prefix) prefix = o.displayCode || `${o.orderCode}`;
+                            return prefix.substring(0, 25);
+                        })(),
+                        returnUrl: `${baseUrl}/student/payment/success`,
+                        cancelUrl: `${baseUrl}/student/payment/success`,
                     })
                 });
 
@@ -54,80 +68,39 @@ export const PaymentQR: React.FC = () => {
 
                 const result = await response.json();
                 setCheckoutUrl(result.checkoutUrl);
+                // Save checkoutUrl to prevent PayOS Error 231 on resume
+                await orderService.updateCheckoutUrl(orderId, result.checkoutUrl);
+                // Automatically redirect to PayOS checkout page
+                window.location.href = result.checkoutUrl;
             } catch (err: any) {
                 console.error("Lỗi tạo PayOS link:", err);
-                // Fallback or display error
-                setError("Không thể tạo link thanh toán tự động lúc này. Vui lòng chuyển khoản thủ công.");
+                // Display the specific error message from the server if available
+                setError(err.message || "Không thể tạo link thanh toán tự động lúc này. Vui lòng chuyển khoản thủ công.");
             }
         };
 
         fetchOrderAndGenerateLink();
     }, [orderId, navigate]);
 
-    // Initialize PayOS embedded checkout when URL is available
-    useEffect(() => {
-        if (!checkoutUrl || !order) return;
 
-        let payosInstance: any = null;
-
-        const initPayOS = async () => {
-            const config = {
-                RETURN_URL: window.location.href,
-                ELEMENT_ID: "embeded-payment-container",
-                CHECKOUT_URL: checkoutUrl,
-                embedded: true,
-                onSuccess: async (event: any) => {
-                    // Fast track local state update
-                    await orderService.updateOrderStatus(order.id, 'paid');
-                    // Update course enrollment counts securely upon successful payment
-                    if (order && order.items) {
-                        for (const item of order.items) {
-                            const c = await courseService.getCourse(item.courseId);
-                            if (c) {
-                                await courseService.updateCourse(c.id, { enrollmentCount: (c.enrollmentCount || 0) + 1 });
-                            }
-                        }
-                    }
-                    navigate('/student/courses');
-                },
-                onCancel: (event: any) => {
-                    orderService.updateOrderStatus(order.id, 'cancelled');
-                    navigate('/student/courses');
-                }
-            };
-
-            if (window.PayOSCheckout) {
-                const { open, exit } = window.PayOSCheckout.usePayOS(config);
-                payosInstance = { exit };
-                open();
-            }
-        };
-
-        // Give React a moment to render the div
-        setTimeout(initPayOS, 100);
-
-        return () => {
-            if (payosInstance) {
-                payosInstance.exit();
-            }
-        };
-    }, [checkoutUrl, order, navigate]);
 
     // Timer logic
     useEffect(() => {
         if (!order || order.status === 'paid' || order.status === 'cancelled') return;
 
         const timer = setInterval(() => {
-            setTimeLeft(prev => {
-                if (prev <= 1) {
-                    clearInterval(timer);
-                    // Cancel order
-                    orderService.updateOrderStatus(order.id, 'cancelled');
-                    navigate('/student/courses');
-                    return 0;
-                }
-                return prev - 1;
-            });
+            const now = new Date().getTime();
+            // order.createdAt is a firebase timestamp or date. We use toMillis() if available
+            const createdAtMs = order.createdAt?.toMillis?.() || new Date(order.createdAt).getTime();
+            const expiresAtMs = createdAtMs + 10 * 60 * 1000; // 10 minutes
+            const remaining = Math.max(0, Math.floor((expiresAtMs - now) / 1000));
+
+            setTimeLeft(remaining);
+
+            if (remaining <= 0) {
+                clearInterval(timer);
+                navigate('/student/courses');
+            }
         }, 1000);
 
         return () => clearInterval(timer);
@@ -155,7 +128,7 @@ export const PaymentQR: React.FC = () => {
                     <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
                     <h2 className="text-xl font-bold mb-2">Lỗi kết nối Cổng Thanh Toán</h2>
                     <p className="text-muted-foreground mb-6">{error}</p>
-                    <p className="mb-4">Bạn có thể chuyển khoản thủ công với nội dung: <strong>{order.orderCode}</strong></p>
+                    <p className="mb-4">Bạn có thể chuyển khoản thủ công với nội dung: <strong>{order.displayCode || order.orderCode}</strong></p>
                     <p className="text-xl font-bold text-primary mb-6">{new Intl.NumberFormat('vi-VN').format(order.amount)}đ</p>
                     <button onClick={() => navigate('/student/courses')} className="w-full py-3 bg-primary text-white font-bold rounded-xl">Quay lại Khóa học</button>
                 </div>
@@ -177,12 +150,12 @@ export const PaymentQR: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-muted/30 flex flex-col items-center justify-center p-4">
-            <div className="bg-background max-w-4xl w-full rounded-3xl shadow-xl border border-border overflow-hidden flex flex-col lg:flex-row h-[80vh] min-h-[600px]">
+            <div className="bg-background max-w-4xl w-full rounded-3xl shadow-xl border border-border overflow-hidden flex flex-col lg:flex-row min-h-[100dvh] md:min-h-[600px] md:h-[80vh]">
 
                 {/* Left Side - Details & Timer */}
                 <div className="lg:w-1/3 p-8 border-b lg:border-b-0 lg:border-r border-border bg-card flex flex-col">
                     <h2 className="text-2xl font-bold font-display mb-1 text-foreground">Thanh toán</h2>
-                    <p className="text-sm text-muted-foreground mb-6">Mã đơn hàng: {order.orderCode}</p>
+                    <p className="text-sm text-muted-foreground mb-6">Mã đơn hàng: {order.displayCode || order.orderCode}</p>
 
                     <div className="flex-1">
                         <h3 className="text-lg font-bold text-foreground mb-4">Sản phẩm:</h3>
@@ -212,9 +185,27 @@ export const PaymentQR: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Right Side - PayOS Embedded Container */}
-                <div className="lg:w-2/3 bg-white w-full h-full relative" id="embeded-payment-container">
-                     {/* PayOS UI will mount here */}
+                {/* Right Side - Redirecting */}
+                <div className="lg:w-2/3 bg-white w-full flex-1 md:h-full min-h-[500px] relative flex flex-col items-center justify-center p-8 text-center" id="embeded-payment-container">
+                     {checkoutUrl ? (
+                         <div className="space-y-6">
+                            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                                <CheckCircle className="w-10 h-10 text-green-600" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-slate-900">Đơn hàng đã được tạo!</h3>
+                            <p className="text-slate-500 max-w-md mx-auto">
+                                Hệ thống đang chuyển hướng bạn đến cổng thanh toán an toàn của PayOS...
+                            </p>
+                            <a href={checkoutUrl} className="inline-block mt-4 px-8 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-700 transition-colors">
+                                Đi đến trang thanh toán ngay
+                            </a>
+                         </div>
+                     ) : (
+                         <div className="flex flex-col items-center justify-center h-full space-y-4">
+                            <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+                            <p className="text-slate-500">Đang khởi tạo kết nối bảo mật...</p>
+                         </div>
+                     )}
                 </div>
             </div>
         </div>

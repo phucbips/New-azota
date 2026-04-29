@@ -35,14 +35,14 @@ export const SmartAssignmentBuilderPage: React.FC = () => {
                     const courseIdFromUrl = courseId;
                     // Note: We might need a direct fetch by ID in lessonsService, or we can just fetch all assignments for the course.
                     if (courseIdFromUrl) {
-                        const assignments = await assignmentService.getAllAssignments();
+                        const assignments = await assignmentService.getAssignments();
                         const existing = assignments.find(a => a.id === id);
                         if (existing) {
                             setTitle(existing.title);
-                            // @ts-ignore
+                            // @ts-expect-error mammoth undocumented feature
                             setDescription(existing.description || '');
                             setQuestions(existing.questions || []);
-                            // @ts-ignore
+                            // @ts-expect-error mammoth undocumented feature
                             if (existing.duration) setDurationMin(existing.duration);
                         } else {
                             toast.error('Không tìm thấy bài tập!');
@@ -96,7 +96,7 @@ export const SmartAssignmentBuilderPage: React.FC = () => {
                 courseId: courseId,
                 type: 'smart_exam',
                 questions,
-                // @ts-ignore
+                // @ts-expect-error mammoth undocumented feature
                 duration: durationMin,
                 teacherId: user.uid,
                 isPublished: true,

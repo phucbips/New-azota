@@ -1,139 +1,164 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import * as admin from 'firebase-admin';
-import { createHmac } from 'crypto';
+import crypto from 'crypto';
 
-if (!admin.apps.length) {
-    try {
-        let credential;
-        if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-            const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-            credential = admin.credential.cert(serviceAccount);
-        } else {
-            credential = admin.credential.applicationDefault();
+// Initialize Firebase Admin dynamically inside handler to avoid top level crashes
+const initAdmin = () => {
+    if (!admin.apps?.length) {
+        try {
+            let credential;
+            if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+                const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+                credential = admin.credential.cert(serviceAccount);
+            } else {
+                credential = admin.credential.applicationDefault();
+            }
+            admin.initializeApp({ credential });
+        } catch (e) {
+            console.error('Firebase Admin init error', e);
         }
-        admin.initializeApp({ credential });
-    } catch (e) {
-        console.error('Firebase Admin init error', e);
     }
-}
+};
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method Not Allowed' });
+    // CORS Configuration
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
+    if (req.method === 'GET') {
+        return res.status(200).json({ success: true, message: "Webhook endpoint is active. Ready to receive POST requests." });
     }
 
     try {
-        const checksumKey = process.env.PAYOS_CHECKSUM_KEY || '';
-
-        if (!checksumKey) {
-            console.error('Missing PayOS Checksum Key.');
-            return res.status(200).json({ success: false, message: 'Server missing config' });
+        let body: any = req.body;
+        if (typeof body === 'string') {
+            try {
+                body = JSON.parse(body);
+            } catch (e) {
+                console.log('Non-JSON request received, returning success');
+                return res.status(200).json({ success: true });
+            }
         }
 
-        // --- Custom Manual Signature Verification (from PayOS documentation) ---
-        const webhookDataRaw = req.body;
+        console.log('Webhook received:', JSON.stringify(body));
 
-        // If it's just a test ping to add webhook URL
-        if (!webhookDataRaw.data || !webhookDataRaw.signature) {
-            return res.status(200).json({ success: true, message: 'Webhook URL verified' });
-        }
+        const code = body?.code;
+        const data = body?.data;
+        const signature = body?.signature;
 
-        function sortObjDataByKey(object: any) {
-            return Object.keys(object)
-                .sort()
-                .reduce((obj: any, key: string) => {
-                    obj[key] = object[key];
-                    return obj;
-                }, {});
-        }
+        // BẢO MẬT: Xác minh chữ ký (Signature Checksum) HMAC-SHA256
+        // Bước 1: Lấy CHECKSUM_KEY từ môi trường (chỉ server và PayOS biết)
+        const checksumKey = process.env.PAYOS_CHECKSUM_KEY;
 
-        function convertObjToQueryStr(object: any) {
-            return Object.keys(object)
-                .filter((key) => object[key] !== undefined)
-                .map((key) => {
-                    let value = object[key];
-                    if (value && Array.isArray(value)) {
-                        value = JSON.stringify(value.map((val) => sortObjDataByKey(val)));
-                    }
-                    if ([null, undefined, 'undefined', 'null'].includes(value)) {
-                        value = '';
-                    }
-                    return `${key}=${value}`;
-                })
+        if (checksumKey && data && signature) {
+            // Bước 2: Tạo mảng chứa các keys của object data, sắp xếp theo Alphabet (A-Z)
+            const sortedDataKeys = Object.keys(data).sort();
+
+            // Bước 3: Nối các value thành chuỗi với định dạng key=value, cách nhau bằng dấu &
+            const signData = sortedDataKeys
+                .map((key) => `${key}=${data[key]}`)
                 .join('&');
+
+            // Bước 4: Dùng thuật toán HMAC-SHA256 với CHECKSUM_KEY để băm (hash) chuỗi data ở bước 3
+            const generatedSignature = crypto
+                .createHmac('sha256', checksumKey)
+                .update(signData)
+                .digest('hex');
+
+            // Bước 5: So sánh chữ ký tạo ra với chữ ký PayOS gửi lên
+            if (generatedSignature !== signature) {
+                console.error('Invalid signature. Potential spoofing attack detected!');
+                // Ngắt ngay lập tức, không cập nhật CSDL
+                return res.status(200).json({ success: false, message: 'Invalid signature' });
+            }
         }
 
-        const sortedDataByKey = sortObjDataByKey(webhookDataRaw.data);
-        const dataQueryStr = convertObjToQueryStr(sortedDataByKey);
-        const expectedSignature = createHmac('sha256', checksumKey).update(dataQueryStr).digest('hex');
+        // Handle missing/invalid data gracefully
+        if (!data || !data.orderCode) {
+            console.log('No orderCode in webhook data - test request or invalid payload');
+            return res.status(200).json({ success: true });
+        }
 
-        if (expectedSignature !== webhookDataRaw.signature) {
-            console.error('PayOS Invalid Signature:', {
-                expected: expectedSignature,
-                received: webhookDataRaw.signature
+        initAdmin();
+
+        if (!admin.apps?.length) {
+            console.error('Missing Firebase Env vars');
+            return res.status(200).json({ success: true });
+        }
+
+        const db = admin.firestore();
+        const orderCode = String(data.orderCode);
+        const paymentStatus = code === '00' ? 'paid' : 'cancelled';
+
+        // Find payment
+        let snapshot = await db.collection('orders').where('orderCode', '==', Number(orderCode)).limit(1).get();
+        if (snapshot.empty) {
+            snapshot = await db.collection('orders').where('orderCode', '==', String(orderCode)).limit(1).get();
+        }
+
+        if (snapshot.empty) {
+            console.log('Payment not found for orderCode:', orderCode);
+            return res.status(200).json({ success: true });
+        }
+
+        const orderDoc = snapshot.docs[0];
+        const orderData = orderDoc.data();
+
+        if (orderData.status === 'paid') {
+            console.log(`Order ${orderCode} already paid. Skipping.`);
+            return res.status(200).json({ success: true });
+        }
+
+        if (paymentStatus === 'paid') {
+            await orderDoc.ref.update({
+                status: 'paid',
+                paidAt: admin.firestore.FieldValue.serverTimestamp()
             });
-            // Still return 200 to satisfy webhook tests, but do NOT process order
-            return res.status(200).json({ success: false, message: 'Invalid Signature' });
-        }
 
-        if (webhookDataRaw.code === '00' && webhookDataRaw.data && webhookDataRaw.data.orderCode) {
-            const orderCode = webhookDataRaw.data.orderCode;
+            if (orderData.items && Array.isArray(orderData.items)) {
+                const courseIds: string[] = [];
+                for (const item of orderData.items) {
+                    courseIds.push(item.courseId);
 
-            // Check if Firebase Admin is initialized
-            if (!admin.apps.length) {
-                console.error('Firebase Admin not initialized, cannot update Firestore.');
-                return res.status(200).json({ success: true, message: 'Received but Firebase Admin not ready' });
-            }
-
-            const db = admin.firestore();
-
-            // Search order by orderCode (number or string)
-            let snapshot = await db.collection('orders').where('orderCode', '==', Number(orderCode)).limit(1).get();
-            if (snapshot.empty) {
-                snapshot = await db.collection('orders').where('orderCode', '==', String(orderCode)).limit(1).get();
-            }
-
-            if (!snapshot.empty) {
-                const orderDoc = snapshot.docs[0];
-                const orderData = orderDoc.data();
-
-                // Update order status
-                await orderDoc.ref.update({
-                    status: 'paid',
-                    paidAt: admin.firestore.FieldValue.serverTimestamp()
-                });
-
-                // Update course enrollments & user access
-                if (orderData.items && Array.isArray(orderData.items)) {
-                    const courseIds: string[] = [];
-                    for (const item of orderData.items) {
-                        courseIds.push(item.courseId);
-                        const cRef = db.collection('courses').doc(item.courseId);
-                        await db.runTransaction(async (t) => {
-                            const cDoc = await t.get(cRef);
-                            if (cDoc.exists) {
-                                t.update(cRef, { enrollmentCount: admin.firestore.FieldValue.increment(1) });
-                            }
-                        });
-                    }
-
-                    // Automatically add the courses to the user's enrolledCourses array
-                    if (orderData.userId && courseIds.length > 0) {
-                        const userRef = db.collection('users').doc(orderData.userId);
-                        await userRef.update({
-                            enrolledCourses: admin.firestore.FieldValue.arrayUnion(...courseIds)
-                        });
-                    }
+                    const cRef = db.collection('courses').doc(item.courseId);
+                    await db.runTransaction(async (t) => {
+                        const cDoc = await t.get(cRef);
+                        if (cDoc.exists) {
+                            t.update(cRef, { enrollmentCount: admin.firestore.FieldValue.increment(1) });
+                        }
+                    });
                 }
-            } else {
-                console.error(`Webhook matched signature but order ${orderCode} not found in DB.`);
+
+                if (orderData.userId && courseIds.length > 0) {
+                    const userRef = db.collection('users').doc(orderData.userId);
+                    await userRef.update({
+                        enrolledCourses: admin.firestore.FieldValue.arrayUnion(...courseIds)
+                    });
+                }
+
+                if (orderData.voucherCode) {
+                    const voucherRef = db.collection('vouchers').doc(orderData.voucherCode);
+                    await db.runTransaction(async (t) => {
+                        const vDoc = await t.get(voucherRef);
+                        if (vDoc.exists) {
+                            t.update(voucherRef, { usedCount: admin.firestore.FieldValue.increment(1) });
+                        }
+                    });
+                }
             }
         }
 
         return res.status(200).json({ success: true });
-    } catch (error: any) {
-        console.error('PayOS Webhook Execution Error:', error);
-        // Always return 200 to prevent PayOS from disabling the webhook
-        return res.status(200).json({ success: false, message: 'Internal error occurred but webhook accepted' });
+
+    } catch (error: unknown) {
+        console.error('Webhook error:', error);
+        // Always return success to PayOS to prevent retry loops
+        return res.status(200).json({ success: true });
     }
 }

@@ -4,6 +4,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { orderService } from '../../services/order.service';
 import { courseService } from '../../services/course.service';
+import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { db } from '../../config/firebase';
 import { voucherService } from '../../services/voucher.service';
 import { BookOpen, CreditCard, Banknote, Tag, Loader2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
@@ -78,18 +80,12 @@ export const Checkout: React.FC = () => {
               paymentMethod: paymentMethod,
           });
 
-          if (appliedVoucherId) {
-              await voucherService.incrementUsage(appliedVoucherId);
-          }
+          // Note: Voucher usage count should be incremented securely on the backend (e.g. within payos-webhook or an admin cloud function)
+          // to avoid 'Missing or insufficient permissions' errors.
 
           if (finalPrice === 0) {
                // Update course enrollment counts for free orders directly
-               await Promise.all(items.map(async (item) => {
-                   const c = await courseService.getCourse(item.courseId);
-                   if (c) {
-                       await courseService.updateCourse(c.id, { enrollmentCount: (c.enrollmentCount || 0) + 1 });
-                   }
-               }));
+               /* Backend should update enrollment count */
                clearCart();
                toast.success("Nhận khóa học miễn phí thành công!");
                navigate('/student/courses');

@@ -27,7 +27,7 @@ export const LandingPage: React.FC = () => {
                 backgroundUrl={settings.homepage.heroBackgroundUrl}
             />
         )}
-        {/* {settings.homepage.showCourses && <MenuSection />} Temporarily hidden per user request */}
+        {settings.homepage.showCourses && <MenuSection />}
         {settings.homepage.showStats && <StatsSection stats={settings.homepage.stats} />}
         {settings.homepage.showAbout && <AboutSection />}
         {settings.homepage.showTestimonials && <TestimonialCarousel />}
