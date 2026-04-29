@@ -4,7 +4,7 @@ import crypto from 'crypto';
 
 // Initialize Firebase Admin dynamically inside handler to avoid top level crashes
 const initAdmin = () => {
-    if (!admin.apps.length) {
+    if (!admin.apps?.length) {
         try {
             let credential;
             if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
@@ -87,7 +87,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         initAdmin();
 
-        if (!admin.apps.length) {
+        if (!admin.apps?.length) {
             console.error('Missing Firebase Env vars');
             return res.status(200).json({ success: true });
         }
