@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import crypto from 'crypto';
 
 // Initialize Firebase Admin dynamically inside handler to avoid top level crashes
@@ -16,7 +16,7 @@ const initAdmin = () => {
                         credential: admin.credential.cert(serviceAccount)
                     });
                 } catch (parseError) {
-                    console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY as JSON', parseError);
+                    console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY as JSON - String was: " + serviceAccountStr.substring(0, 50) + "...', parseError);
                 }
             } else if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
                 admin.initializeApp({
