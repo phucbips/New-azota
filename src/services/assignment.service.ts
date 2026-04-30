@@ -38,6 +38,26 @@ class AssignmentService {
   async deleteAssignment(id: string): Promise<void> {
     const docRef = doc(db, COLLECTIONS.ASSIGNMENTS, id);
     await deleteDoc(docRef);
+
+    // Also remove this assignment from any courses that reference it
+    try {
+        const { collection, getDocs, updateDoc, arrayRemove } = await import('firebase/firestore');
+        const coursesRef = collection(db, 'courses');
+        const snapshot = await getDocs(coursesRef);
+
+        const updatePromises = snapshot.docs.map(async (courseDoc) => {
+            const data = courseDoc.data();
+            if (data.assignmentIds && data.assignmentIds.includes(id)) {
+                return updateDoc(courseDoc.ref, {
+                    assignmentIds: arrayRemove(id)
+                });
+            }
+        });
+
+        await Promise.all(updatePromises.filter(Boolean));
+    } catch (e) {
+        console.error("Error removing assignment from courses:", e);
+    }
   }
 
   subscribeToTeacherAssignments(
