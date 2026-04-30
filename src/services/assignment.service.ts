@@ -10,6 +10,7 @@ import {
   Timestamp,
   orderBy,
   getDocs,
+  arrayRemove,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { COLLECTIONS } from '../config/constants';
@@ -41,7 +42,6 @@ class AssignmentService {
 
     // Also remove this assignment from any courses that reference it
     try {
-        const { collection, getDocs, updateDoc, arrayRemove } = await import('firebase/firestore');
         const coursesRef = collection(db, 'courses');
         const snapshot = await getDocs(coursesRef);
 
