@@ -37,7 +37,7 @@ export const NAVIGATION_CONFIG: Record<string, NavItem[]> = {
   student: [
     { labelKey: 'sidebar.dashboard', href: '/student', icon: <LayoutDashboard className="w-6 h-6" /> },
     { labelKey: 'sidebar.assignments', href: '/student/assignments', icon: <BookOpen className="w-6 h-6" /> },
-    { labelKey: 'Khóa học', href: '/courses', icon: <GraduationCap className="w-6 h-6" /> },
+    { labelKey: 'Khóa học', href: '/student/courses', icon: <GraduationCap className="w-6 h-6" /> },
     { labelKey: 'sidebar.profile', href: '/student/profile', icon: <UserCircle className="w-6 h-6" /> },
   ],
 };

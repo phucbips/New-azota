@@ -8,7 +8,7 @@ export const PaymentQR: React.FC = () => {
     const orderId = searchParams.get('orderId');
     const navigate = useNavigate();
     const [order, setOrder] = useState<Order | null>(null);
-    const [timeLeft, setTimeLeft] = useState(600); // 10 minutes
+     // 10 minutes
     const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
@@ -84,27 +84,7 @@ export const PaymentQR: React.FC = () => {
 
 
 
-    // Timer logic
-    useEffect(() => {
-        if (!order || order.status === 'paid' || order.status === 'cancelled') return;
-
-        const timer = setInterval(() => {
-            const now = new Date().getTime();
-            // order.createdAt is a firebase timestamp or date. We use toMillis() if available
-            const createdAtMs = order.createdAt?.toMillis?.() || new Date(order.createdAt).getTime();
-            const expiresAtMs = createdAtMs + 10 * 60 * 1000; // 10 minutes
-            const remaining = Math.max(0, Math.floor((expiresAtMs - now) / 1000));
-
-            setTimeLeft(remaining);
-
-            if (remaining <= 0) {
-                clearInterval(timer);
-                navigate('/student/courses');
-            }
-        }, 1000);
-
-        return () => clearInterval(timer);
-    }, [order, navigate]);
+    // Timer logic removed: Orders now wait indefinitely.
 
     // Polling order status logic to detect webhook/admin approval
     useEffect(() => {
@@ -145,8 +125,7 @@ export const PaymentQR: React.FC = () => {
          );
     }
 
-    const minutes = Math.floor(timeLeft / 60);
-    const seconds = timeLeft % 60;
+
 
     return (
         <div className="min-h-screen bg-muted/30 flex flex-col items-center justify-center p-4">
@@ -176,11 +155,10 @@ export const PaymentQR: React.FC = () => {
                                 </span>
                             </div>
 
-                            <div className="bg-red-50 text-red-600 p-4 rounded-xl flex items-center justify-center gap-3 font-mono text-xl font-bold border border-red-100 mb-4">
-                                <Clock className="w-5 h-5" />
-                                {minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
+                            <div className="bg-blue-50 text-blue-600 p-4 rounded-xl flex items-center justify-center gap-3 font-mono text-xl font-bold border border-blue-100 mb-4">
+                                Đơn hàng đang chờ thanh toán
                             </div>
-                            <p className="text-xs text-center text-muted-foreground">Vui lòng hoàn tất thanh toán trong thời gian này. Đơn hàng sẽ tự động hủy nếu quá hạn.</p>
+                            <p className="text-xs text-center text-muted-foreground">Vui lòng hoàn tất thanh toán. Đơn hàng không bị giới hạn thời gian.</p>
                         </div>
                     </div>
                 </div>

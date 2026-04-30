@@ -74,7 +74,7 @@ export const Navbar = () => {
           </nav>
 
           <div className="hidden items-center gap-4 md:flex">
-            <Link to="/student/checkout" className="relative p-2 text-foreground hover:bg-muted rounded-full transition-colors"><ShoppingCart className="w-5 h-5" /></Link>
+            <Link to="/student/cart" className="relative p-2 text-foreground hover:bg-muted rounded-full transition-colors"><ShoppingCart className="w-5 h-5" /></Link>
 
             {user ? (
               <Link

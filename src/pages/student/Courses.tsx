@@ -130,7 +130,7 @@ const { user } = useAuth();
                         )}
                         {status === 'pending' && (
                             <div className="absolute top-3 left-3 bg-yellow-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md">
-                                Đang chờ Duyệt
+                                Chờ thanh toán
                             </div>
                         )}
                     </div>
