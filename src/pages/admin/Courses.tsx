@@ -41,6 +41,23 @@ export const AdminCourses: React.FC = () => {
     };
   }, []);
 
+  // Auto-heal: Check for ghost assignments when both courses and assignments are loaded
+  useEffect(() => {
+      if (courses.length > 0 && assignments.length > 0) {
+          const assignmentIdsSet = new Set(assignments.map(a => a.id));
+          courses.forEach(course => {
+              if (course.assignmentIds && course.assignmentIds.length > 0) {
+                  const validAssignmentIds = course.assignmentIds.filter(id => assignmentIdsSet.has(id));
+                  if (validAssignmentIds.length !== course.assignmentIds.length) {
+                      console.log(`Auto-healing course ${course.id}: removing ghost assignments`);
+                      // Update the course in the background
+                      courseService.updateCourse(course.id, { assignmentIds: validAssignmentIds }).catch(console.error);
+                  }
+              }
+          });
+      }
+  }, [courses, assignments]);
+
   const handleOpenModal = (course?: Course) => {
     if (course) {
         setEditingCourse(course);
@@ -48,7 +65,12 @@ export const AdminCourses: React.FC = () => {
         setDescription(course.description);
         setPrice(course.price);
         setImageUrl(course.imageUrl || '');
-        setSelectedAssignments(course.assignmentIds);
+
+        // Filter out ghost assignments before opening the modal
+        const assignmentIdsSet = new Set(assignments.map(a => a.id));
+        const validAssignmentIds = (course.assignmentIds || []).filter(id => assignmentIdsSet.has(id));
+        setSelectedAssignments(validAssignmentIds);
+
         setIsActive(course.isActive);
     } else {
         setEditingCourse(null);
