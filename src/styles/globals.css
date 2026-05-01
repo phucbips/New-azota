@@ -1,109 +1,73 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 60 30% 96%;
-    --foreground: 150 30% 15%;
+    --background: 0 0% 98%; /* #FAFAFA */
+    --foreground: 0 0% 4%; /* #0A0A0A */
 
-    --card: 60 25% 98%;
-    --card-foreground: 150 30% 15%;
+    --surface: 0 0% 100%; /* #FFFFFF */
 
-    --popover: 60 25% 98%;
-    --popover-foreground: 150 30% 15%;
+    /* Genesis Indigo #6366F1 -> HSL: 239 84% 67% */
+    --primary: 239 84% 67%;
+    --primary-hover: 243 75% 59%; /* #4F46E5 */
+    --primary-foreground: 0 0% 100%;
 
-    --primary: 221.2 83.2% 53.3%; /* Default blue maintained for theme */
-    --primary-foreground: 60 30% 96%;
+    /* Secondary Green #20970B -> HSL: 111 87% 32% */
+    --secondary: 111 87% 32%;
+    --secondary-foreground: 0 0% 100%;
 
-    --secondary: 42 80% 60%;
-    --secondary-foreground: 150 30% 15%;
+    --muted: 0 0% 61%; /* Neutral #9C9C9C -> HSL: 0 0% 61% */
+    --muted-foreground: 0 0% 42%; /* Text Secondary #6B6B6B -> HSL: 0 0% 42% */
 
-    --muted: 90 20% 90%;
-    --muted-foreground: 150 10% 45%;
+    --border: 240 9% 92%; /* #E8E8EC */
+    --input: 240 9% 92%;
+    --ring: 239 84% 67%; /* Indigo for focus rings */
 
-    --accent: 42 80% 60%;
-    --accent-foreground: 150 30% 15%;
+    /* Semantic */
+    --success: 160 84% 39%; /* #10B981 */
+    --warning: 38 92% 50%; /* #F59E0B */
+    --error: 348 83% 60%; /* #EF4444 */
+    --destructive: 348 83% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 90 15% 85%;
-    --input: 90 15% 85%;
-    --ring: 221.2 83.2% 53.3%;
-
-    --radius: 0.75rem;
+    --radius: 6px; /* Default for inputs/buttons */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 4%;
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 4%;
   }
 
+  /* Temporary Dark Mode fallback using light mode vars until we fully implement Dark Mode for Genesis */
   .dark {
-    --background: 150 20% 8%;
-    --foreground: 60 20% 92%;
-
-    --card: 150 20% 10%;
-    --card-foreground: 60 20% 92%;
-
-    --popover: 150 20% 10%;
-    --popover-foreground: 60 20% 92%;
-
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 150 20% 8%;
-
-    --secondary: 42 60% 50%;
-    --secondary-foreground: 60 20% 92%;
-
-    --muted: 150 15% 18%;
-    --muted-foreground: 90 10% 60%;
-
-    --accent: 42 60% 50%;
-    --accent-foreground: 60 20% 92%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 150 15% 18%;
-    --input: 150 15% 18%;
-    --ring: 217.2 91.2% 59.8%;
+    --background: 0 0% 98%;
+    --foreground: 0 0% 4%;
+    --surface: 0 0% 100%;
+    --primary: 239 84% 67%;
+    --primary-hover: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 111 87% 32%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 61%;
+    --muted-foreground: 0 0% 42%;
+    --border: 240 9% 92%;
+    --input: 240 9% 92%;
+    --ring: 239 84% 67%;
+    --success: 160 84% 39%;
+    --warning: 38 92% 50%;
+    --error: 348 83% 60%;
+    --destructive: 348 83% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 4%;
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 4%;
   }
-}
-
-/* Color Themes Classes */
-/* Blue is default, so no extra class needed unless explicit override */
-.theme-blue {
-    --primary: 221.2 83.2% 53.3%;
-    --ring: 221.2 83.2% 53.3%;
-}
-.dark .theme-blue {
-    --primary: 217.2 91.2% 59.8%;
-    --ring: 224.3 76.3% 48%;
-}
-
-.theme-purple {
-    --primary: 262.1 83.3% 57.8%;
-    --ring: 262.1 83.3% 57.8%;
-}
-.dark .theme-purple {
-    --primary: 263.4 70% 50.4%;
-    --ring: 263.4 70% 50.4%;
-}
-
-.theme-green {
-    --primary: 142.1 76.2% 36.3%;
-    --ring: 142.1 76.2% 36.3%;
-}
-.dark .theme-green {
-    --primary: 142.1 70.6% 45.3%;
-    --ring: 142.1 70.6% 45.3%;
-}
-
-.theme-orange {
-    --primary: 24.6 95% 53.1%;
-    --ring: 24.6 95% 53.1%;
-}
-.dark .theme-orange {
-    --primary: 20.5 90.2% 48.2%;
-    --ring: 20.5 90.2% 48.2%;
 }
 
 @layer base {
@@ -114,7 +78,7 @@
     @apply bg-background text-foreground font-body antialiased;
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display;
+    @apply font-display tracking-tight;
   }
 }
 

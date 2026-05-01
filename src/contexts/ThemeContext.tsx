@@ -9,8 +9,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   return (
     <NextThemesProvider
       attribute="class"
-      defaultTheme="light"
+      defaultTheme="light" // Hardcode to light for Genesis Phase 1
       enableSystem={false}
+      forcedTheme="light"  // Force light theme
       disableTransitionOnChange
     >
       {children}
@@ -19,15 +20,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 };
 
 export const useTheme = () => {
-  const { theme, setTheme } = useNextTheme();
-
-  const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
-  };
-
+  // Stubbing these out to avoid breaking existing components that call useTheme
+  // but enforcing light mode internally.
   return {
-    theme: theme as 'dark' | 'light',
-    toggleTheme,
-    setTheme
+    theme: 'light' as const,
+    toggleTheme: () => console.warn('Dark mode is currently disabled in Genesis Phase 1.'),
+    setTheme: () => console.warn('Theme switching is currently disabled in Genesis Phase 1.')
   };
 };
