@@ -134,22 +134,22 @@ export const CartOrders: React.FC = () => {
             <h1 className="text-3xl font-display font-extrabold mb-8 text-foreground">Giỏ hàng & Đơn hàng</h1>
 
             {/* Tabs Navigation */}
-            <div className="flex space-x-1 bg-muted/50 p-1 rounded-xl mb-8 w-fit">
+            <div className="flex space-x-1 bg-muted/50 p-1 rounded-[8px] mb-8 w-fit">
                 <button
                     onClick={() => setActiveTab('cart')}
-                    className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-bold transition-all ${activeTab === 'cart' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-bold font-display transition-all ${activeTab === 'cart' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                 >
                     <ShoppingCart className="w-5 h-5" /> Giỏ hàng ({cartItems.length})
                 </button>
                 <button
                     onClick={() => setActiveTab('pending')}
-                    className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-bold transition-all ${activeTab === 'pending' ? 'bg-background shadow-sm text-yellow-600' : 'text-muted-foreground hover:text-foreground'}`}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-bold font-display transition-all ${activeTab === 'pending' ? 'bg-background shadow-sm text-yellow-600' : 'text-muted-foreground hover:text-foreground'}`}
                 >
                     <Clock className="w-5 h-5" /> Chờ thanh toán ({pendingOrders.length})
                 </button>
                 <button
                     onClick={() => setActiveTab('paid')}
-                    className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-bold transition-all ${activeTab === 'paid' ? 'bg-background shadow-sm text-emerald-600' : 'text-muted-foreground hover:text-foreground'}`}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-bold font-display transition-all ${activeTab === 'paid' ? 'bg-background shadow-sm text-emerald-600' : 'text-muted-foreground hover:text-foreground'}`}
                 >
                     <CheckCircle className="w-5 h-5" /> Lịch sử đã mua ({paidOrders.length})
                 </button>
@@ -160,14 +160,14 @@ export const CartOrders: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 space-y-4">
                         {cartItems.length === 0 ? (
-                            <div className="bg-card rounded-2xl border border-border p-12 text-center flex flex-col items-center">
+                            <div className="bg-surface rounded-[12px] border border-border bg-surface p-12 text-center flex flex-col items-center">
                                 <ShoppingCart className="w-16 h-16 text-muted-foreground/30 mb-4" />
-                                <h3 className="text-xl font-bold mb-2">Giỏ hàng trống</h3>
+                                <h3 className="text-xl font-bold font-display mb-2">Giỏ hàng trống</h3>
                                 <p className="text-muted-foreground mb-6">Bạn chưa có khóa học nào trong giỏ hàng.</p>
-                                <button onClick={() => navigate('/student/courses')} className="px-6 py-3 bg-primary text-white font-bold rounded-xl">Khám phá khóa học</button>
+                                <button onClick={() => navigate('/student/courses')} className="px-6 py-3 bg-primary text-white font-bold font-display rounded-[8px]">Khám phá khóa học</button>
                             </div>
                         ) : (
-                            <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+                            <div className="bg-surface rounded-[12px] border border-border bg-surface hover:-translate-y-[1px] overflow-hidden">
                                 <div className="p-4 border-b border-border bg-muted/20 flex items-center gap-3">
                                     <input
                                         type="checkbox"
@@ -175,7 +175,7 @@ export const CartOrders: React.FC = () => {
                                         onChange={handleSelectAll}
                                         className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
                                     />
-                                    <span className="font-bold">Chọn tất cả ({cartItems.length} khóa)</span>
+                                    <span className="font-bold font-display">Chọn tất cả ({cartItems.length} khóa)</span>
                                 </div>
                                 <div className="divide-y divide-border">
                                     {cartItems.map((item) => (
@@ -192,8 +192,8 @@ export const CartOrders: React.FC = () => {
                                                 <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center"><BookOpen className="w-6 h-6 text-muted-foreground/50" /></div>
                                             )}
                                             <div className="flex-1">
-                                                <h4 className="font-bold text-foreground line-clamp-1">{item.title}</h4>
-                                                <p className="text-emerald-600 font-bold mt-1">
+                                                <h4 className="font-bold font-display text-foreground line-clamp-1">{item.title}</h4>
+                                                <p className="text-emerald-600 font-bold font-display mt-1">
                                                     {item.price > 0 ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.price) : 'Miễn phí'}
                                                 </p>
                                             </div>
@@ -213,37 +213,37 @@ export const CartOrders: React.FC = () => {
                     {/* Summary Sidebar */}
                     {cartItems.length > 0 && (
                         <div className="space-y-6">
-                            <div className="bg-card rounded-2xl border border-border shadow-sm p-6">
-                                <h3 className="font-bold text-lg mb-4">Phương thức thanh toán</h3>
+                            <div className="bg-surface rounded-[12px] border border-border bg-surface hover:-translate-y-[1px] p-6">
+                                <h3 className="font-bold font-display text-lg mb-4">Phương thức thanh toán</h3>
                                 <div className="space-y-3">
                                     <label
-                                        className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${paymentMethod === 'bank_transfer' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
+                                        className={`flex items-center justify-between p-4 rounded-[8px] border-2 cursor-pointer transition-all ${paymentMethod === 'bank_transfer' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
                                         onClick={() => setPaymentMethod('bank_transfer')}
                                     >
                                         <div className="flex items-center gap-3">
                                             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'bank_transfer' ? 'border-primary' : 'border-muted-foreground'}`}>
                                                 {paymentMethod === 'bank_transfer' && <div className="w-2.5 h-2.5 bg-primary rounded-full" />}
                                             </div>
-                                            <span className="font-bold text-foreground flex items-center gap-2"><CreditCard className="w-4 h-4"/> Chuyển khoản QR</span>
+                                            <span className="font-bold font-display text-foreground flex items-center gap-2"><CreditCard className="w-4 h-4"/> Chuyển khoản QR</span>
                                         </div>
                                     </label>
                                     <label
-                                        className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${paymentMethod === 'cash' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
+                                        className={`flex items-center justify-between p-4 rounded-[8px] border-2 cursor-pointer transition-all ${paymentMethod === 'cash' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
                                         onClick={() => setPaymentMethod('cash')}
                                     >
                                         <div className="flex items-center gap-3">
                                             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'cash' ? 'border-primary' : 'border-muted-foreground'}`}>
                                                 {paymentMethod === 'cash' && <div className="w-2.5 h-2.5 bg-primary rounded-full" />}
                                             </div>
-                                            <span className="font-bold text-foreground flex items-center gap-2"><Banknote className="w-4 h-4"/> Tiền mặt</span>
+                                            <span className="font-bold font-display text-foreground flex items-center gap-2"><Banknote className="w-4 h-4"/> Tiền mặt</span>
                                         </div>
                                     </label>
                                 </div>
                             </div>
 
-                            <div className="bg-card rounded-2xl border border-border shadow-sm p-6">
+                            <div className="bg-surface rounded-[12px] border border-border bg-surface hover:-translate-y-[1px] p-6">
                                 <div className="flex justify-between items-end mb-6">
-                                    <span className="font-bold text-foreground">Tổng cộng ({itemsToCheckout.length} món)</span>
+                                    <span className="font-bold font-display text-foreground">Tổng cộng ({itemsToCheckout.length} món)</span>
                                     <span className="text-2xl font-extrabold text-primary block">
                                         {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalPrice)}
                                     </span>
@@ -251,7 +251,7 @@ export const CartOrders: React.FC = () => {
                                 <button
                                     onClick={handleCheckout}
                                     disabled={isCheckingOut || itemsToCheckout.length === 0}
-                                    className="w-full py-4 bg-primary text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-50"
+                                    className="w-full py-4 bg-primary text-white font-bold font-display rounded-[8px] shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-50"
                                 >
                                     {isCheckingOut ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Mua hàng'}
                                 </button>
@@ -267,21 +267,21 @@ export const CartOrders: React.FC = () => {
                     {loading ? (
                         <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
                     ) : pendingOrders.length === 0 ? (
-                        <div className="bg-card rounded-2xl border border-border p-12 text-center flex flex-col items-center">
+                        <div className="bg-surface rounded-[12px] border border-border bg-surface p-12 text-center flex flex-col items-center">
                             <Clock className="w-16 h-16 text-muted-foreground/30 mb-4" />
-                            <h3 className="text-xl font-bold mb-2">Không có đơn hàng chờ</h3>
+                            <h3 className="text-xl font-bold font-display mb-2">Không có đơn hàng chờ</h3>
                             <p className="text-muted-foreground">Tất cả đơn hàng của bạn đã được thanh toán.</p>
                         </div>
                     ) : (
                         pendingOrders.map(order => (
-                            <div key={order.id} className="bg-card rounded-2xl border border-border shadow-sm p-6">
+                            <div key={order.id} className="bg-surface rounded-[12px] border border-border bg-surface hover:-translate-y-[1px] p-6">
                                 <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 mb-4 gap-4">
                                     <div>
-                                        <p className="text-sm text-muted-foreground">Mã đơn: <span className="font-mono font-bold text-foreground">{order.displayCode || order.orderCode}</span></p>
+                                        <p className="text-sm text-muted-foreground">Mã đơn: <span className="font-mono font-bold font-display text-foreground">{order.displayCode || order.orderCode}</span></p>
                                         <p className="text-sm text-muted-foreground">Ngày đặt: {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString('vi-VN') : new Date(order.createdAt).toLocaleDateString('vi-VN')}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-bold">Chờ thanh toán</span>
+                                        <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-bold font-display">Chờ thanh toán</span>
                                     </div>
                                 </div>
                                 <div className="space-y-3 mb-6">
@@ -299,7 +299,7 @@ export const CartOrders: React.FC = () => {
                                     <button
                                         onClick={() => handleContinuePayment(order)}
                                         disabled={isCheckingOut}
-                                        className="w-full md:w-auto px-8 py-3 bg-primary text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                                        className="w-full md:w-auto px-8 py-3 bg-primary text-white font-bold font-display rounded-[8px] shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
                                     >
                                         {isCheckingOut ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Thanh toán tiếp'}
                                     </button>
@@ -316,21 +316,21 @@ export const CartOrders: React.FC = () => {
                     {loading ? (
                         <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
                     ) : paidOrders.length === 0 ? (
-                        <div className="bg-card rounded-2xl border border-border p-12 text-center flex flex-col items-center">
+                        <div className="bg-surface rounded-[12px] border border-border bg-surface p-12 text-center flex flex-col items-center">
                             <CheckCircle className="w-16 h-16 text-muted-foreground/30 mb-4" />
-                            <h3 className="text-xl font-bold mb-2">Chưa có lịch sử mua hàng</h3>
+                            <h3 className="text-xl font-bold font-display mb-2">Chưa có lịch sử mua hàng</h3>
                             <p className="text-muted-foreground">Các đơn hàng đã thanh toán sẽ xuất hiện ở đây.</p>
                         </div>
                     ) : (
                         paidOrders.map(order => (
-                            <div key={order.id} className="bg-card rounded-2xl border border-border shadow-sm p-6 opacity-80 hover:opacity-100 transition-opacity">
+                            <div key={order.id} className="bg-surface rounded-[12px] border border-border bg-surface hover:-translate-y-[1px] p-6 opacity-80 hover:opacity-100 transition-opacity">
                                 <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 mb-4 gap-4">
                                     <div>
-                                        <p className="text-sm text-muted-foreground">Mã đơn: <span className="font-mono font-bold text-foreground">{order.displayCode || order.orderCode}</span></p>
+                                        <p className="text-sm text-muted-foreground">Mã đơn: <span className="font-mono font-bold font-display text-foreground">{order.displayCode || order.orderCode}</span></p>
                                         <p className="text-sm text-muted-foreground">Ngày đặt: {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString('vi-VN') : new Date(order.createdAt).toLocaleDateString('vi-VN')}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1">
+                                        <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-sm font-bold font-display flex items-center gap-1">
                                             <CheckCircle className="w-4 h-4" /> Đã thanh toán
                                         </span>
                                     </div>
@@ -346,7 +346,7 @@ export const CartOrders: React.FC = () => {
                                     <span className="text-muted-foreground text-sm">
                                         Phương thức: {order.paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'}
                                     </span>
-                                    <div className="text-lg font-bold text-foreground">
+                                    <div className="text-lg font-bold font-display text-foreground">
                                         {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.amount)}
                                     </div>
                                 </div>

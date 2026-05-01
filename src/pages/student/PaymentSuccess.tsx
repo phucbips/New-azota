@@ -55,7 +55,7 @@ export const PaymentSuccess: React.FC = () => {
                 </div>
                 <h1 className="text-3xl font-extrabold text-slate-900 mb-4">Giao dịch chưa hoàn tất</h1>
                 <p className="text-slate-600 max-w-md mb-8">Có vẻ như quá trình thanh toán đã bị hủy hoặc xảy ra lỗi. Vui lòng kiểm tra lại đơn hàng của bạn.</p>
-                <Link to="/student/courses" className="px-8 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors">
+                <Link to="/student/courses" className="px-8 py-3 bg-primary text-white font-bold rounded-[8px] hover:bg-primary-hover transition-colors">
                     Quay lại Khóa học
                 </Link>
              </div>
@@ -64,7 +64,7 @@ export const PaymentSuccess: React.FC = () => {
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-50">
-            <div className="max-w-md w-full bg-white rounded-3xl shadow-xl border border-slate-200 p-8 text-center relative overflow-hidden">
+            <div className="max-w-md w-full bg-surface rounded-[12px] shadow-xl border border-slate-200 p-8 text-center relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 to-emerald-600"></div>
 
                 <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
@@ -75,7 +75,7 @@ export const PaymentSuccess: React.FC = () => {
                 <p className="text-slate-500 mb-8">Cảm ơn bạn đã tin tưởng. Quyền truy cập khóa học đã được mở tự động.</p>
 
                 {order && (
-                    <div className="bg-slate-50 rounded-2xl p-5 mb-8 text-left border border-slate-100">
+                    <div className="bg-slate-50 rounded-[12px] p-5 mb-8 text-left border border-slate-100">
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Thông tin đơn hàng</p>
                         <div className="flex justify-between items-center mb-3">
                             <span className="text-slate-600">Mã đơn:</span>
@@ -99,7 +99,7 @@ export const PaymentSuccess: React.FC = () => {
 
                 <Link
                     to="/student/assignments"
-                    className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"
+                    className="w-full py-4 bg-primary text-white font-bold rounded-[8px] hover:bg-primary-hover transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"
                 >
                     Vào học ngay
                     <ChevronRight className="w-5 h-5" />
