@@ -146,7 +146,7 @@ export const AdminOrders: React.FC = () => {
               discount: discountAmount,
               status: newOrder.status,
               paymentMethod: newOrder.status === 'paid' ? 'cash' : 'cash', // Cash since it's manual
-              voucherCode: validatedVoucher ? validatedVoucher.code : undefined
+              voucherCode: validatedVoucher ? validatedVoucher.code : null
           });
 
           if (validatedVoucher && newOrder.voucherCode === validatedVoucher.code) {
