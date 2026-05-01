@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Order, orderService, OrderStatus } from '../../services/order.service';
+import { User as UserType } from '../../types';
+import { Course } from '../../services/course.service';
 import { courseService } from '../../services/course.service';
+import { userService } from '../../services/user.service';
+import { financeService } from '../../services/finance.service';
 import { StatusBadge } from '../../components/ui/StatusBadge';
-import { Search, ChevronDown, ChevronUp, Copy, CheckCircle, XCircle, CreditCard, Banknote, Calendar, Mail, User } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp, Copy, CheckCircle, XCircle, CreditCard, Banknote, Calendar, Mail, User, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Loading } from '../../components/shared/Loading';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,6 +18,27 @@ export const AdminOrders: React.FC = () => {
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [users, setUsers] = useState<UserType[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [newOrder, setNewOrder] = useState({
+      userId: '',
+      courseIds: [] as string[],
+      status: 'paid' as OrderStatus,
+      voucherCode: ''
+  });
+  const [isCreating, setIsCreating] = useState(false);
+
+  useEffect(() => {
+      if (showCreateModal) {
+          const unsubUsers = userService.subscribeToAllUsers((data) => setUsers(data));
+          courseService.getCourses().then(setCourses);
+          return () => unsubUsers();
+      }
+  }, [showCreateModal]);
+
+
+
   useEffect(() => {
     const unsub = orderService.subscribeToOrders((data) => {
         setOrders(data);
@@ -21,6 +46,73 @@ export const AdminOrders: React.FC = () => {
     });
     return () => unsub();
   }, []);
+
+
+  const handleCreateOrder = async () => {
+      if (!newOrder.userId || newOrder.courseIds.length === 0) {
+          toast.error('Vui lòng chọn khách hàng và ít nhất 1 khóa học');
+          return;
+      }
+
+      setIsCreating(true);
+      try {
+          const selectedUser = users.find(u => u.uid === newOrder.userId);
+          const selectedCourses = courses.filter(c => newOrder.courseIds.includes(c.id));
+
+          if (!selectedUser) throw new Error('Không tìm thấy người dùng');
+
+          let amount = 0;
+          const items = selectedCourses.map(c => {
+              amount += c.price;
+              return { courseId: c.id, courseTitle: c.title, price: c.price };
+          });
+
+          // Generate an order ID to potentially use for finance logging immediately
+          const orderCodeNum = Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 9000);
+          const orderCode = String(orderCodeNum);
+
+          const orderId = await orderService.createOrder({
+              userId: selectedUser.uid,
+              userEmail: selectedUser.email,
+              userName: selectedUser.displayName || 'Unknown',
+              items,
+              amount,
+              status: newOrder.status,
+              paymentMethod: newOrder.status === 'paid' ? 'cash' : 'cash', // Cash since it's manual
+              voucherCode: newOrder.voucherCode
+          });
+
+          if (newOrder.status === 'paid') {
+              const courseTitles = selectedCourses.map(c => c.title).join(', ');
+              const desc = `${selectedUser.email} - ${courseTitles} ${newOrder.voucherCode ? `- ${newOrder.voucherCode}` : ''}`.trim();
+
+              await financeService.addTransaction({
+                  type: 'income',
+                  category: 'Bán khóa học',
+                  amount: amount,
+                  description: desc,
+                  createdBy: 'admin' // or use current user auth id if available
+              });
+
+              // Add to enrolled courses
+              const newEnrolled = new Set([...(selectedUser.enrolledCourses || []), ...newOrder.courseIds]);
+              await userService.updateUser(selectedUser.uid, { enrolledCourses: Array.from(newEnrolled) });
+
+              // Increment course enrollment count
+              for (const c of selectedCourses) {
+                  await courseService.updateCourse(c.id, { enrollmentCount: (c.enrollmentCount || 0) + 1 });
+              }
+          }
+
+          toast.success('Tạo đơn hàng thành công');
+          setShowCreateModal(false);
+          setNewOrder({ userId: '', courseIds: [], status: 'paid', voucherCode: '' });
+      } catch (e: any) {
+          toast.error(`Lỗi: ${e.message}`);
+      } finally {
+          setIsCreating(false);
+      }
+  };
 
   const handleUpdateStatus = async (order: Order, newStatus: OrderStatus) => {
       try {
@@ -34,8 +126,10 @@ export const AdminOrders: React.FC = () => {
               }
 
               const courseIds: string[] = [];
+              const courseTitles: string[] = [];
               for (const item of items) {
                   courseIds.push(item.courseId);
+                  courseTitles.push(item.courseTitle);
                   // This is a naive increment for demo. A real app uses Firestore increment() in the service
                   const cInfo = await courseService.getCourses();
                   const target = cInfo.find(c => c.id === item.courseId);
@@ -57,6 +151,17 @@ export const AdminOrders: React.FC = () => {
                       });
                   });
               }
+
+              // Record finance transaction
+              const titlesStr = courseTitles.join(', ');
+              const desc = `${order.userEmail} - ${titlesStr} ${order.voucherCode ? `- ${order.voucherCode}` : ''}`.trim();
+              await financeService.addTransaction({
+                  type: 'income',
+                  category: 'Bán khóa học',
+                  amount: order.amount,
+                  description: desc,
+                  createdBy: 'admin'
+              });
           }
 
           toast.success(`Đã cập nhật trạng thái thành ${newStatus === 'paid' ? 'Đã Thanh toán' : newStatus === 'cancelled' ? 'Đã Hủy' : 'Ghi nợ'}`);
@@ -123,7 +228,7 @@ export const AdminOrders: React.FC = () => {
                               </div>
                               <div>
                                   <div className="flex items-center gap-2">
-                                      <h3 className="font-bold text-foreground">{order.orderCode}</h3>
+                                      <h3 className="font-bold text-foreground">{order.userEmail} - {order.orderCode}</h3>
                                       {order.status === 'pay_later' ? (
                                           <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800">Trả sau</span>
                                       ) : (
@@ -139,7 +244,7 @@ export const AdminOrders: React.FC = () => {
                           <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto">
                               <div className="text-left md:text-right">
                                   <p className="font-bold text-primary">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.amount)}</p>
-                                  <p className="text-xs text-muted-foreground mt-1">{order.paymentMethod === 'bank_transfer' ? 'Chuyển khoản' : 'Tiền mặt'}</p>
+                                  <p className="text-xs text-muted-foreground mt-1">{order.paymentMethod === 'bank_transfer' ? 'Chuyển khoản' : 'Tiền mặt (trả sau)'}</p>
                               </div>
                               {isExpanded ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
                           </div>
@@ -183,7 +288,7 @@ export const AdminOrders: React.FC = () => {
                                                       <span className="text-muted-foreground">Phương thức:</span>
                                                       <span className="font-bold flex items-center gap-1">
                                                           {order.paymentMethod === 'bank_transfer' ? <CreditCard className="w-4 h-4 text-primary" /> : <Banknote className="w-4 h-4 text-primary" />}
-                                                          {order.paymentMethod === 'bank_transfer' ? 'Chuyển khoản (Cần duyệt)' : 'Thanh toán trực tiếp'}
+                                                          {order.paymentMethod === 'bank_transfer' ? 'Chuyển khoản (Cần duyệt)' : 'Tiền mặt (trả sau)'}
                                                       </span>
                                                   </div>
 
