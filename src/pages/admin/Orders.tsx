@@ -6,6 +6,7 @@ import { Course } from '../../services/course.service';
 import { courseService } from '../../services/course.service';
 import { userService } from '../../services/user.service';
 import { financeService } from '../../services/finance.service';
+import { voucherService } from '../../services/voucher.service';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Search, ChevronDown, ChevronUp, Copy, CheckCircle, XCircle, CreditCard, Banknote, Calendar, Mail, User, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -29,6 +30,10 @@ export const AdminOrders: React.FC = () => {
   });
   const [isCreating, setIsCreating] = useState(false);
 
+  const [isValidatingVoucher, setIsValidatingVoucher] = useState(false);
+  const [validatedVoucher, setValidatedVoucher] = useState<any>(null);
+
+
   useEffect(() => {
       if (showCreateModal) {
           const unsubUsers = userService.subscribeToAllUsers((data) => setUsers(data));
@@ -47,6 +52,51 @@ export const AdminOrders: React.FC = () => {
     return () => unsub();
   }, []);
 
+
+
+  const handleValidateVoucher = async () => {
+      if (!newOrder.voucherCode.trim()) {
+          toast.error("Vui lòng nhập mã giảm giá");
+          return;
+      }
+      setIsValidatingVoucher(true);
+      try {
+          const v = await voucherService.getVoucherByCode(newOrder.voucherCode);
+          if (!v) {
+              toast.error("Mã giảm giá không hợp lệ hoặc đã hết hạn");
+              setValidatedVoucher(null);
+              return;
+          }
+          if (v.expiresAt && v.expiresAt.toDate() < new Date()) {
+              toast.error("Mã giảm giá đã hết hạn");
+              setValidatedVoucher(null);
+              return;
+          }
+          if (v.usageLimit && v.usageCount >= v.usageLimit) {
+              toast.error("Mã giảm giá đã hết lượt sử dụng");
+              setValidatedVoucher(null);
+              return;
+          }
+
+          let amount = 0;
+          const selectedCourses = courses.filter(c => newOrder.courseIds.includes(c.id));
+          selectedCourses.forEach(c => amount += c.price);
+
+          if (v.minOrderValue && amount < v.minOrderValue) {
+              toast.error(`Đơn hàng chưa đạt giá trị tối thiểu (${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v.minOrderValue)})`);
+              setValidatedVoucher(null);
+              return;
+          }
+
+          toast.success("Áp dụng mã giảm giá thành công");
+          setValidatedVoucher(v);
+      } catch (err) {
+          toast.error("Lỗi khi kiểm tra mã giảm giá");
+          setValidatedVoucher(null);
+      } finally {
+          setIsValidatingVoucher(false);
+      }
+  };
 
   const handleCreateOrder = async () => {
       if (!newOrder.userId || newOrder.courseIds.length === 0) {
@@ -71,36 +121,60 @@ export const AdminOrders: React.FC = () => {
           const orderCodeNum = Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 9000);
           const orderCode = String(orderCodeNum);
 
+          let finalAmount = amount;
+          let discountAmount = 0;
+
+          if (validatedVoucher && newOrder.voucherCode === validatedVoucher.code) {
+              if (validatedVoucher.type === 'percent') {
+                  discountAmount = Math.floor(amount * (validatedVoucher.value / 100));
+                  if (validatedVoucher.maxDiscount) {
+                      discountAmount = Math.min(discountAmount, validatedVoucher.maxDiscount);
+                  }
+              } else {
+                  discountAmount = validatedVoucher.value;
+              }
+              finalAmount = Math.max(0, amount - discountAmount);
+          }
+
           const orderId = await orderService.createOrder({
               userId: selectedUser.uid,
               userEmail: selectedUser.email,
               userName: selectedUser.displayName || 'Unknown',
               items,
-              amount,
+              amount: finalAmount,
+              originalAmount: amount,
+              discount: discountAmount,
               status: newOrder.status,
               paymentMethod: newOrder.status === 'paid' ? 'cash' : 'cash', // Cash since it's manual
-              voucherCode: newOrder.voucherCode
+              voucherCode: validatedVoucher ? validatedVoucher.code : undefined
           });
 
-          if (newOrder.status === 'paid') {
-              const courseTitles = selectedCourses.map(c => c.title).join(', ');
-              const desc = `${selectedUser.email} - ${courseTitles} ${newOrder.voucherCode ? `- ${newOrder.voucherCode}` : ''}`.trim();
+          if (validatedVoucher && newOrder.voucherCode === validatedVoucher.code) {
+              await voucherService.incrementUsage(validatedVoucher.id);
+          }
 
-              await financeService.addTransaction({
-                  type: 'income',
-                  category: 'Bán khóa học',
-                  amount: amount,
-                  description: desc,
-                  createdBy: 'admin' // or use current user auth id if available
-              });
-
-              // Add to enrolled courses
+          if (newOrder.status === 'paid' || newOrder.status === 'pay_later') {
+              // Add to enrolled courses in both paid and pay_later cases
               const newEnrolled = new Set([...(selectedUser.enrolledCourses || []), ...newOrder.courseIds]);
               await userService.updateUser(selectedUser.uid, { enrolledCourses: Array.from(newEnrolled) });
 
               // Increment course enrollment count
               for (const c of selectedCourses) {
                   await courseService.updateCourse(c.id, { enrollmentCount: (c.enrollmentCount || 0) + 1 });
+              }
+
+              // Only record finance transaction if actually paid
+              if (newOrder.status === 'paid') {
+                  const courseTitles = selectedCourses.map(c => c.title).join(', ');
+                  const desc = `${selectedUser.email} - ${courseTitles} ${newOrder.voucherCode ? `- ${newOrder.voucherCode}` : ''}`.trim();
+
+                  await financeService.addTransaction({
+                      type: 'income',
+                      category: 'Bán khóa học',
+                      amount: amount,
+                      description: desc,
+                      createdBy: 'admin' // or use current user auth id if available
+                  });
               }
           }
 
@@ -295,7 +369,7 @@ export const AdminOrders: React.FC = () => {
                                                       <span className="text-muted-foreground">Phương thức:</span>
                                                       <span className="font-bold flex items-center gap-1">
                                                           {order.paymentMethod === 'bank_transfer' ? <CreditCard className="w-4 h-4 text-primary" /> : <Banknote className="w-4 h-4 text-primary" />}
-                                                          {order.paymentMethod === 'bank_transfer' ? 'Chuyển khoản (Cần duyệt)' : 'Tiền mặt (trả sau)'}
+                                                          {order.paymentMethod === 'bank_transfer' ? (order.status === 'paid' ? 'Đã chuyển khoản' : 'Chưa chuyển khoản') : 'Tiền mặt (trả sau)'}
                                                       </span>
                                                   </div>
 
@@ -416,18 +490,38 @@ export const AdminOrders: React.FC = () => {
                                       className="w-full p-3 rounded-xl border border-input bg-card text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
                                   >
                                       <option value="paid">Đã trả (Thành công)</option>
-                                      <option value="pending">Trả sau (Chờ duyệt)</option>
+                                      <option value="pay_later">Trả sau (Ghi nợ)</option>
                                   </select>
                               </div>
                               <div>
                                   <label className="block text-sm font-bold text-foreground mb-2">Mã giảm giá (Tùy chọn)</label>
-                                  <input
-                                      type="text"
-                                      value={newOrder.voucherCode}
-                                      onChange={e => setNewOrder({...newOrder, voucherCode: e.target.value})}
-                                      placeholder="Nhập mã (nếu có)"
-                                      className="w-full p-3 rounded-xl border border-input bg-card text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
-                                  />
+                                  <div className="flex gap-2">
+                                      <input
+                                          type="text"
+                                          value={newOrder.voucherCode}
+                                          onChange={e => {
+                                              setNewOrder({...newOrder, voucherCode: e.target.value.toUpperCase()});
+                                              if (validatedVoucher && e.target.value.toUpperCase() !== validatedVoucher.code) {
+                                                  setValidatedVoucher(null);
+                                              }
+                                          }}
+                                          placeholder="Nhập mã (nếu có)"
+                                          className="flex-1 p-3 rounded-xl border border-input bg-card text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+                                      />
+                                      <button
+                                          onClick={handleValidateVoucher}
+                                          disabled={isValidatingVoucher || !newOrder.voucherCode}
+                                          className="px-4 py-2 bg-primary/10 text-primary font-bold rounded-xl hover:bg-primary/20 transition-colors disabled:opacity-50 whitespace-nowrap"
+                                      >
+                                          {isValidatingVoucher ? 'Đang kiểm tra...' : 'Kiểm tra'}
+                                      </button>
+                                  </div>
+                                  {validatedVoucher && newOrder.voucherCode === validatedVoucher.code && (
+                                      <p className="text-sm text-emerald-600 mt-2 font-medium flex items-center gap-1">
+                                          <CheckCircle className="w-4 h-4" />
+                                          Giảm {validatedVoucher.type === 'percent' ? `${validatedVoucher.value}%` : new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(validatedVoucher.value)}
+                                      </p>
+                                  )}
                               </div>
                           </div>
                       </div>
