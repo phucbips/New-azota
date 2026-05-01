@@ -184,9 +184,9 @@ export const SmartExamBuilder: React.FC<SmartExamBuilderProps> = ({ questions, o
         <div className="flex flex-col lg:flex-row gap-6 h-full items-stretch">
 
             {/* INGESTION SECTION (LEFT PANEL) */}
-            <div className="w-full lg:w-[40%] flex flex-col gap-4 bg-slate-50 border border-slate-200 rounded-2xl p-5 shadow-sm overflow-y-auto max-h-[80vh]">
+            <div className="w-full lg:w-[40%] flex flex-col gap-4 bg-accent border border-border rounded-[12px] p-5 shadow-sm overflow-y-auto max-h-[80vh]">
                 <div>
-                    <h3 className="font-extrabold text-slate-800 text-xl flex items-center gap-2 mb-1">
+                    <h3 className="font-bold font-display text-foreground text-xl flex items-center gap-2 mb-1">
                         <SearchCode className="w-6 h-6 text-blue-600" />
                         Nhập Nội dung
                     </h3>
@@ -203,7 +203,7 @@ export const SmartExamBuilder: React.FC<SmartExamBuilderProps> = ({ questions, o
                         <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors shadow-sm"
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-surface border border-border text-foreground font-bold rounded-[12px] hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors shadow-sm"
                         >
                             <Upload className="w-5 h-5" />
                             Tải lên File DOCX
@@ -214,7 +214,7 @@ export const SmartExamBuilder: React.FC<SmartExamBuilderProps> = ({ questions, o
                         value={rawText}
                         onChange={(e) => setRawText(e.target.value)}
                         placeholder="Ví dụ:.Câu 1: Thủ đô của Việt Nam là gì?.A. Hà Nội.B. TP.HCM.C. Đà Nẵng.D. Huế..Câu 2: ..."
-                        className="w-full min-h-[300px] flex-1 p-4 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500/20 outline-none text-sm resize-y font-mono bg-white shadow-inner"
+                        className="w-full min-h-[300px] flex-1 p-4 rounded-[12px] border border-border focus:ring-2 focus:ring-primary/12 outline-none text-sm resize-y font-mono bg-surface shadow-inner"
                     />
                 </div>
 
@@ -223,7 +223,7 @@ export const SmartExamBuilder: React.FC<SmartExamBuilderProps> = ({ questions, o
                         type="button"
                         onClick={parseWithRegex}
                         disabled={isParsing || !rawText.trim()}
-                        className="flex items-center justify-center gap-2 px-5 py-3 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-900 transition-colors disabled:opacity-50 shadow-md"
+                        className="flex items-center justify-center gap-2 px-5 py-3 bg-slate-800 text-white font-bold rounded-[12px] hover:bg-slate-900 transition-colors disabled:opacity-50 shadow-md"
                     >
                         {isParsing ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <SearchCode className="w-5 h-5" />}
                         Phân tích chuẩn (Regex)
@@ -232,7 +232,7 @@ export const SmartExamBuilder: React.FC<SmartExamBuilderProps> = ({ questions, o
                         type="button"
                         onClick={parseWithAI}
                         disabled={isParsing || !rawText.trim()}
-                        className="flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all disabled:opacity-50 disabled:scale-100 shadow-md"
+                        className="flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-[12px] hover:shadow-lg hover:scale-[1.02] transition-all disabled:opacity-50 disabled:scale-100 shadow-md"
                     >
                         <Wand2 className="w-5 h-5" />
                         Nhận diện thông minh (AI Gemini)
@@ -241,20 +241,20 @@ export const SmartExamBuilder: React.FC<SmartExamBuilderProps> = ({ questions, o
             </div>
 
             {/* PREVIEW & EDIT SECTION (RIGHT PANEL) */}
-            <div className="w-full lg:w-[60%] flex flex-col bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden max-h-[80vh]">
-                <div className="flex items-center justify-between border-b border-slate-200 p-5 bg-slate-50 shrink-0">
+            <div className="w-full lg:w-[60%] flex flex-col bg-surface border border-border rounded-[12px] shadow-sm overflow-hidden max-h-[80vh]">
+                <div className="flex items-center justify-between border-b border-border p-5 bg-accent shrink-0">
                     <div>
-                        <h3 className="font-extrabold text-slate-800 text-xl">Bản xem trước (Preview)</h3>
+                        <h3 className="font-bold font-display text-foreground text-xl">Bản xem trước (Preview)</h3>
                         <p className="text-sm text-slate-500">Chỉnh sửa và chọn đáp án đúng cho từng câu.</p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-full">
+                        <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full">
                             {questions.length} câu hỏi
                         </span>
                         <button
                             type="button"
                             onClick={() => onChange([...questions, { id: `q_new_${Date.now()}`, type: 'multiple_choice', text: 'Câu hỏi mới', options: ['A', 'B', 'C', 'D'], correctAnswers: [], points: 1 }])}
-                            className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm"
+                            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-[6px] transition-colors shadow-sm"
                         >
                             <Plus className="w-4 h-4" /> Thêm
                         </button>
@@ -262,10 +262,10 @@ export const SmartExamBuilder: React.FC<SmartExamBuilderProps> = ({ questions, o
                 </div>
 
                 {questions.length > 0 ? (
-                    <div className="flex-1 overflow-y-auto p-5 space-y-6 bg-slate-50/50">
+                    <div className="flex-1 overflow-y-auto p-5 space-y-6 bg-accent/50">
                         {questions.map((q, qIndex) => (
-                            <div key={q.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm group relative hover:border-blue-300 transition-colors">
-                                <div className="absolute -left-3 -top-3 w-8 h-8 bg-blue-600 text-white font-bold rounded-full flex items-center justify-center shadow-md text-sm">
+                            <div key={q.id} className="bg-surface border border-border rounded-[12px] p-5 shadow-sm group relative hover:border-blue-300 transition-colors">
+                                <div className="absolute -left-3 -top-3 w-8 h-8 bg-primary text-white font-bold rounded-full flex items-center justify-center shadow-md text-sm">
                                     {qIndex + 1}
                                 </div>
                                 <div className="flex justify-between items-start gap-4 mb-4 pl-3">
@@ -276,7 +276,7 @@ export const SmartExamBuilder: React.FC<SmartExamBuilderProps> = ({ questions, o
                                         <textarea
                                             value={q.text}
                                             onChange={(e) => updateQuestion(qIndex, { ...q, text: e.target.value })}
-                                            className="w-full text-base font-bold text-slate-800 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-transparent focus:border-blue-300 rounded-lg resize-y focus:ring-4 focus:ring-blue-500/10 p-3 transition-all min-h-[80px]"
+                                            className="w-full text-base font-bold text-foreground bg-accent hover:bg-slate-100 focus:bg-surface border border-transparent focus:border-primary rounded-[6px] resize-y focus:ring-4 focus:ring-primary/12 p-3 transition-all min-h-[80px]"
                                             rows={2}
                                             placeholder="Nội dung câu hỏi..."
                                         />
@@ -284,7 +284,7 @@ export const SmartExamBuilder: React.FC<SmartExamBuilderProps> = ({ questions, o
                                     <button
                                         type="button"
                                         onClick={() => removeQuestion(qIndex)}
-                                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-[6px] transition-colors opacity-0 group-hover:opacity-100"
                                         title="Xóa câu hỏi"
                                     >
                                         <Trash2 className="w-5 h-5" />
@@ -295,7 +295,7 @@ export const SmartExamBuilder: React.FC<SmartExamBuilderProps> = ({ questions, o
                                     {q.options?.map((opt, oIndex) => {
                                         const isCorrect = q.correctAnswers.includes(opt);
                                         return (
-                                            <div key={oIndex} className={`flex items-center gap-3 p-2.5 rounded-lg border transition-all ${isCorrect ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20' : 'bg-white border-slate-200 hover:border-slate-300'}`}>
+                                            <div key={oIndex} className={`flex items-center gap-3 p-2.5 rounded-[6px] border transition-all ${isCorrect ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20' : 'bg-surface border-border hover:border-border'}`}>
                                                 <button
                                                     type="button"
                                                     onClick={() => toggleCorrectOption(qIndex, opt)}
@@ -318,7 +318,7 @@ export const SmartExamBuilder: React.FC<SmartExamBuilderProps> = ({ questions, o
                                                             const newCorrect = q.correctAnswers.map(c => c === opt ? e.target.value : c);
                                                             updateQuestion(qIndex, { ...q, options: newOpts, correctAnswers: newCorrect });
                                                         }}
-                                                        className={`flex-1 bg-transparent border-none focus:ring-0 p-0 text-sm focus:outline-none ${isCorrect ? 'font-semibold text-emerald-900' : 'text-slate-700 font-medium'}`}
+                                                        className={`flex-1 bg-transparent border-none focus:ring-0 p-0 text-sm focus:outline-none ${isCorrect ? 'font-semibold text-emerald-900' : 'text-foreground font-medium'}`}
                                                         placeholder="Nhập nội dung đáp án..."
                                                     />
                                                 </div>
@@ -330,7 +330,7 @@ export const SmartExamBuilder: React.FC<SmartExamBuilderProps> = ({ questions, o
                         ))}
                     </div>
                 ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center p-10 text-center opacity-50 bg-slate-50/50">
+                    <div className="flex-1 flex flex-col items-center justify-center p-10 text-center opacity-50 bg-accent/50">
                         <SearchCode className="w-20 h-20 text-slate-300 mb-4" />
                         <h4 className="text-xl font-bold text-slate-500">Chưa có dữ liệu</h4>
                         <p className="text-slate-400 mt-2 max-w-sm">Tải lên file DOCX hoặc dán văn bản và nhấn Phân tích để hiển thị danh sách câu hỏi tại đây.</p>

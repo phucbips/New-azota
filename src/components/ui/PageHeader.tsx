@@ -11,7 +11,7 @@ interface PageHeaderProps {
 
 export const PageHeader: React.FC<PageHeaderProps> = ({ title, description, subtitle, action, className }) => {
   return (
-    <div className={cn("flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 bg-card p-6 rounded-2xl border border-border shadow-sm", className)}>
+    <div className={cn("flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-[24px] bg-surface p-[24px] rounded-[12px] border border-border shadow-sm", className)}>
       <div>
         <h1 className="text-2xl font-bold text-foreground tracking-tight">{title}</h1>
         {(subtitle || description) && <p className="text-sm text-muted-foreground mt-2 font-medium">{subtitle || description}</p>}

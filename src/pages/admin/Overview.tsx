@@ -73,7 +73,7 @@ export const AdminOverview: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-10">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card p-6 rounded-2xl border border-border shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface p-6 rounded-[12px] border border-border bg-surface">
         <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('analytics.title')}</h1>
             <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
@@ -91,14 +91,14 @@ export const AdminOverview: React.FC = () => {
 
         <div className="flex flex-col sm:flex-row items-center gap-4">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
-                <TabsList className="grid w-full grid-cols-3 sm:w-auto bg-muted/50 p-1 rounded-xl">
+                <TabsList className="grid w-full grid-cols-3 sm:w-auto bg-muted/50 p-1 rounded-[8px]">
                     <TabsTrigger value="overview" className="rounded-lg text-sm font-semibold">Tổng quan</TabsTrigger>
                     <TabsTrigger value="finance" className="rounded-lg text-sm font-semibold">Tài chính</TabsTrigger>
                     <TabsTrigger value="stats" className="rounded-lg text-sm font-semibold">Thống kê</TabsTrigger>
                 </TabsList>
             </Tabs>
 
-            <div className="hidden lg:flex items-center px-4 py-2 bg-primary/10 text-primary rounded-xl text-sm font-bold">
+            <div className="hidden lg:flex items-center px-4 py-2 bg-primary/10 text-primary rounded-[8px] text-sm font-bold">
                 Môi trường: Production
             </div>
 
@@ -106,7 +106,7 @@ export const AdminOverview: React.FC = () => {
                 <select
                     value={timeRange}
                     onChange={e => setTimeRange(Number(e.target.value))}
-                    className="p-2 bg-background border border-border rounded-xl text-sm font-medium shadow-sm focus:ring-2 focus:ring-primary/20"
+                    className="p-2 bg-background border border-border rounded-[8px] text-sm font-medium shadow-sm focus:ring-2 focus:ring-primary/20"
                 >
                     <option value={7}>7 Ngày qua</option>
                     <option value={30}>30 Ngày qua</option>
@@ -117,7 +117,7 @@ export const AdminOverview: React.FC = () => {
             {/* Dashboard Config Popover */}
             <Popover.Root>
                 <Popover.Trigger asChild>
-                    <button className="p-2.5 bg-background border border-border hover:bg-accent hover:text-accent-foreground rounded-xl transition-all shadow-sm flex items-center gap-2 group">
+                    <button className="p-2.5 bg-background border border-border hover:bg-accent hover:text-accent-foreground rounded-[8px] transition-all shadow-sm flex items-center gap-2 group">
                         <Layout className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                         <span className="hidden sm:inline text-sm font-semibold">Tùy chỉnh</span>
                     </button>
