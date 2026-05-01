@@ -6,12 +6,15 @@ import { db } from '../../config/firebase';
 import { Order, orderService } from '../../services/order.service';
 import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../contexts/CartContext';
-import { BookOpen, Tag, ShoppingCart, Loader2, CheckCircle } from 'lucide-react';
+import { BookOpen, ShoppingCart, Loader2, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link, useNavigate } from 'react-router-dom';
+import { Card, CardContent } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
 
 export const StudentCourses: React.FC = () => {
-const { user } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [courses, setCourses] = useState<Course[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -20,7 +23,6 @@ const { user } = useAuth();
 
   useEffect(() => {
       const unsubCourses = courseService.subscribeToCourses((data) => {
-          // Students only see active courses
           setCourses(data.filter(c => c.isActive));
           setLoading(false);
       });
@@ -39,7 +41,6 @@ const { user } = useAuth();
   }, [user]);
 
   const { addToCart, cartItems } = useCart();
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'bank_transfer' | 'cash'>('bank_transfer');
 
   const handlePurchaseClick = (course: Course) => {
@@ -47,7 +48,7 @@ const { user } = useAuth();
           handleConfirmPurchase(course, 'bank_transfer', 'paid');
       } else {
           addToCart(course);
-          toast.success("Đã thêm khóa học vào giỏ hàng!");
+          toast.success("Added to cart!");
       }
   };
 
@@ -69,26 +70,23 @@ const { user } = useAuth();
           });
 
           if (initialStatus === 'paid') {
-              // Users can update their own document according to firestore rules
               const userRef = doc(db, 'users', user!.uid);
               await updateDoc(userRef, {
                   enrolledCourses: arrayUnion(course.id)
               });
           }
 
-          setSelectedCourse(null);
-
           if (initialStatus === 'paid') {
-              toast.success("Đăng ký khóa học thành công!");
+              toast.success("Successfully enrolled!");
           } else {
               if (method === 'bank_transfer') {
                   navigate(`/student/payment?orderId=${orderId}`);
               } else {
-                  toast.success("Đã ghi nhận yêu cầu. Admin sẽ liên hệ và duyệt sau khi bạn thanh toán tiền mặt.");
+                  toast.success("Request recorded. Admin will process it shortly.");
               }
           }
       } catch (err) {
-          toast.error("Có lỗi xảy ra khi đặt mua.");
+          toast.error("An error occurred during purchase.");
           console.error(err);
       } finally {
           setPurchasing(null);
@@ -96,90 +94,90 @@ const { user } = useAuth();
   };
 
   const getCourseStatus = (courseId: string) => {
-      // Find any order that contains this course in its items array, or use legacy courseId
       const order = orders.find(o => o.courseId === courseId || (o.items && o.items.some(i => i.courseId === courseId)));
       if (!order) return 'unpurchased';
-      return order.status; // 'pending' | 'paid' | 'cancelled'
+      return order.status;
   };
 
-  if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  if (loading) return <div className="flex items-center justify-center h-[200px]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
   return (
-    <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-10">
-      <PageHeader
-        title="Danh sách Khóa học"
-        subtitle="Khám phá và đăng ký các khóa học mới nhất."
-      />
+    <div className="flex flex-col gap-[24px]">
+      <div className="mb-[16px]">
+        <h1 className="text-[32px] font-bold font-display tracking-tight text-foreground">Course Catalog</h1>
+        <p className="text-[15px] text-muted-foreground mt-[8px]">Discover and enroll in new courses to expand your knowledge.</p>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[24px]">
         {courses.map(course => {
             const status = getCourseStatus(course.id);
 
             return (
-                <div key={course.id} className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden hover:shadow-md transition-shadow group flex flex-col">
-                    <div className="aspect-video w-full bg-muted relative">
+                <Card key={course.id} className="group flex flex-col p-0">
+                    <div className="aspect-[16/9] w-full bg-muted relative overflow-hidden h-[200px] shrink-0 border-b border-border">
                         {course.imageUrl ? (
-                            <img src={course.imageUrl} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            <img src={course.imageUrl} alt={course.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center text-muted-foreground"><BookOpen className="w-12 h-12 opacity-20" /></div>
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-accent"><BookOpen className="w-8 h-8 opacity-20" /></div>
                         )}
                         {status === 'paid' && (
-                            <div className="absolute top-3 left-3 bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md flex items-center gap-1">
-                                <CheckCircle className="w-3 h-3" /> Đã Mua
+                            <div className="absolute top-[12px] left-[12px]">
+                                <Badge variant="success" className="bg-white text-success border-none shadow-sm"><CheckCircle className="w-3 h-3 mr-1" /> Enrolled</Badge>
                             </div>
                         )}
                         {status === 'pending' && (
-                            <div className="absolute top-3 left-3 bg-yellow-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md">
-                                Chờ thanh toán
+                            <div className="absolute top-[12px] left-[12px]">
+                                <Badge variant="warning" className="bg-white text-warning border-none shadow-sm">Pending Payment</Badge>
                             </div>
                         )}
                     </div>
-                    <div className="p-6 flex-1 flex flex-col">
-                        <h3 className="font-display font-bold text-xl text-card-foreground line-clamp-2">{course.title}</h3>
-                        <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{course.description}</p>
+                    <CardContent className="p-[20px] flex-1 flex flex-col">
+                        <h3 className="font-bold text-[18px] text-foreground line-clamp-2 leading-snug">{course.title}</h3>
+                        <p className="text-[14px] text-muted-foreground mt-[8px] line-clamp-2 leading-relaxed">{course.description}</p>
 
-                        <div className="mt-4 flex items-center gap-4 text-sm font-medium text-muted-foreground bg-muted/30 p-3 rounded-xl">
-                            <div className="flex items-center gap-1.5">
-                                <BookOpen className="w-4 h-4 text-primary" /> {course.assignmentIds.length} Bài học
+                        <div className="mt-auto pt-[20px] flex items-center justify-between text-[14px]">
+                            <div className="flex items-center gap-[6px] text-muted-foreground">
+                                <BookOpen className="w-[14px] h-[14px]" /> {course.assignmentIds.length} lessons
                             </div>
-                            <div className="flex items-center gap-1.5">
-                                <Tag className="w-4 h-4 text-emerald-500" />
-                                {course.price > 0 ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(course.price) : 'Miễn phí'}
+                            <div className="font-bold text-foreground">
+                                {course.price > 0 ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(course.price) : 'Free'}
                             </div>
                         </div>
 
-                        <div className="mt-auto pt-6">
+                        <div className="mt-[20px]">
                             {status === 'unpurchased' || status === 'cancelled' ? (
-                                <button
+                                <Button
+                                    variant="secondary"
                                     onClick={() => handlePurchaseClick(course)}
                                     disabled={purchasing === course.id}
-                                    className="w-full py-3 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                                    className="w-full"
                                 >
-                                    {purchasing === course.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShoppingCart className="w-5 h-5" />}
-                                    {course.price === 0 ? 'Nhận khóa học' : (cartItems.find(c => c.id === course.id) ? 'Đã thêm vào giỏ' : 'Thêm vào giỏ hàng')}
-                                </button>
+                                    {purchasing === course.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShoppingCart className="w-4 h-4 mr-2" />}
+                                    {course.price === 0 ? 'Enroll Now' : (cartItems.find(c => c.id === course.id) ? 'Added to Cart' : 'Add to Cart')}
+                                </Button>
                             ) : status === 'pending' ? (
-                                <Link
-                                    to={`/student/payment?orderId=${orders.find(o => o.courseId === course.id || (o.items && o.items.some(i => i.courseId === course.id)))?.id}`}
-                                    className="w-full py-3 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-bold transition-colors shadow-md flex items-center justify-center"
-                                >
-                                    Tiếp tục thanh toán
-                                </Link>
+                                <Button asChild variant="secondary" className="w-full">
+                                  <Link to={`/student/payment?orderId=${orders.find(o => o.courseId === course.id || (o.items && o.items.some(i => i.courseId === course.id)))?.id}`}>
+                                      Complete Payment
+                                  </Link>
+                                </Button>
                             ) : (
-                                <Link to="/student/assignments" className="w-full py-3 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-xl font-bold hover:bg-emerald-100 transition-colors flex items-center justify-center">
-                                    Vào học ngay
-                                </Link>
+                                <Button asChild className="w-full bg-success/10 text-success hover:bg-success/20 hover:shadow-none border-none">
+                                  <Link to="/student/assignments">
+                                      Go to Learning
+                                  </Link>
+                                </Button>
                             )}
                         </div>
-                    </div>
-                </div>
+                    </CardContent>
+                </Card>
             )
         })}
         {courses.length === 0 && (
-            <div className="col-span-full py-20 text-center bg-card rounded-2xl border border-border border-dashed">
-                <BookOpen className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-                <p className="text-lg font-medium text-foreground">Hiện tại chưa có khóa học nào.</p>
-                <p className="text-muted-foreground">Vui lòng quay lại sau.</p>
+            <div className="col-span-full py-[80px] text-center rounded-[12px] border border-border border-dashed bg-surface">
+                <BookOpen className="w-[48px] h-[48px] text-muted-foreground/30 mx-auto mb-[16px]" />
+                <p className="text-[16px] font-bold text-foreground">No courses available.</p>
+                <p className="text-[14px] text-muted-foreground">Please check back later.</p>
             </div>
         )}
       </div>

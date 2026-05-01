@@ -61,15 +61,15 @@ export const AIChat: React.FC<AIChatProps> = ({ lessonName }) => {
   };
 
   return (
-    <div className="lg:col-span-1 glass p-6 rounded-2xl shadow-xl animate-fadeIn">
-      <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center">
+    <div className="lg:col-span-1 bg-surface border border-border p-[24px] rounded-[12px] shadow-xl animate-fadeIn">
+      <h3 className="text-xl font-bold text-foreground mb-4 flex items-center">
         🤖 Trợ lý AI Học tập
         <span className="ml-2 text-xs text-blue-500 font-medium">(Gemini)</span>
       </h3>
 
       <div
         ref={chatContainerRef}
-        className="ai-chat-box bg-slate-50 p-3 rounded-xl border border-slate-200 mb-4 h-[350px]"
+        className="ai-chat-box bg-slate-50 p-3 rounded-[8px] border border-slate-200 mb-4 h-[350px]"
       >
         {messages.map((message, index) => (
           <div
@@ -77,10 +77,10 @@ export const AIChat: React.FC<AIChatProps> = ({ lessonName }) => {
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`p-3 rounded-xl max-w-[80%] shadow-md ${
+              className={`p-3 rounded-[8px] max-w-[80%] shadow-md ${
                 message.role === 'user'
-                  ? 'bg-indigo-600 text-white rounded-tr-none'
-                  : 'bg-white border border-slate-100 text-slate-800 rounded-tl-none'
+                  ? 'bg-primary text-white rounded-tr-none'
+                  : 'bg-surface border border-border text-foreground rounded-tl-none'
               }`}
             >
               {message.content}
@@ -90,7 +90,7 @@ export const AIChat: React.FC<AIChatProps> = ({ lessonName }) => {
 
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-slate-200 text-slate-700 p-3 rounded-xl rounded-tl-none max-w-[80%] shadow-md flex items-center">
+            <div className="bg-slate-200 text-slate-700 p-3 rounded-[8px] rounded-tl-none max-w-[80%] shadow-md flex items-center">
               <LoadingSpinner size="sm" />
               <span className="ml-2">Đang trả lời...</span>
             </div>
@@ -105,13 +105,13 @@ export const AIChat: React.FC<AIChatProps> = ({ lessonName }) => {
           onChange={(e) => setInput(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder="Hỏi AI về bài học..."
-          className="input-custom w-full px-4 py-3 border-2 border-slate-200 rounded-xl rounded-r-none transition-all"
+          className="input-custom w-full px-4 py-3 border-2 border-slate-200 rounded-[8px] rounded-r-none transition-all"
           disabled={loading}
         />
         <button
           onClick={handleSend}
           disabled={loading || !input.trim()}
-          className="btn-primary flex-shrink-0 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl rounded-l-none font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="btn-primary flex-shrink-0 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-[8px] rounded-l-none font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Send className="w-5 h-5" />
         </button>

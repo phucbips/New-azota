@@ -2,7 +2,7 @@ import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { ThemeSettingsProvider } from './contexts/ThemeSettingsContext';
+
 import { DashboardConfigProvider } from './contexts/DashboardConfigContext';
 import { AppSettingsProvider } from './contexts/AppSettingsContext';
 import { CartProvider } from './contexts/CartContext';
@@ -67,7 +67,7 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
        <ThemeProvider>
-        <ThemeSettingsProvider>
+
          <AppSettingsProvider>
          <DashboardConfigProvider>
           <CartProvider>
@@ -145,7 +145,7 @@ function App() {
           </CartProvider>
          </DashboardConfigProvider>
          </AppSettingsProvider>
-        </ThemeSettingsProvider>
+
        </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>

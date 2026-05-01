@@ -57,9 +57,9 @@ export const NotificationManager: React.FC = () => {
   };
 
   return (
-    <div className="bg-card rounded-xl border border-border shadow-sm p-6">
+    <div className="bg-surface rounded-[12px] border border-border shadow-sm p-6">
       <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 bg-primary/10 rounded-lg text-primary">
+        <div className="p-2 bg-primary/10 rounded-[6px] text-primary">
             <Send className="w-5 h-5" />
         </div>
         <h2 className="text-lg font-bold text-card-foreground">Gửi thông báo</h2>
@@ -71,7 +71,7 @@ export const NotificationManager: React.FC = () => {
                 <label className="block text-sm font-medium text-muted-foreground mb-1">Tiêu đề</label>
                 <input
                     {...register('title')}
-                    className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                    className="w-full px-3 py-2 border border-input rounded-[6px] bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
                     placeholder="VD: Thông báo bảo trì..."
                 />
                 {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title.message}</p>}
@@ -81,7 +81,7 @@ export const NotificationManager: React.FC = () => {
                 <label className="block text-sm font-medium text-muted-foreground mb-1">Loại thông báo</label>
                 <select
                     {...register('type')}
-                    className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground outline-none"
+                    className="w-full px-3 py-2 border border-input rounded-[6px] bg-background text-foreground outline-none"
                 >
                     <option value="info">Thông tin (Xanh dương)</option>
                     <option value="warning">Cảnh báo (Cam)</option>
@@ -95,7 +95,7 @@ export const NotificationManager: React.FC = () => {
             <textarea
                 {...register('message')}
                 rows={3}
-                className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                className="w-full px-3 py-2 border border-input rounded-[6px] bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
                 placeholder="Nhập nội dung thông báo..."
             />
             {errors.message && <p className="text-xs text-red-500 mt-1">{errors.message.message}</p>}
@@ -106,7 +106,7 @@ export const NotificationManager: React.FC = () => {
                 <label className="block text-sm font-medium text-muted-foreground mb-1">Đối tượng nhận</label>
                 <select
                     {...register('targetAudience')}
-                    className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground outline-none"
+                    className="w-full px-3 py-2 border border-input rounded-[6px] bg-background text-foreground outline-none"
                 >
                     <option value="all">Tất cả người dùng</option>
                     <option value="student">Học sinh</option>
@@ -120,7 +120,7 @@ export const NotificationManager: React.FC = () => {
                     <label className="block text-sm font-medium text-muted-foreground mb-1">User ID</label>
                     <input
                         {...register('receiverId')}
-                        className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                        className="w-full px-3 py-2 border border-input rounded-[6px] bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
                         placeholder="Nhập UID người nhận..."
                     />
                 </div>
@@ -131,7 +131,7 @@ export const NotificationManager: React.FC = () => {
             <button
                 type="submit"
                 disabled={loading}
-                className="px-6 py-2.5 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-lg shadow-primary/30 disabled:opacity-50 flex items-center gap-2"
+                className="px-6 py-2.5 bg-primary text-primary-foreground font-bold rounded-[6px] hover:bg-primary/90 transition-colors shadow-lg shadow-primary/30 disabled:opacity-50 flex items-center gap-2"
             >
                 <Send className="w-4 h-4" />
                 {loading ? 'Đang gửi...' : 'Gửi thông báo'}

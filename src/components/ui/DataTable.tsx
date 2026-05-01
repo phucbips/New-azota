@@ -58,7 +58,7 @@ export function DataTable<TData, TValue>({
 
   if (isLoading) {
       return (
-          <div className="w-full h-64 flex items-center justify-center border border-border rounded-xl bg-card">
+          <div className="w-full h-64 flex items-center justify-center border border-border rounded-[12px] bg-surface">
               <div className="loader"></div>
           </div>
       )
@@ -107,7 +107,7 @@ export function DataTable<TData, TValue>({
       )}
 
       {searchColumn && (
-        <div className="flex items-center py-4 bg-card px-4 border border-border rounded-xl">
+        <div className="flex items-center py-4 bg-surface px-4 border border-border rounded-[12px]">
             <Search className="w-5 h-5 text-muted-foreground mr-2" />
           <input
             placeholder={searchPlaceholder}
@@ -120,7 +120,7 @@ export function DataTable<TData, TValue>({
         </div>
       )}
 
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="rounded-[12px] border border-border bg-surface overflow-hidden">
         <table className="w-full text-sm text-left">
             <thead className="bg-muted/50 border-b border-border uppercase text-muted-foreground font-semibold">
                 {table.getHeaderGroups().map((headerGroup) => (
@@ -176,14 +176,14 @@ export function DataTable<TData, TValue>({
         </div>
         <div className="flex items-center space-x-2">
           <button
-            className="p-2 border border-input rounded-md hover:bg-muted disabled:opacity-50"
+            className="p-2 border border-input rounded-[6px] hover:bg-muted disabled:opacity-50"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
           <button
-            className="p-2 border border-input rounded-md hover:bg-muted disabled:opacity-50"
+            className="p-2 border border-input rounded-[6px] hover:bg-muted disabled:opacity-50"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >

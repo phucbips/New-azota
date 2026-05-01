@@ -1,30 +1,20 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, BookOpen, GraduationCap, ShoppingCart } from "lucide-react";
+import { Menu, X, GraduationCap, ShoppingCart } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { useCart } from "../contexts/CartContext";
 import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "./ui/button";
 
 export const Navbar = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user } = useAuth();
   const { cartItems } = useCart();
   const location = useLocation();
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
   const menuItems = [
     { label: "Trang chủ", href: "/" },
     { label: "Khóa học", href: "/courses" },
-    { label: "Về chúng tôi", href: "/about" },
-    { label: "Liên hệ", href: "/contact" },
   ];
 
   const isActive = (path: string) => {
@@ -34,38 +24,33 @@ export const Navbar = () => {
 
   return (
     <header
-      className={`fixed left-0 right-0 top-0 z-50 transition-all duration-300 ${
-        isScrolled
-          ? "bg-background/95 py-4 shadow-sm backdrop-blur-md border-b border-border"
-          : "bg-black/20 py-6 backdrop-blur-sm"
-      }`}
+      className="fixed left-0 right-0 top-0 z-50 transition-all duration-300 bg-background/80 backdrop-blur-md border-b border-border h-[56px] flex items-center"
     >
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-[24px]">
         <div className="flex items-center justify-between">
+          {/* Logo */}
           <Link
             to="/"
-            className="group flex items-center gap-2 text-2xl font-bold transition-transform hover:scale-105"
+            className="flex items-center gap-2 transition-transform hover:opacity-80"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white shadow-lg shadow-primary/30 transition-transform group-hover:rotate-12">
-              <GraduationCap className="h-6 w-6" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-[6px] bg-primary text-white">
+              <GraduationCap className="h-5 w-5" />
             </div>
-            <span className={isScrolled ? "text-foreground" : "text-white"}>
+            <span className="text-[16px] font-bold text-foreground font-display tracking-tight">
               EduPlatform
             </span>
           </Link>
 
           {/* Desktop Menu */}
-          <nav className="hidden items-center gap-8 md:flex">
+          <nav className="hidden items-center gap-[24px] md:flex">
             {menuItems.map((item) => (
               <Link
                 key={item.label}
                 to={item.href}
-                className={`text-sm font-semibold transition-colors ${
+                className={`text-[14px] font-medium transition-colors hover:bg-accent px-3 py-1.5 rounded-[6px] ${
                   isActive(item.href)
                     ? "text-primary"
-                    : isScrolled
-                    ? "text-muted-foreground hover:text-foreground"
-                    : "text-white/80 hover:text-white"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {item.label}
@@ -73,44 +58,43 @@ export const Navbar = () => {
             ))}
           </nav>
 
-          <div className="hidden items-center gap-4 md:flex">
-            <Link to="/student/cart" className="relative p-2 text-foreground hover:bg-muted rounded-full transition-colors"><ShoppingCart className="w-5 h-5" /></Link>
+          {/* Desktop Actions */}
+          <div className="hidden items-center gap-[16px] md:flex">
+            {user?.role === 'student' && (
+              <Link to="/student/cart" className="relative p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-[6px] transition-colors">
+                <ShoppingCart className="w-5 h-5" />
+                {cartItems.length > 0 && (
+                  <span className="absolute top-0 right-0 -mt-1 -mr-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
+                    {cartItems.length}
+                  </span>
+                )}
+              </Link>
+            )}
 
             {user ? (
-              <Link
-                to={`/${user.role}`}
-                className="rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/30"
-              >
-                Vào {user.role === 'admin' ? 'Admin Dashboard' : user.role === 'teacher' ? 'Teacher Dashboard' : 'Student Dashboard'}
-              </Link>
+              <Button asChild size="sm">
+                <Link to={`/${user.role}`}>
+                  Vào Dashboard
+                </Link>
+              </Button>
             ) : (
               <>
-                <Link
-                  to="/login"
-                  className={`text-sm font-semibold transition-colors ${
-                    isScrolled
-                      ? "text-muted-foreground hover:text-foreground"
-                      : "text-white/80 hover:text-white"
-                  }`}
-                >
-                  Đăng nhập
-                </Link>
-                <Link
-                  to="/register"
-                  className="rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/30"
-                >
-                  Đăng ký
-                </Link>
+                <Button asChild variant="ghost" size="sm">
+                  <Link to="/login">Đăng nhập</Link>
+                </Button>
+                <Button asChild size="sm">
+                  <Link to="/register">Đăng ký</Link>
+                </Button>
               </>
             )}
           </div>
 
           {/* Mobile Menu Button */}
           <button
-            className={`md:hidden ${isScrolled ? "text-foreground" : "text-white"}`}
+            className="md:hidden text-foreground hover:bg-accent p-2 rounded-[6px]"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
-            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
       </div>
@@ -122,48 +106,40 @@ export const Navbar = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="absolute left-0 right-0 top-full border-t border-border bg-background shadow-xl md:hidden"
+            className="absolute left-0 right-0 top-[56px] border-b border-border bg-background shadow-lg md:hidden overflow-hidden"
           >
-            <nav className="flex flex-col p-4">
+            <nav className="flex flex-col p-[16px] gap-[8px]">
               {menuItems.map((item) => (
                 <Link
                   key={item.label}
                   to={item.href}
-                  className={`block rounded-lg px-4 py-3 text-base font-semibold ${
+                  className={`block rounded-[6px] px-4 py-2 text-[14px] font-medium ${
                     isActive(item.href)
                       ? "bg-primary/10 text-primary"
-                      : "text-foreground hover:bg-muted"
+                      : "text-foreground hover:bg-accent"
                   }`}
                   onClick={() => setIsMenuOpen(false)}
                 >
                   {item.label}
                 </Link>
               ))}
-              <div className="my-4 h-px bg-border" />
+
+              <div className="h-px bg-border my-2" />
+
               {user ? (
-                <Link
-                  to={`/${user.role}`}
-                  className="block rounded-lg bg-primary px-4 py-3 text-center text-base font-bold text-primary-foreground"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Vào {user.role === 'admin' ? 'Admin Dashboard' : user.role === 'teacher' ? 'Teacher Dashboard' : 'Student Dashboard'}
-                </Link>
+                <Button asChild className="w-full justify-center">
+                  <Link to={`/${user.role}`} onClick={() => setIsMenuOpen(false)}>
+                    Vào Dashboard
+                  </Link>
+                </Button>
               ) : (
                 <div className="flex flex-col gap-2">
-                  <Link
-                    to="/login"
-                    className="block rounded-lg px-4 py-3 text-center text-base font-semibold text-foreground hover:bg-muted"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Đăng nhập
-                  </Link>
-                  <Link
-                    to="/register"
-                    className="block rounded-lg bg-primary px-4 py-3 text-center text-base font-bold text-primary-foreground"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Đăng ký
-                  </Link>
+                  <Button asChild variant="secondary" className="w-full justify-center">
+                    <Link to="/login" onClick={() => setIsMenuOpen(false)}>Đăng nhập</Link>
+                  </Button>
+                  <Button asChild className="w-full justify-center">
+                    <Link to="/register" onClick={() => setIsMenuOpen(false)}>Đăng ký</Link>
+                  </Button>
                 </div>
               )}
             </nav>
