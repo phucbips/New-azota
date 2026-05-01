@@ -1,7 +1,6 @@
 import React from 'react';
 import Navbar from '../../components/Navbar';
 import HeroSection from '../../components/home/HeroSection';
-import MenuSection from '../../components/home/MenuSection';
 import AboutSection from '../../components/home/AboutSection';
 import StatsSection from '../../components/home/StatsSection';
 import TestimonialCarousel from '../../components/home/TestimonialCarousel';
@@ -17,17 +16,16 @@ export const LandingPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pt-[56px]">
       <Navbar />
       <main>
         {settings.homepage.showHero && (
             <HeroSection
                 title={settings.homepage.heroTitle}
                 subtitle={settings.homepage.heroSubtitle}
-                backgroundUrl={settings.homepage.heroBackgroundUrl}
             />
         )}
-        {settings.homepage.showCourses && <MenuSection />}
+        {/* We moved Course logic purely to /courses, removed MenuSection inline */}
         {settings.homepage.showStats && <StatsSection stats={settings.homepage.stats} />}
         {settings.homepage.showAbout && <AboutSection />}
         {settings.homepage.showTestimonials && <TestimonialCarousel />}

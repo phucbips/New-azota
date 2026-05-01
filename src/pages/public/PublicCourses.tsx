@@ -2,14 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Course, courseService } from '../../services/course.service';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
-import { BookOpen, Tag, ShoppingCart, Loader2 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { BookOpen, ShoppingCart, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../contexts/CartContext';
 import { toast } from 'sonner';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent } from '../../components/ui/card';
 
 export const PublicCourses: React.FC = () => {
-const [courses, setCourses] = useState<Course[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { addToCart } = useCart();
@@ -27,7 +29,7 @@ const [courses, setCourses] = useState<Course[]>([]);
           navigate('/student/courses');
       } else {
           addToCart(course);
-          toast.success("Đã thêm vào giỏ hàng");
+          toast.success("Added to cart");
           if (user) {
               navigate('/student/cart');
           } else {
@@ -37,53 +39,53 @@ const [courses, setCourses] = useState<Course[]>([]);
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col pt-[56px]">
       <Navbar />
-      <main className="flex-1 pt-32 pb-20">
-          <div className="container mx-auto px-4 max-w-7xl">
-              <div className="text-center mb-16">
-                  <h1 className="font-display text-4xl font-extrabold text-foreground md:text-5xl mb-4">Khóa Học Của Chúng Tôi</h1>
-                  <p className="text-lg text-muted-foreground max-w-2xl mx-auto">Chọn từ hàng ngàn khóa học trực tuyến được cập nhật liên tục mỗi tháng với chất lượng tốt nhất.</p>
+      <main className="flex-1 py-[64px]">
+          <div className="container mx-auto px-[24px] max-w-[1280px]">
+              <div className="text-center mb-[48px]">
+                  <h1 className="font-display text-[40px] font-bold text-foreground md:text-[48px] mb-[16px] tracking-tight">Catalog</h1>
+                  <p className="text-[16px] text-muted-foreground max-w-[600px] mx-auto">Choose from thousands of carefully curated courses.</p>
               </div>
 
               {loading ? (
-                  <div className="flex justify-center h-64 items-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+                  <div className="flex justify-center h-[200px] items-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
               ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[24px]">
                     {courses.map(course => (
-                        <div key={course.id} className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden hover:shadow-xl transition-all group flex flex-col hover:-translate-y-2">
-                            <div className="aspect-[4/3] w-full bg-muted relative overflow-hidden">
+                        <Card key={course.id} className="group flex flex-col p-0">
+                            <div className="aspect-[16/9] w-full bg-muted relative overflow-hidden h-[200px] shrink-0 border-b border-border">
                                 {course.imageUrl ? (
-                                    <img src={course.imageUrl} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                                    <img src={course.imageUrl} alt={course.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-muted-foreground"><BookOpen className="w-12 h-12 opacity-20" /></div>
+                                    <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-accent"><BookOpen className="w-8 h-8 opacity-20" /></div>
                                 )}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
                             </div>
-                            <div className="p-6 flex-1 flex flex-col">
-                                <h3 className="font-display font-bold text-xl text-card-foreground line-clamp-2 group-hover:text-primary transition-colors">{course.title}</h3>
-                                <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{course.description}</p>
+                            <CardContent className="p-[20px] flex-1 flex flex-col">
+                                <h3 className="font-bold text-[18px] text-foreground line-clamp-2 leading-snug">{course.title}</h3>
+                                <p className="text-[14px] text-muted-foreground mt-[8px] line-clamp-2 leading-relaxed">{course.description}</p>
 
-                                <div className="mt-4 flex items-center justify-between text-sm font-medium text-muted-foreground bg-muted/30 p-3 rounded-xl">
-                                    <div className="flex items-center gap-1.5">
-                                        <BookOpen className="w-4 h-4 text-primary" /> {course.assignmentIds.length} Bài học
+                                <div className="mt-auto pt-[20px] flex items-center justify-between text-[14px]">
+                                    <div className="flex items-center gap-[6px] text-muted-foreground">
+                                        <BookOpen className="w-[14px] h-[14px]" /> {course.assignmentIds.length} lessons
                                     </div>
-                                    <div className="flex items-center gap-1.5 font-bold text-emerald-600">
-                                        {course.price > 0 ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(course.price) : 'Miễn phí'}
+                                    <div className="font-bold text-foreground">
+                                        {course.price > 0 ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(course.price) : 'Free'}
                                     </div>
                                 </div>
 
-                                <div className="mt-6">
-                                    <button
+                                <div className="mt-[20px]">
+                                    <Button
+                                        variant="secondary"
                                         onClick={() => handlePurchaseClick(course)}
-                                        className="w-full py-3.5 bg-background border-2 border-primary text-primary hover:bg-primary hover:text-white rounded-xl font-bold transition-all shadow-sm flex items-center justify-center gap-2"
+                                        className="w-full"
                                     >
-                                        <ShoppingCart className="w-5 h-5" />
-                                        {course.price === 0 ? 'Vào học ngay' : 'Thêm vào giỏ'}
-                                    </button>
+                                        <ShoppingCart className="w-4 h-4" />
+                                        {course.price === 0 ? 'Start Learning' : 'Add to Cart'}
+                                    </Button>
                                 </div>
-                            </div>
-                        </div>
+                            </CardContent>
+                        </Card>
                     ))}
                   </div>
               )}
