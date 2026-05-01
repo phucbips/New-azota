@@ -191,7 +191,7 @@ export const AdminOrders: React.FC = () => {
         subtitle="Theo dõi và duyệt đăng ký khóa học của học viên."
       />
 
-      <div className="bg-card rounded-2xl border border-border shadow-sm p-4 flex items-center">
+      <div className="bg-card rounded-2xl border border-border shadow-sm p-4 flex items-center justify-between gap-4">
           <div className="relative w-full md:w-96 group">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Search className="w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
@@ -204,6 +204,13 @@ export const AdminOrders: React.FC = () => {
                 className="w-full pl-11 pr-4 py-3 bg-muted/50 border-none rounded-xl focus:ring-2 focus:ring-primary/20 outline-none transition-all"
             />
           </div>
+          <button
+              onClick={() => setShowCreateModal(true)}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-xl font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 whitespace-nowrap"
+          >
+              <Plus className="w-5 h-5" />
+              Tạo đơn hàng
+          </button>
       </div>
 
       <div className="flex flex-col gap-4">
@@ -337,7 +344,115 @@ export const AdminOrders: React.FC = () => {
               </div>
           )}
       </div>
+
+      {/* Create Order Modal */}
+      <AnimatePresence>
+          {showCreateModal && (
+              <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
+              >
+                  <motion.div
+                      initial={{ scale: 0.95, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.95, opacity: 0 }}
+                      className="bg-card w-full max-w-2xl rounded-2xl shadow-xl border border-border overflow-hidden flex flex-col max-h-[90vh]"
+                  >
+                      <div className="flex justify-between items-center p-6 border-b border-border bg-muted/30">
+                          <h2 className="text-xl font-bold text-foreground">Tạo Đơn Hàng Mới</h2>
+                          <button onClick={() => setShowCreateModal(false)} className="text-muted-foreground hover:text-foreground transition-colors p-2 hover:bg-muted rounded-full">
+                              <X className="w-5 h-5" />
+                          </button>
+                      </div>
+
+                      <div className="p-6 overflow-y-auto flex-1 space-y-6">
+                          <div>
+                              <label className="block text-sm font-bold text-foreground mb-2">Người mua</label>
+                              <select
+                                  value={newOrder.userId}
+                                  onChange={e => setNewOrder({...newOrder, userId: e.target.value})}
+                                  className="w-full p-3 rounded-xl border border-input bg-card text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+                              >
+                                  <option value="">-- Chọn khách hàng --</option>
+                                  {users.map(u => (
+                                      <option key={u.uid} value={u.uid}>{u.email} {u.displayName ? `(${u.displayName})` : ''}</option>
+                                  ))}
+                              </select>
+                          </div>
+
+                          <div>
+                              <label className="block text-sm font-bold text-foreground mb-2">Khóa học</label>
+                              <div className="space-y-2 border border-input rounded-xl p-4 max-h-60 overflow-y-auto">
+                                  {courses.map(c => (
+                                      <label key={c.id} className="flex items-center gap-3 p-2 hover:bg-muted rounded-lg cursor-pointer transition-colors">
+                                          <input
+                                              type="checkbox"
+                                              checked={newOrder.courseIds.includes(c.id)}
+                                              onChange={(e) => {
+                                                  const ids = e.target.checked
+                                                      ? [...newOrder.courseIds, c.id]
+                                                      : newOrder.courseIds.filter(id => id !== c.id);
+                                                  setNewOrder({...newOrder, courseIds: ids});
+                                              }}
+                                              className="w-4 h-4 text-primary rounded border-input focus:ring-primary"
+                                          />
+                                          <div className="flex-1">
+                                              <p className="font-medium text-foreground">{c.title}</p>
+                                              <p className="text-sm text-primary">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(c.price)}</p>
+                                          </div>
+                                      </label>
+                                  ))}
+                              </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <div>
+                                  <label className="block text-sm font-bold text-foreground mb-2">Trạng thái</label>
+                                  <select
+                                      value={newOrder.status}
+                                      onChange={e => setNewOrder({...newOrder, status: e.target.value as OrderStatus})}
+                                      className="w-full p-3 rounded-xl border border-input bg-card text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+                                  >
+                                      <option value="paid">Đã trả (Thành công)</option>
+                                      <option value="pending">Trả sau (Chờ duyệt)</option>
+                                  </select>
+                              </div>
+                              <div>
+                                  <label className="block text-sm font-bold text-foreground mb-2">Mã giảm giá (Tùy chọn)</label>
+                                  <input
+                                      type="text"
+                                      value={newOrder.voucherCode}
+                                      onChange={e => setNewOrder({...newOrder, voucherCode: e.target.value})}
+                                      placeholder="Nhập mã (nếu có)"
+                                      className="w-full p-3 rounded-xl border border-input bg-card text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+                                  />
+                              </div>
+                          </div>
+                      </div>
+
+                      <div className="p-6 border-t border-border bg-muted/30 flex justify-end gap-3">
+                          <button
+                              onClick={() => setShowCreateModal(false)}
+                              className="px-6 py-2.5 rounded-xl font-bold text-muted-foreground hover:bg-muted transition-colors"
+                          >
+                              Hủy
+                          </button>
+                          <button
+                              onClick={handleCreateOrder}
+                              disabled={isCreating}
+                              className="px-6 py-2.5 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-md disabled:opacity-50"
+                          >
+                              {isCreating ? 'Đang tạo...' : 'Tạo đơn hàng'}
+                          </button>
+                      </div>
+                  </motion.div>
+              </motion.div>
+          )}
+      </AnimatePresence>
     </div>
+
   );
 };
 
