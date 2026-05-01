@@ -8,7 +8,7 @@ import { userService } from '../../services/user.service';
 import { financeService } from '../../services/finance.service';
 import { voucherService } from '../../services/voucher.service';
 import { StatusBadge } from '../../components/ui/StatusBadge';
-import { Search, ChevronDown, ChevronUp, Copy, CheckCircle, XCircle, CreditCard, Banknote, Calendar, Mail, User, Plus, X } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp, Copy, CheckCircle, XCircle, CreditCard, Banknote, Calendar, Mail, User, Plus, X, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Loading } from '../../components/shared/Loading';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -144,8 +144,8 @@ export const AdminOrders: React.FC = () => {
               amount: finalAmount,
               originalAmount: amount,
               discount: discountAmount,
-              status: newOrder.status,
-              paymentMethod: newOrder.status === 'paid' ? 'cash' : 'cash', // Cash since it's manual
+              status: 'pay_later', // Always default to pay_later
+              paymentMethod: 'cash',
               voucherCode: validatedVoucher ? validatedVoucher.code : null
           });
 
@@ -153,29 +153,13 @@ export const AdminOrders: React.FC = () => {
               await voucherService.incrementUsage(validatedVoucher.id);
           }
 
-          if (newOrder.status === 'paid' || newOrder.status === 'pay_later') {
-              // Add to enrolled courses in both paid and pay_later cases
-              const newEnrolled = new Set([...(selectedUser.enrolledCourses || []), ...newOrder.courseIds]);
-              await userService.updateUser(selectedUser.uid, { enrolledCourses: Array.from(newEnrolled) });
+          // Always add to enrolled courses when admin creates it
+          const newEnrolled = new Set([...(selectedUser.enrolledCourses || []), ...newOrder.courseIds]);
+          await userService.updateUser(selectedUser.uid, { enrolledCourses: Array.from(newEnrolled) });
 
-              // Increment course enrollment count
-              for (const c of selectedCourses) {
-                  await courseService.updateCourse(c.id, { enrollmentCount: (c.enrollmentCount || 0) + 1 });
-              }
-
-              // Only record finance transaction if actually paid
-              if (newOrder.status === 'paid') {
-                  const courseTitles = selectedCourses.map(c => c.title).join(', ');
-                  const desc = `${selectedUser.email} - ${courseTitles} ${newOrder.voucherCode ? `- ${newOrder.voucherCode}` : ''}`.trim();
-
-                  await financeService.addTransaction({
-                      type: 'income',
-                      category: 'Bán khóa học',
-                      amount: amount,
-                      description: desc,
-                      createdBy: 'admin' // or use current user auth id if available
-                  });
-              }
+          // Increment course enrollment count
+          for (const c of selectedCourses) {
+              await courseService.updateCourse(c.id, { enrollmentCount: (c.enrollmentCount || 0) + 1 });
           }
 
           toast.success('Tạo đơn hàng thành công');
@@ -376,17 +360,23 @@ export const AdminOrders: React.FC = () => {
                                                   {(isPending || order.status === 'pay_later') && (
                                                       <div className="flex flex-col gap-2 pt-4 border-t border-border">
                                                           <button
-                                                            onClick={() => handleUpdateStatus(order, 'paid')}
+                                                            onClick={() => handleUpdateStatus(order, 'paid', 'cash')}
                                                             className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm"
                                                           >
-                                                              Duyệt (Đã thu tiền)
+                                                              Đã nhận tiền mặt
+                                                          </button>
+                                                          <button
+                                                            onClick={() => handleUpdateStatus(order, 'pending', 'bank_transfer')}
+                                                            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm"
+                                                          >
+                                                              Tạo mã QR Chuyển khoản
                                                           </button>
                                                           {isPending && order.paymentMethod === 'cash' && (
                                                               <button
                                                                 onClick={() => handleUpdateStatus(order, 'pay_later')}
                                                                 className="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm"
                                                               >
-                                                                  Duyệt (Ghi nợ / Trả sau)
+                                                                  Duyệt (Cấp khóa học - Trả sau)
                                                               </button>
                                                           )}
                                                           <button
@@ -397,6 +387,15 @@ export const AdminOrders: React.FC = () => {
                                                           </button>
                                                       </div>
                                                   )}
+                                                  <div className="pt-4 border-t border-border mt-4">
+                                                      <button
+                                                          onClick={() => handleDeleteOrder(order.id)}
+                                                          className="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 py-2 rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2"
+                                                      >
+                                                          <Trash2 className="w-4 h-4" />
+                                                          Xóa đơn hàng
+                                                      </button>
+                                                  </div>
                                                   {!isPending && order.status !== 'pay_later' && (
                                                       <div className="pt-2 text-center text-sm font-medium text-muted-foreground">
                                                           Đơn hàng này đã đóng ({order.status}).
@@ -482,17 +481,7 @@ export const AdminOrders: React.FC = () => {
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              <div>
-                                  <label className="block text-sm font-bold text-foreground mb-2">Trạng thái</label>
-                                  <select
-                                      value={newOrder.status}
-                                      onChange={e => setNewOrder({...newOrder, status: e.target.value as OrderStatus})}
-                                      className="w-full p-3 rounded-xl border border-input bg-card text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
-                                  >
-                                      <option value="paid">Đã trả (Thành công)</option>
-                                      <option value="pay_later">Trả sau (Ghi nợ)</option>
-                                  </select>
-                              </div>
+
                               <div>
                                   <label className="block text-sm font-bold text-foreground mb-2">Mã giảm giá (Tùy chọn)</label>
                                   <div className="flex gap-2">
