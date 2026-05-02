@@ -172,6 +172,17 @@ export const AdminOrders: React.FC = () => {
       }
   };
 
+  const handleDeleteOrder = async (orderId: string) => {
+      if (window.confirm("Bạn có chắc chắn muốn xóa đơn hàng này? Thao tác này không thể hoàn tác.")) {
+          try {
+              await orderService.deleteOrder(orderId);
+              toast.success("Xóa đơn hàng thành công");
+          } catch (e: any) {
+              toast.error("Lỗi khi xóa: " + e.message);
+          }
+      }
+  };
+
   const handleUpdateStatus = async (order: Order, newStatus: OrderStatus) => {
       try {
           await orderService.updateOrderStatus(order.id, newStatus);
