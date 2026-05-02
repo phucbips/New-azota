@@ -135,7 +135,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (paymentStatus === 'paid') {
             await orderDoc.ref.update({
                 status: 'paid',
-                paidAt: admin.firestore.FieldValue.serverTimestamp()
+                paidAt: admin.firestore.FieldValue.serverTimestamp(),
+                paymentMethod: 'bank_transfer'
             });
 
             if (orderData.items && Array.isArray(orderData.items)) {
