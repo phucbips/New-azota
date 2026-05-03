@@ -70,6 +70,11 @@ class OrderService {
     });
   }
 
+  async deleteOrder(id: string): Promise<void> {
+    const docRef = doc(db, 'orders', id);
+    await deleteDoc(docRef);
+  }
+
   async updateCheckoutUrl(id: string, checkoutUrl: string): Promise<void> {
     const docRef = doc(db, 'orders', id);
     await updateDoc(docRef, { checkoutUrl });
