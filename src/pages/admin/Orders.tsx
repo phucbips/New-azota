@@ -183,6 +183,50 @@ export const AdminOrders: React.FC = () => {
       }
   };
 
+  const handleCreateQR = async (order: Order) => {
+      try {
+          if (order.checkoutUrl) {
+              window.open(order.checkoutUrl, '_blank');
+              return;
+          }
+
+          const baseUrl = window.location.origin;
+
+          const response = await fetch('/api/create-payment-link', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  orderCode: order.orderCode,
+                  amount: order.amount,
+                  description: (() => {
+                      // Extract name from email (before @)
+                      const emailStr = order.userEmail || '';
+                      let prefix = emailStr.split('@')[0];
+                      // Remove special chars to comply with PayOS
+                      prefix = prefix.replace(/[^a-zA-Z0-9 ]/g, '');
+                      if (!prefix) prefix = order.displayCode || `${order.orderCode}`;
+                      return prefix.substring(0, 25);
+                  })(),
+                  returnUrl: `${baseUrl}/student/payment/success`,
+                  cancelUrl: `${baseUrl}/student/payment/success`,
+              })
+          });
+
+          if (!response.ok) {
+              const errData = await response.json();
+              throw new Error(errData.message || 'Lỗi server khi tạo link');
+          }
+
+          const result = await response.json();
+          await orderService.updateCheckoutUrl(order.id, result.checkoutUrl);
+          toast.success("Đã tạo mã QR thành công!");
+          window.open(result.checkoutUrl, '_blank');
+      } catch (err: any) {
+          console.error("Lỗi tạo PayOS link:", err);
+          toast.error(err.message || "Không thể tạo link thanh toán tự động.");
+      }
+  };
+
   const handleUpdateStatus = async (order: Order, newStatus: OrderStatus) => {
       try {
           await orderService.updateOrderStatus(order.id, newStatus);
@@ -377,7 +421,7 @@ export const AdminOrders: React.FC = () => {
                                                               Đã nhận tiền mặt
                                                           </button>
                                                           <button
-                                                            onClick={() => handleUpdateStatus(order, 'pending', 'bank_transfer')}
+                                                            onClick={() => handleCreateQR(order)}
                                                             className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm"
                                                           >
                                                               Tạo mã QR Chuyển khoản
