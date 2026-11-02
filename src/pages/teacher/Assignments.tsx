@@ -55,7 +55,7 @@ export const TeacherAssignments: React.FC = () => {
 
   const handleEdit = (assignment: Assignment) => {
       if (assignment.type === 'smart_exam' && assignment.id) {
-          navigate(/teacher/assignments/builder?id=${assignment.id}&courseId=${assignment.courseId || 'general'});
+          navigate(`/teacher/assignments/builder?id=${assignment.id}&courseId=${assignment.courseId || 'general'}`);
           return;
       }
       setEditingAssignment(assignment);

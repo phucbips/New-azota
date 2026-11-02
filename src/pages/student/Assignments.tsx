@@ -260,6 +260,15 @@ ${embed}
                </button>
            )}
 
+           {selectedAssignment.type === 'smart_exam' ? (
+              <SmartExamPlayer
+                title={title}
+                questions={selectedAssignment.questions || []}
+                durationMin={Number(selectedAssignment.duration || selectedAssignment.timeLimit || 45)}
+                shuffleQuestions={Boolean(selectedAssignment.shuffleQuestions)}
+                shuffleOptions={Boolean(selectedAssignment.shuffleOptions)}
+              />
+           ) : (
            <div className={`flex-1 w-full relative overflow-hidden ${selectedAssignment.type !== 'native_code' ? 'bg-muted/50 rounded-lg border border-border' : 'bg-card rounded-lg border border-border'}`}>
               {selectedAssignment.type === 'native_code' ? (
                   <iframe
