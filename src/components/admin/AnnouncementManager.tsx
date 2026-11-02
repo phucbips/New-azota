@@ -63,14 +63,14 @@ export const AnnouncementManager: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg text-purple-600 dark:text-purple-400">
+            <div className="p-2 bg-primary/5 rounded-lg text-primary">
                 <Megaphone className="w-5 h-5" />
             </div>
-            <h2 className="text-lg font-bold text-foreground">Quản lý Bảng tin</h2>
+            <h2 className="text-lg font-semibold text-foreground">Quản lý Bảng tin</h2>
         </div>
         <button
             onClick={() => setIsCreating(!isCreating)}
-            className="px-4 py-2 bg-foreground text-background rounded-lg text-sm font-bold hover:bg-foreground/90 transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-foreground text-background rounded-lg text-sm font-semibold hover:bg-foreground/90 transition-colors flex items-center gap-2"
         >
             {isCreating ? 'Hủy' : <><Plus className="w-4 h-4" /> Tạo thông báo mới</>}
         </button>
@@ -86,7 +86,7 @@ export const AnnouncementManager: React.FC = () => {
                         className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                         placeholder="Tiêu đề thông báo..."
                     />
-                    {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title.message}</p>}
+                    {errors.title && <p className="text-xs text-destructive mt-1">{errors.title.message}</p>}
                 </div>
 
                 <div>
@@ -97,7 +97,7 @@ export const AnnouncementManager: React.FC = () => {
                         className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                         placeholder="Nội dung chi tiết..."
                     />
-                    {errors.content && <p className="text-xs text-red-500 mt-1">{errors.content.message}</p>}
+                    {errors.content && <p className="text-xs text-destructive mt-1">{errors.content.message}</p>}
                 </div>
 
                 <div>
@@ -111,7 +111,7 @@ export const AnnouncementManager: React.FC = () => {
                 </div>
 
                 <div className="pt-2">
-                    <button type="submit" className="px-6 py-2 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 shadow-lg shadow-primary/30 flex items-center gap-2">
+                    <button type="submit" className="px-6 py-2 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 shadow-md shadow-primary/30 flex items-center gap-2">
                         <Save className="w-4 h-4" /> Đăng tin
                     </button>
                 </div>
@@ -127,18 +127,18 @@ export const AnnouncementManager: React.FC = () => {
                 )}
                 <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
-                        <h3 className="font-bold text-card-foreground truncate">{item.title}</h3>
+                        <h3 className="font-semibold text-card-foreground truncate">{item.title}</h3>
                         <div className="flex items-center gap-2">
                              <button
                                 onClick={() => handleToggle(item)}
-                                className={`p-1.5 rounded-md transition-colors ${item.isActive ? 'text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20' : 'text-muted-foreground hover:bg-muted'}`}
+                                className={`p-1.5 rounded-md transition-colors ${item.isActive ? 'text-success hover:bg-success/10' : 'text-muted-foreground hover:bg-muted'}`}
                                 title={item.isActive ? "Đang hiển thị" : "Đang ẩn"}
                              >
                                 {item.isActive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                              </button>
                              <button
                                 onClick={() => handleDelete(item.id)}
-                                className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                                className="p-1.5 text-destructive hover:bg-destructive/10 rounded-md transition-colors"
                              >
                                 <Trash2 className="w-4 h-4" />
                              </button>

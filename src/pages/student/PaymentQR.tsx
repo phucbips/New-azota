@@ -104,13 +104,13 @@ export const PaymentQR: React.FC = () => {
     if (error && order) {
          return (
             <div className="min-h-screen bg-muted/30 flex flex-col items-center justify-center p-4">
-                <div className="bg-background max-w-md w-full rounded-3xl shadow-xl border border-border p-8 text-center">
-                    <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-                    <h2 className="text-xl font-bold mb-2">Lỗi kết nối Cổng Thanh Toán</h2>
+                <div className="bg-background max-w-md w-full rounded-xl shadow-md border border-border p-8 text-center">
+                    <AlertTriangle className="w-16 h-16 text-warning mx-auto mb-4" />
+                    <h2 className="text-xl font-semibold mb-2">Lỗi kết nối Cổng Thanh Toán</h2>
                     <p className="text-muted-foreground mb-6">{error}</p>
                     <p className="mb-4">Bạn có thể chuyển khoản thủ công với nội dung: <strong>{order.displayCode || order.orderCode}</strong></p>
-                    <p className="text-xl font-bold text-primary mb-6">{new Intl.NumberFormat('vi-VN').format(order.amount)}đ</p>
-                    <button onClick={() => navigate('/student/courses')} className="w-full py-3 bg-primary text-white font-bold rounded-xl">Quay lại Khóa học</button>
+                    <p className="text-xl font-semibold text-primary mb-6">{new Intl.NumberFormat('vi-VN').format(order.amount)}đ</p>
+                    <button onClick={() => navigate('/student/courses')} className="w-full py-3 bg-primary text-primary-foreground font-semibold rounded-xl">Quay lại Khóa học</button>
                 </div>
             </div>
          );
@@ -129,15 +129,15 @@ export const PaymentQR: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-muted/30 flex flex-col items-center justify-center p-4">
-            <div className="bg-background max-w-4xl w-full rounded-3xl shadow-xl border border-border overflow-hidden flex flex-col lg:flex-row min-h-[100dvh] md:min-h-[600px] md:h-[80vh]">
+            <div className="bg-background max-w-4xl w-full rounded-xl shadow-md border border-border overflow-hidden flex flex-col lg:flex-row min-h-[100dvh] md:min-h-[600px] md:h-[80vh]">
 
                 {/* Left Side - Details & Timer */}
                 <div className="lg:w-1/3 p-8 border-b lg:border-b-0 lg:border-r border-border bg-card flex flex-col">
-                    <h2 className="text-2xl font-bold font-display mb-1 text-foreground">Thanh toán</h2>
+                    <h2 className="text-2xl font-semibold mb-1 text-foreground">Thanh toán</h2>
                     <p className="text-sm text-muted-foreground mb-6">Mã đơn hàng: {order.displayCode || order.orderCode}</p>
 
                     <div className="flex-1">
-                        <h3 className="text-lg font-bold text-foreground mb-4">Sản phẩm:</h3>
+                        <h3 className="text-lg font-semibold text-foreground mb-4">Sản phẩm:</h3>
                         <ul className="space-y-3 mb-6">
                             {order.items.map((item, idx) => (
                                 <li key={idx} className="flex justify-between items-start">
@@ -149,13 +149,13 @@ export const PaymentQR: React.FC = () => {
 
                         <div className="border-t border-border pt-4 mt-auto">
                             <div className="flex justify-between items-center mb-6">
-                                <span className="font-bold text-foreground">Tổng cộng</span>
-                                <span className="text-2xl font-extrabold text-primary">
+                                <span className="font-semibold text-foreground">Tổng cộng</span>
+                                <span className="text-2xl font-semibold text-primary">
                                     {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.amount)}
                                 </span>
                             </div>
 
-                            <div className="bg-blue-50 text-blue-600 p-4 rounded-xl flex items-center justify-center gap-3 font-mono text-xl font-bold border border-blue-100 mb-4">
+                            <div className="bg-primary/5 text-primary p-4 rounded-xl flex items-center justify-center gap-3 font-mono text-xl font-semibold border border-primary/20 mb-4">
                                 Đơn hàng đang chờ thanh toán
                             </div>
                             <p className="text-xs text-center text-muted-foreground">Vui lòng hoàn tất thanh toán. Đơn hàng không bị giới hạn thời gian.</p>
@@ -164,24 +164,24 @@ export const PaymentQR: React.FC = () => {
                 </div>
 
                 {/* Right Side - Redirecting */}
-                <div className="lg:w-2/3 bg-white w-full flex-1 md:h-full min-h-[500px] relative flex flex-col items-center justify-center p-8 text-center" id="embeded-payment-container">
+                <div className="lg:w-2/3 bg-card w-full flex-1 md:h-full min-h-[500px] relative flex flex-col items-center justify-center p-8 text-center" id="embeded-payment-container">
                      {checkoutUrl ? (
                          <div className="space-y-6">
-                            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                                <CheckCircle className="w-10 h-10 text-green-600" />
+                            <div className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto">
+                                <CheckCircle className="w-10 h-10 text-success" />
                             </div>
-                            <h3 className="text-2xl font-bold text-slate-900">Đơn hàng đã được tạo!</h3>
-                            <p className="text-slate-500 max-w-md mx-auto">
+                            <h3 className="text-2xl font-semibold text-foreground">Đơn hàng đã được tạo!</h3>
+                            <p className="text-muted-foreground max-w-md mx-auto">
                                 Hệ thống đang chuyển hướng bạn đến cổng thanh toán an toàn của PayOS...
                             </p>
-                            <a href={checkoutUrl} className="inline-block mt-4 px-8 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-700 transition-colors">
+                            <a href={checkoutUrl} className="inline-block mt-4 px-8 py-3 bg-primary text-primary-foreground font-semibold rounded-xl shadow-md hover:bg-primary/90 transition-colors">
                                 Đi đến trang thanh toán ngay
                             </a>
                          </div>
                      ) : (
                          <div className="flex flex-col items-center justify-center h-full space-y-4">
-                            <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
-                            <p className="text-slate-500">Đang khởi tạo kết nối bảo mật...</p>
+                            <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                            <p className="text-muted-foreground">Đang khởi tạo kết nối bảo mật...</p>
                          </div>
                      )}
                 </div>

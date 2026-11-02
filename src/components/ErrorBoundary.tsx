@@ -23,8 +23,8 @@ export class ErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="p-4 border border-red-500 rounded">
-          <h2 className="text-red-500">Something went wrong.</h2>
+        <div className="p-4 border border-destructive/50 rounded">
+          <h2 className="text-destructive">Something went wrong.</h2>
           <pre className="mt-2 text-sm">{searilizeError(this.state.error)}</pre>
         </div>
       );

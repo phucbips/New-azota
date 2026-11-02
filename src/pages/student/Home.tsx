@@ -26,22 +26,22 @@ export const StudentHome: React.FC = () => {
           icon={<GraduationCap className="w-6 h-6 text-primary" />}
           trend={t('home.grade_trend')}
         />
-        <div className="md:col-span-2 bg-gradient-to-r from-primary to-indigo-600 rounded-xl p-6 text-primary-foreground relative overflow-hidden">
+        <div className="md:col-span-2 from-primary rounded-xl p-6 text-primary-foreground relative overflow-hidden">
             <div className="relative z-10">
-                <h3 className="text-xl font-bold mb-2">{t('home.cta_title')}</h3>
+                <h3 className="text-xl font-semibold mb-2">{t('home.cta_title')}</h3>
                 <p className="text-primary-foreground/90 mb-6 max-w-lg">
                     {t('home.cta_desc', { grade: user?.grade })}
                 </p>
                 <Link
                     to="/student/assignments"
-                    className="inline-flex items-center gap-2 bg-background text-primary px-5 py-2.5 rounded-lg font-bold text-sm hover:bg-accent transition-colors"
+                    className="inline-flex items-center gap-2 bg-background text-primary px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-accent transition-colors"
                 >
                     <BookOpen className="w-4 h-4" />
                     {t('home.cta_button')}
                 </Link>
             </div>
             {/* Decoration */}
-            <div className="absolute right-0 bottom-0 opacity-10 transform translate-x-1/4 translate-y-1/4">
+            <div className="absolute right-0 bottom-0 opacity-10 translate-x-1/4 translate-y-1/4">
                 <GraduationCap className="w-64 h-64" />
             </div>
         </div>

@@ -207,13 +207,13 @@ ${embed}
                 <div className="absolute top-4 right-4 z-10">
                     <button
                         onClick={handleExitFullscreen}
-                        className="bg-slate-900/80 hover:bg-slate-900 text-white p-3 rounded-full shadow-lg backdrop-blur-sm transition-all flex items-center gap-2 font-medium"
+                        className="bg-foreground/80 hover:bg-foreground/90 text-white p-3 rounded-full shadow-md backdrop-blur-sm transition-all flex items-center gap-2 font-medium"
                     >
                         <Minimize className="w-5 h-5" />
                         Thu nhỏ
                     </button>
                 </div>
-                <div className="flex-1 w-full relative bg-white">
+                <div className="flex-1 w-full relative bg-card">
                     <iframe
                         key={`fullscreen-${selectedAssignment.id}`}
                         srcDoc={embed}
@@ -230,7 +230,7 @@ ${embed}
       <>
         <button
           onClick={() => setSelectedAssignment(null)}
-          className="mb-4 flex items-center gap-2 text-slate-600 hover:text-blue-600 font-medium transition-colors"
+          className="mb-4 flex items-center gap-2 text-muted-foreground hover:text-primary font-medium transition-colors"
         >
            <ArrowLeft className="w-4 h-4" />
            Back to Assignments {subjectTitle} Grade {targetGrade} • {topic}
@@ -238,28 +238,28 @@ ${embed}
 
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
             <div>
-                <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{title}</h1>
+                <h1 className="text-3xl font-semibold text-foreground tracking-tight">{title}</h1>
             </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 min-h-[600px] flex flex-col relative group">
+        <div className="bg-card rounded-xl shadow-sm border border-border p-6 min-h-[600px] flex flex-col relative group">
            {description && description !== topic && (
                <div className="mb-6 pr-12">
-                   <p className="text-slate-600 leading-relaxed">{description}</p>
+                   <p className="text-muted-foreground leading-relaxed">{description}</p>
                </div>
            )}
 
            {selectedAssignment.type === 'native_code' && (
                <button
                    onClick={handleEnterFullscreen}
-                   className="absolute top-6 right-6 p-2 bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 rounded-lg transition-colors border border-slate-200 shadow-sm z-10"
+                   className="absolute top-6 right-6 p-2 bg-muted hover:bg-primary/10 text-muted-foreground hover:text-primary rounded-lg transition-colors border border-border shadow-sm z-10"
                    title="Phóng to (Mở toàn màn hình)"
                >
                    <Maximize className="w-5 h-5" />
                </button>
            )}
 
-           <div className={`flex-1 w-full relative overflow-hidden ${selectedAssignment.type !== 'native_code' ? 'bg-slate-50 rounded-lg border border-slate-200' : 'bg-white rounded-lg border border-slate-200'}`}>
+           <div className={`flex-1 w-full relative overflow-hidden ${selectedAssignment.type !== 'native_code' ? 'bg-muted/50 rounded-lg border border-border' : 'bg-card rounded-lg border border-border'}`}>
               {selectedAssignment.type === 'native_code' ? (
                   <iframe
                       key={`inline-${selectedAssignment.id}`}
@@ -302,11 +302,11 @@ ${embed}
   if (!user.grade) {
     return (
         <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-           <div className="p-4 bg-red-100 rounded-full mb-4">
-             <AlertCircle className="w-8 h-8 text-red-600" />
+           <div className="p-4 bg-destructive/10 rounded-full mb-4">
+             <AlertCircle className="w-8 h-8 text-destructive" />
            </div>
-           <h2 className="text-xl font-bold text-slate-900 mb-2">Missing Grade Level</h2>
-           <p className="text-slate-500 max-w-md">Please select your grade level to continue.</p>
+           <h2 className="text-xl font-semibold text-foreground mb-2">Missing Grade Level</h2>
+           <p className="text-muted-foreground max-w-md">Please select your grade level to continue.</p>
         </div>
     );
   }
@@ -317,8 +317,8 @@ ${embed}
         <div className="flex flex-col gap-6">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div className="flex flex-col gap-2">
-                    <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">My Assignments</h1>
-                    <p className="text-slate-500 text-sm md:text-base">Track your progress and manage your upcoming coursework.</p>
+                    <h1 className="text-3xl md:text-4xl font-semibold text-foreground tracking-tight">My Assignments</h1>
+                    <p className="text-muted-foreground text-sm md:text-base">Track your progress and manage your upcoming coursework.</p>
                 </div>
             </div>
 
@@ -331,7 +331,7 @@ ${embed}
         </div>
 
         {isLoading ? (
-            <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
+            <div className="bg-card rounded-xl border border-border p-6 space-y-4">
                 <Skeleton className="h-6 w-1/3" />
                 <Skeleton className="h-40 w-full" />
                 <Skeleton className="h-40 w-full" />
@@ -342,20 +342,20 @@ ${embed}
                 <div
                     key={assignment.id}
                     onClick={() => setSelectedAssignment(assignment)}
-                    className="group flex flex-col rounded-xl bg-white shadow-sm border border-slate-200 overflow-hidden hover:shadow-lg hover:border-blue-600/30 transition-all duration-300 cursor-pointer"
+                    className="group flex flex-col rounded-xl bg-card shadow-sm border border-border overflow-hidden hover:shadow-md hover:border-primary/30 transition-all duration-300 cursor-pointer"
                 >
                     {/* Optimized Image: Use img with loading="lazy" */}
-                    <div className="h-44 bg-slate-100 relative overflow-hidden">
+                    <div className="h-44 bg-muted relative overflow-hidden">
                         <img
                             src={assignment.coverImageUrl || `https://source.unsplash.com/random/800x600?education,book,${index}`}
                             alt="Course cover"
                             loading="lazy"
                             className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                        <div className="absolute inset-0 from-black/60 to-transparent"></div>
                         <div className="absolute top-3 right-3">
-                            <span className="px-2.5 py-1 rounded-md bg-white/95 text-slate-700 text-xs font-bold shadow-sm backdrop-blur-sm border border-transparent flex items-center gap-1">
-                                <Clock className="w-3.5 h-3.5 text-orange-500" />
+                            <span className="px-2.5 py-1 rounded-md bg-background/95 text-foreground text-xs font-semibold shadow-sm backdrop-blur-sm border border-transparent flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5 text-warning" />
                                 {formatDate(assignment.createdAt)}
                             </span>
                         </div>
@@ -367,24 +367,24 @@ ${embed}
                     <div className="p-5 flex flex-col gap-3 flex-1">
                         <div>
                              <div className="flex items-center gap-2 mb-2">
-                                <span className="text-xs font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 uppercase tracking-wide">
+                                <span className="text-xs font-semibold px-2 py-0.5 rounded bg-primary/5 text-primary uppercase tracking-wide">
                                     {assignment.subject || 'Chung'}
                                 </span>
                              </div>
-                            <h3 className="text-lg font-bold text-slate-900 leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">
+                            <h3 className="text-lg font-semibold text-foreground leading-tight group-hover:text-primary transition-colors line-clamp-2">
                                 {safeString(assignment.title)}
                             </h3>
-                            <p className="text-sm text-slate-500 mt-1 line-clamp-2 font-medium">
+                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2 font-medium">
                                 {safeString(assignment.topic)}
                             </p>
                             {assignment.description && (
-                                <p className="text-xs text-slate-400 mt-1 line-clamp-1">
+                                <p className="text-xs text-muted-foreground/70 mt-1 line-clamp-1">
                                     {safeString(assignment.description)}
                                 </p>
                             )}
                         </div>
 
-                        <button className="w-full mt-2 h-10 flex items-center justify-center gap-2 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors group-hover:shadow-md mt-auto">
+                        <button className="w-full mt-2 h-10 flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors group-hover:shadow-md mt-auto">
                             Continue
                             <ChevronRight className="w-4 h-4" />
                         </button>
@@ -393,12 +393,12 @@ ${embed}
             ))}
             </div>
         ) : (
-            <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                <div className="bg-blue-50 rounded-full p-6 mb-6">
-                    <BookOpen className="w-16 h-16 text-blue-600" />
+            <div className="flex flex-col items-center justify-center py-20 text-center bg-card rounded-xl border border-border shadow-sm p-6">
+                <div className="bg-primary/5 rounded-full p-6 mb-6">
+                    <BookOpen className="w-16 h-16 text-primary" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">Bạn chưa có bài tập nào</h3>
-                <p className="text-slate-500 max-w-sm mx-auto mb-6">Bạn chưa được cấp quyền truy cập khóa học nào. Vui lòng liên hệ Admin để được hỗ trợ nhé.</p>
+                <h3 className="text-xl font-semibold text-foreground mb-2">Bạn chưa có bài tập nào</h3>
+                <p className="text-muted-foreground max-w-sm mx-auto mb-6">Bạn chưa được cấp quyền truy cập khóa học nào. Vui lòng liên hệ Admin để được hỗ trợ nhé.</p>
             </div>
         )}
 

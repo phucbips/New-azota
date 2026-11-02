@@ -11,20 +11,20 @@ export const AnalyticsWidget: React.FC<AnalyticsWidgetProps> = ({ title, data, t
   const sortedData = [...data].sort((a, b) => b.value - a.value).slice(0, 5); // Take top 5
 
   return (
-    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-      <h3 className="text-sm font-medium text-slate-500 mb-4 uppercase tracking-wider">{title}</h3>
+    <div className="bg-card p-6 rounded-xl border border-border shadow-sm flex flex-col">
+      <h3 className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wider">{title}</h3>
       <div className="flex flex-col gap-4">
         {sortedData.map((item, index) => {
           const percentage = total > 0 ? (item.value / total) * 100 : 0;
           return (
             <div key={index} className="flex flex-col gap-1">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-900 font-medium truncate max-w-[70%]">{item.name}</span>
-                <span className="text-slate-500">{percentage.toFixed(0)}%</span>
+                <span className="text-foreground font-medium truncate max-w-[70%]">{item.name}</span>
+                <span className="text-muted-foreground">{percentage.toFixed(0)}%</span>
               </div>
-              <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                 <div
-                    className="h-full bg-slate-900 rounded-full"
+                    className="h-full bg-foreground rounded-full"
                     style={{ width: `${percentage}%` }}
                 />
               </div>
@@ -32,7 +32,7 @@ export const AnalyticsWidget: React.FC<AnalyticsWidgetProps> = ({ title, data, t
           );
         })}
         {data.length === 0 && (
-            <p className="text-sm text-slate-400 italic">Chưa có dữ liệu.</p>
+            <p className="text-sm text-muted-foreground/70 italic">Chưa có dữ liệu.</p>
         )}
       </div>
     </div>

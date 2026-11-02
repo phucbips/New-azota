@@ -71,10 +71,10 @@ export const VoucherManagement: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-foreground">Quản lý Voucher</h2>
+        <h2 className="text-xl font-semibold text-foreground">Quản lý Voucher</h2>
         <button
           onClick={() => setEditingVoucher({ type: 'percent', isActive: true })}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-primary/90 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors"
         >
           <Plus className="w-4 h-4" /> Tạo Voucher Mới
         </button>
@@ -82,7 +82,7 @@ export const VoucherManagement: React.FC = () => {
 
       {editingVoucher && (
         <div className="bg-card border border-border p-6 rounded-xl shadow-sm mb-6 space-y-4">
-          <h3 className="font-bold text-lg mb-4">{editingVoucher.id ? 'Sửa Voucher' : 'Tạo Voucher'}</h3>
+          <h3 className="font-semibold text-lg mb-4">{editingVoucher.id ? 'Sửa Voucher' : 'Tạo Voucher'}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Mã Voucher</label>
@@ -156,7 +156,7 @@ export const VoucherManagement: React.FC = () => {
           </div>
           <div className="flex justify-end gap-3 mt-6">
             <button onClick={() => setEditingVoucher(null)} className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-lg font-medium">Hủy</button>
-            <button onClick={handleSave} className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-primary/90"><Save className="w-4 h-4"/> Lưu lại</button>
+            <button onClick={handleSave} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90"><Save className="w-4 h-4"/> Lưu lại</button>
           </div>
         </div>
       )}
@@ -179,26 +179,26 @@ export const VoucherManagement: React.FC = () => {
               {vouchers.map(v => (
                 <tr key={v.id} className="hover:bg-muted/30 transition-colors">
                   <td className="p-4">
-                    <span className="inline-block px-2 py-1 bg-primary/10 text-primary font-mono font-bold rounded">{v.code}</span>
+                    <span className="inline-block px-2 py-1 bg-primary/10 text-primary font-mono font-semibold rounded">{v.code}</span>
                   </td>
                   <td className="p-4 font-medium text-sm">
                     {v.type === 'percent' ? (
-                        <span className="flex items-center gap-1 text-emerald-600"><Percent className="w-3.5 h-3.5"/> Giảm {v.value}%</span>
+                        <span className="flex items-center gap-1 text-success"><Percent className="w-3.5 h-3.5"/> Giảm {v.value}%</span>
                     ) : (
-                        <span className="flex items-center gap-1 text-emerald-600"><DollarSign className="w-3.5 h-3.5"/> Giảm {new Intl.NumberFormat('vi-VN').format(v.value)}đ</span>
+                        <span className="flex items-center gap-1 text-success"><DollarSign className="w-3.5 h-3.5"/> Giảm {new Intl.NumberFormat('vi-VN').format(v.value)}đ</span>
                     )}
                   </td>
                   <td className="p-4 text-sm text-muted-foreground">
                     {v.usageCount} / {v.usageLimit ? v.usageLimit : '∞'}
                   </td>
                   <td className="p-4">
-                    <span className={`px-2 py-1 text-xs font-bold rounded-full ${v.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${v.isActive ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
                       {v.isActive ? 'Đang bật' : 'Đã tắt'}
                     </span>
                   </td>
                   <td className="p-4 flex items-center justify-end gap-2">
-                    <button onClick={() => setEditingVoucher(v)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Edit2 className="w-4 h-4" /></button>
-                    <button onClick={() => handleDelete(v.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
+                    <button onClick={() => setEditingVoucher(v)} className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"><Edit2 className="w-4 h-4" /></button>
+                    <button onClick={() => handleDelete(v.id)} className="p-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
                   </td>
                 </tr>
               ))}

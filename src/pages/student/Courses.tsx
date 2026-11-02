@@ -116,7 +116,7 @@ const { user } = useAuth();
             const status = getCourseStatus(course.id);
 
             return (
-                <div key={course.id} className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden hover:shadow-md transition-shadow group flex flex-col">
+                <div key={course.id} className="bg-card rounded-xl border border-border shadow-sm overflow-hidden hover:shadow-md transition-shadow group flex flex-col">
                     <div className="aspect-video w-full bg-muted relative">
                         {course.imageUrl ? (
                             <img src={course.imageUrl} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -124,18 +124,18 @@ const { user } = useAuth();
                             <div className="w-full h-full flex items-center justify-center text-muted-foreground"><BookOpen className="w-12 h-12 opacity-20" /></div>
                         )}
                         {status === 'paid' && (
-                            <div className="absolute top-3 left-3 bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md flex items-center gap-1">
+                            <div className="absolute top-3 left-3 bg-success text-success-foreground px-3 py-1 rounded-full text-xs font-semibold shadow-md flex items-center gap-1">
                                 <CheckCircle className="w-3 h-3" /> Đã Mua
                             </div>
                         )}
                         {status === 'pending' && (
-                            <div className="absolute top-3 left-3 bg-yellow-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md">
+                            <div className="absolute top-3 left-3 bg-warning text-warning-foreground px-3 py-1 rounded-full text-xs font-semibold shadow-md">
                                 Chờ thanh toán
                             </div>
                         )}
                     </div>
                     <div className="p-6 flex-1 flex flex-col">
-                        <h3 className="font-display font-bold text-xl text-card-foreground line-clamp-2">{course.title}</h3>
+                        <h3 className="font-semibold text-xl text-card-foreground line-clamp-2">{course.title}</h3>
                         <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{course.description}</p>
 
                         <div className="mt-4 flex items-center gap-4 text-sm font-medium text-muted-foreground bg-muted/30 p-3 rounded-xl">
@@ -143,7 +143,7 @@ const { user } = useAuth();
                                 <BookOpen className="w-4 h-4 text-primary" /> {course.assignmentIds.length} Bài học
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <Tag className="w-4 h-4 text-emerald-500" />
+                                <Tag className="w-4 h-4 text-success" />
                                 {course.price > 0 ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(course.price) : 'Miễn phí'}
                             </div>
                         </div>
@@ -153,7 +153,7 @@ const { user } = useAuth();
                                 <button
                                     onClick={() => handlePurchaseClick(course)}
                                     disabled={purchasing === course.id}
-                                    className="w-full py-3 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                                    className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-semibold transition-all shadow-md hover:shadow-md flex items-center justify-center gap-2"
                                 >
                                     {purchasing === course.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShoppingCart className="w-5 h-5" />}
                                     {course.price === 0 ? 'Nhận khóa học' : (cartItems.find(c => c.id === course.id) ? 'Đã thêm vào giỏ' : 'Thêm vào giỏ hàng')}
@@ -161,12 +161,12 @@ const { user } = useAuth();
                             ) : status === 'pending' ? (
                                 <Link
                                     to={`/student/payment?orderId=${orders.find(o => o.courseId === course.id || (o.items && o.items.some(i => i.courseId === course.id)))?.id}`}
-                                    className="w-full py-3 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-bold transition-colors shadow-md flex items-center justify-center"
+                                    className="w-full py-3 bg-warning hover:bg-warning/90 text-warning-foreground rounded-xl font-semibold transition-colors shadow-md flex items-center justify-center"
                                 >
                                     Tiếp tục thanh toán
                                 </Link>
                             ) : (
-                                <Link to="/student/assignments" className="w-full py-3 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-xl font-bold hover:bg-emerald-100 transition-colors flex items-center justify-center">
+                                <Link to="/student/assignments" className="w-full py-3 bg-success/5 text-success border border-success/20 rounded-xl font-semibold hover:bg-success/15 transition-colors flex items-center justify-center">
                                     Vào học ngay
                                 </Link>
                             )}
@@ -176,7 +176,7 @@ const { user } = useAuth();
             )
         })}
         {courses.length === 0 && (
-            <div className="col-span-full py-20 text-center bg-card rounded-2xl border border-border border-dashed">
+            <div className="col-span-full py-20 text-center bg-card rounded-xl border border-border border-dashed">
                 <BookOpen className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
                 <p className="text-lg font-medium text-foreground">Hiện tại chưa có khóa học nào.</p>
                 <p className="text-muted-foreground">Vui lòng quay lại sau.</p>

@@ -10,17 +10,16 @@ interface StatCardProps {
 }
 
 export const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, className }) => {
+  const isNegative = trend?.trim().startsWith('-');
   return (
-    <div className={cn("bg-card rounded-2xl shadow-sm border border-border p-6 flex items-start justify-between hover:shadow-md transition-shadow", className)}>
-      <div>
-        <p className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wide">{title}</p>
-        <h3 className="text-3xl font-bold text-card-foreground">{value}</h3>
-        {trend && <p className="text-xs text-green-600 mt-1">{trend}</p>}
+    <div className={cn("rounded-xl border border-border bg-card p-5", className)}>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">{title}</p>
+        {icon && <div className="text-muted-foreground [&_svg]:h-4 [&_svg]:w-4">{icon}</div>}
       </div>
-      {icon && (
-        <div className="p-3 bg-primary/10 text-primary rounded-2xl">
-          {icon}
-        </div>
+      <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground tabular-nums">{value}</p>
+      {trend && (
+        <p className={cn("mt-1 text-xs font-medium", isNegative ? "text-destructive" : "text-success")}>{trend}</p>
       )}
     </div>
   );

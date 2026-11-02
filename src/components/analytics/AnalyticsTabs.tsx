@@ -71,7 +71,7 @@ export const AnalyticsTabs: React.FC<AnalyticsTabsProps> = ({
               <div key={index} className="flex flex-col gap-1.5 group">
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-foreground font-medium truncate max-w-[70%]">{item.name}</span>
-                  <span className="text-foreground font-bold">{percentage}%</span>
+                  <span className="text-foreground font-semibold">{percentage}%</span>
                 </div>
                 {/* Progress Bar Container */}
                 <div className="w-full h-2 bg-muted/50 rounded-full overflow-hidden">

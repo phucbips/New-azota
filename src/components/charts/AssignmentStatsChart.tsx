@@ -37,8 +37,8 @@ export const AssignmentStatsChart: React.FC<AssignmentStatsChartProps> = ({ assi
   }, [assignments]);
 
   return (
-    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-      <h3 className="text-lg font-bold text-slate-800 mb-4">Bài tập mới (7 ngày qua)</h3>
+    <div className="bg-card p-6 rounded-xl border border-border shadow-sm">
+      <h3 className="text-lg font-semibold text-foreground mb-4">Bài tập mới (7 ngày qua)</h3>
       <div className="h-[300px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data}>
@@ -48,7 +48,7 @@ export const AssignmentStatsChart: React.FC<AssignmentStatsChartProps> = ({ assi
             <Tooltip
                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
             />
-            <Area type="monotone" dataKey="count" stroke="#10b981" fill="#10b981" fillOpacity={0.2} name="Bài tập mới" />
+            <Area type="monotone" dataKey="count" stroke="hsl(var(--success))" fill="hsl(var(--success))" fillOpacity={0.2} name="Bài tập mới" />
           </AreaChart>
         </ResponsiveContainer>
       </div>

@@ -130,36 +130,36 @@ export const SmartAssignmentBuilderPage: React.FC = () => {
     }
 
     return (
-        <div className="flex flex-col h-screen bg-slate-100 overflow-hidden">
+        <div className="flex flex-col h-screen bg-muted overflow-hidden">
             {/* TOP HEADER BAR */}
-            <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200 shadow-sm z-10 shrink-0">
+            <div className="flex items-center justify-between px-6 py-4 bg-card border-b border-border shadow-sm z-10 shrink-0">
                 <div className="flex items-center gap-4">
                     <button
                         onClick={() => navigate(-1)}
-                        className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+                        className="p-2 text-muted-foreground/70 hover:text-muted-foreground hover:bg-muted rounded-full transition-colors"
                     >
                         <ChevronLeft className="w-6 h-6" />
                     </button>
                     <div>
-                        <h1 className="text-xl font-extrabold text-slate-800">
+                        <h1 className="text-xl font-semibold text-foreground">
                             {existingId ? 'Chỉnh sửa Đề thi Thông minh' : 'Tạo Đề thi Thông minh'}
                         </h1>
-                        <p className="text-sm text-slate-500">Phân tích bằng AI hoặc Regex từ file DOCX</p>
+                        <p className="text-sm text-muted-foreground">Phân tích bằng AI hoặc Regex từ file DOCX</p>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <div className="px-4 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg text-sm font-medium flex items-center gap-2">
+                    <div className="px-4 py-1.5 bg-warning/5 border border-warning/20 text-warning rounded-lg text-sm font-medium flex items-center gap-2">
                         <AlertCircle className="w-4 h-4" />
                         Đang ở chế độ nháp
                     </div>
                     <button
                         onClick={handleSave}
                         disabled={isSaving}
-                        className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 hover:shadow-md transition-all disabled:opacity-50"
+                        className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 hover:shadow-md transition-all disabled:opacity-50"
                     >
                         {isSaving ? (
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            <div className="w-5 h-5 border-2 border-background border-t-white rounded-full animate-spin" />
                         ) : (
                             <Save className="w-5 h-5" />
                         )}
@@ -172,38 +172,38 @@ export const SmartAssignmentBuilderPage: React.FC = () => {
             <div className="flex-1 overflow-hidden flex flex-col p-6 gap-6">
 
                 {/* SETTINGS BAR */}
-                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm shrink-0 flex flex-col md:flex-row gap-6">
+                <div className="bg-card border border-border rounded-xl p-5 shadow-sm shrink-0 flex flex-col md:flex-row gap-6">
                     <div className="flex-1">
-                        <label className="block text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                            <FileQuestion className="w-4 h-4 text-slate-400" />
-                            Tên Đề thi <span className="text-red-500">*</span>
+                        <label className="block text-sm font-semibold text-foreground mb-1.5 flex items-center gap-1.5">
+                            <FileQuestion className="w-4 h-4 text-muted-foreground/70" />
+                            Tên Đề thi <span className="text-destructive">*</span>
                         </label>
                         <input
                             type="text"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none text-slate-800 font-medium bg-slate-50 focus:bg-white transition-colors"
+                            className="w-full px-4 py-2 border border-input rounded-xl focus:ring-2 focus:ring-primary/40 outline-none text-foreground font-medium bg-muted/50 focus:bg-card transition-colors"
                             placeholder="VD: Đề thi Giữa kỳ Tiếng Anh 10..."
                         />
                     </div>
 
                     <div className="flex-1">
-                        <label className="block text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                            <BookOpen className="w-4 h-4 text-slate-400" />
+                        <label className="block text-sm font-semibold text-foreground mb-1.5 flex items-center gap-1.5">
+                            <BookOpen className="w-4 h-4 text-muted-foreground/70" />
                             Mô tả (Tùy chọn)
                         </label>
                         <input
                             type="text"
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none text-slate-800 bg-slate-50 focus:bg-white transition-colors"
+                            className="w-full px-4 py-2 border border-input rounded-xl focus:ring-2 focus:ring-primary/40 outline-none text-foreground bg-muted/50 focus:bg-card transition-colors"
                             placeholder="Mô tả ngắn gọn về đề thi..."
                         />
                     </div>
 
                     <div className="w-full md:w-48">
-                        <label className="block text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                            <Clock className="w-4 h-4 text-slate-400" />
+                        <label className="block text-sm font-semibold text-foreground mb-1.5 flex items-center gap-1.5">
+                            <Clock className="w-4 h-4 text-muted-foreground/70" />
                             Thời gian (phút)
                         </label>
                         <input
@@ -211,7 +211,7 @@ export const SmartAssignmentBuilderPage: React.FC = () => {
                             min="1"
                             value={durationMin}
                             onChange={(e) => setDurationMin(parseInt(e.target.value) || 0)}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none text-slate-800 font-bold bg-slate-50 focus:bg-white transition-colors"
+                            className="w-full px-4 py-2 border border-input rounded-xl focus:ring-2 focus:ring-primary/40 outline-none text-foreground font-semibold bg-muted/50 focus:bg-card transition-colors"
                         />
                     </div>
                 </div>

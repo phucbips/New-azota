@@ -87,51 +87,51 @@ export const StatsTab: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm hover:shadow-md transition-shadow">
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-blue-500/10 rounded-xl">
-                 <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              <div className="p-3 bg-primary/10 rounded-xl">
+                 <Users className="h-6 w-6 text-primary" />
               </div>
           </div>
-          <h3 className="text-3xl font-extrabold text-foreground">{stats.totalStudents}</h3>
+          <h3 className="text-3xl font-semibold text-foreground">{stats.totalStudents}</h3>
           <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mt-1">Tổng học viên</p>
         </div>
 
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm hover:shadow-md transition-shadow">
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-emerald-500/10 rounded-xl">
-                 <UserPlus className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+              <div className="p-3 bg-success/10 rounded-xl">
+                 <UserPlus className="h-6 w-6 text-success" />
               </div>
-              <span className="text-xs font-bold text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded-full">+12%</span>
+              <span className="text-xs font-semibold text-success bg-success/10 px-2 py-1 rounded-full">+12%</span>
           </div>
-          <h3 className="text-3xl font-extrabold text-foreground">{stats.newStudentsThisMonth}</h3>
+          <h3 className="text-3xl font-semibold text-foreground">{stats.newStudentsThisMonth}</h3>
           <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mt-1">Học viên mới</p>
         </div>
 
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm hover:shadow-md transition-shadow">
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-purple-500/10 rounded-xl">
-                 <BookOpen className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              <div className="p-3 bg-primary/10 rounded-xl">
+                 <BookOpen className="h-6 w-6 text-primary" />
               </div>
           </div>
-          <h3 className="text-3xl font-extrabold text-foreground">{stats.totalCourses}</h3>
+          <h3 className="text-3xl font-semibold text-foreground">{stats.totalCourses}</h3>
           <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mt-1">Khóa học active</p>
         </div>
 
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm hover:shadow-md transition-shadow">
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-yellow-500/10 rounded-xl">
-                 <Star className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+              <div className="p-3 bg-warning/10 rounded-xl">
+                 <Star className="h-6 w-6 text-warning" />
               </div>
           </div>
-          <h3 className="text-3xl font-extrabold text-foreground">{stats.avgRating} / 5.0</h3>
+          <h3 className="text-3xl font-semibold text-foreground">{stats.avgRating} / 5.0</h3>
           <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mt-1">Đánh giá trung bình</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <h3 className="font-display text-xl font-bold mb-6">Tăng trưởng học viên</h3>
+          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+            <h3 className="text-xl font-semibold mb-6">Tăng trưởng học viên</h3>
             <div className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={userChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -163,21 +163,21 @@ export const StatsTab: React.FC = () => {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-             <h3 className="font-display text-xl font-bold mb-6">Khóa học có doanh thu cao</h3>
+          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+             <h3 className="text-xl font-semibold mb-6">Khóa học có doanh thu cao</h3>
              <div className="space-y-4">
                  {topCourses.length === 0 ? (
                      <div className="text-center text-sm text-muted-foreground py-8">Chưa có dữ liệu</div>
                  ) : topCourses.map((c, i) => (
                      <div key={i} className="flex items-center gap-4 p-3 rounded-xl hover:bg-muted/50 transition-colors">
-                         <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center font-bold text-primary">
+                         <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center font-semibold text-primary">
                              #{i + 1}
                          </div>
                          <div className="flex-1 min-w-0">
-                             <h4 className="font-bold text-foreground truncate">{c.title}</h4>
+                             <h4 className="font-semibold text-foreground truncate">{c.title}</h4>
                              <p className="text-sm text-muted-foreground">{c.students} học viên</p>
                          </div>
-                         <div className="font-bold text-emerald-600 whitespace-nowrap">
+                         <div className="font-semibold text-success whitespace-nowrap">
                              {formatPrice(c.revenue)}
                          </div>
                      </div>

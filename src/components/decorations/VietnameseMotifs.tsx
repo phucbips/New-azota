@@ -206,7 +206,7 @@ export const LotusDecor = ({ className = "" }: { className?: string }) => (
 /** Section divider with Vietnamese motif */
 export const MotifDivider = ({ className = "" }: { className?: string }) => (
   <div className={`flex items-center justify-center gap-4 ${className}`}>
-    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+    <div className="h-px flex-1 from-transparent via-border to-transparent" />
     <svg viewBox="0 0 80 30" fill="none" className="h-6 w-16 flex-shrink-0">
       {/* Lotus-inspired diamond */}
       <path d="M40 3 L50 15 L40 27 L30 15Z" stroke="hsl(var(--primary))" strokeWidth="1" strokeOpacity="0.3" fill="hsl(var(--primary))" fillOpacity="0.05" />
@@ -221,7 +221,7 @@ export const MotifDivider = ({ className = "" }: { className?: string }) => (
       <path d="M20 13 Q23 9, 26 13 Q23 16, 20 13Z" fill="hsl(var(--primary))" fillOpacity="0.15" />
       <path d="M54 13 Q57 9, 60 13 Q57 16, 54 13Z" fill="hsl(var(--primary))" fillOpacity="0.15" />
     </svg>
-    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+    <div className="h-px flex-1 from-transparent via-border to-transparent" />
   </div>
 );
 

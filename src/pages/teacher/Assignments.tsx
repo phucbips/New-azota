@@ -16,10 +16,10 @@ const Modal: React.FC<{ isOpen: boolean; onClose: () => void; title: string; chi
     if (!isOpen) return null;
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-                <div className="p-5 border-b border-slate-100 flex justify-between items-center">
-                    <h3 className="font-bold text-lg">{title}</h3>
-                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600">✕</button>
+            <div className="bg-card rounded-xl shadow-md w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="p-5 border-b border-border flex justify-between items-center">
+                    <h3 className="font-semibold text-lg">{title}</h3>
+                    <button onClick={onClose} className="text-muted-foreground/70 hover:text-muted-foreground">✕</button>
                 </div>
                 <div className="p-5 overflow-y-auto">
                     {children}
@@ -130,7 +130,7 @@ export const TeacherAssignments: React.FC = () => {
         />
         <button
             onClick={handleCreate}
-            className="h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm shadow-blue-600/20 transition-all flex items-center gap-2"
+            className="h-10 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg shadow-sm transition-all flex items-center gap-2"
         >
             <Plus className="w-5 h-5" />
             Create New
@@ -139,69 +139,69 @@ export const TeacherAssignments: React.FC = () => {
 
       {/* Stats / Filters (Optional placeholder) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-              <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Total Assignments</span>
-              <span className="text-2xl font-extrabold text-slate-900">{assignments.length}</span>
+          <div className="bg-card p-4 rounded-xl border border-border shadow-sm flex flex-col">
+              <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">Total Assignments</span>
+              <span className="text-2xl font-semibold text-foreground">{assignments.length}</span>
           </div>
       </div>
 
       {/* List */}
       {isFetching ? (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
+        <div className="bg-card rounded-xl shadow-sm border border-border p-6 space-y-4">
           <Skeleton className="h-6 w-1/3" />
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
         </div>
       ) : filteredAssignments.length > 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
             <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                    <thead className="bg-slate-50 border-b border-slate-200">
+                    <thead className="bg-muted/50 border-b border-border">
                         <tr>
-                            <th className="px-6 py-4 font-bold text-slate-700">Assignment</th>
-                            <th className="px-6 py-4 font-bold text-slate-700">Topic</th>
-                            <th className="px-6 py-4 font-bold text-slate-700">Grade</th>
-                            <th className="px-6 py-4 font-bold text-slate-700">Date</th>
-                            <th className="px-6 py-4 font-bold text-slate-700 text-right">Actions</th>
+                            <th className="px-6 py-4 font-semibold text-foreground">Assignment</th>
+                            <th className="px-6 py-4 font-semibold text-foreground">Topic</th>
+                            <th className="px-6 py-4 font-semibold text-foreground">Grade</th>
+                            <th className="px-6 py-4 font-semibold text-foreground">Date</th>
+                            <th className="px-6 py-4 font-semibold text-foreground text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-border">
                         {filteredAssignments.map((assignment) => (
-                            <tr key={assignment.id} className="hover:bg-slate-50 transition-colors">
+                            <tr key={assignment.id} className="hover:bg-muted transition-colors">
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-3">
                                         {assignment.coverImageUrl ? (
-                                            <img src={assignment.coverImageUrl} className="w-10 h-10 rounded-lg object-cover bg-slate-100" />
+                                            <img src={assignment.coverImageUrl} className="w-10 h-10 rounded-lg object-cover bg-muted" />
                                         ) : (
-                                            <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 font-bold text-xs">IMG</div>
+                                            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground/70 font-semibold text-xs">IMG</div>
                                         )}
                                         <div className="flex flex-col">
-                                            <span className="font-bold text-slate-900">{assignment.title}</span>
-                                            <a href={assignment.embedUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline truncate max-w-[150px]">
+                                            <span className="font-semibold text-foreground">{assignment.title}</span>
+                                            <a href={assignment.embedUrl} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline truncate max-w-[150px]">
                                                 View Source
                                             </a>
                                         </div>
                                     </div>
                                 </td>
-                                <td className="px-6 py-4 text-slate-600">{assignment.topic}</td>
+                                <td className="px-6 py-4 text-muted-foreground">{assignment.topic}</td>
                                 <td className="px-6 py-4">
-                                    <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold border border-slate-200">
+                                    <span className="px-2.5 py-1 rounded-full bg-muted text-muted-foreground text-xs font-semibold border border-border">
                                         Grade {assignment.gradeLevel}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4 text-slate-500">{formatDate(assignment.createdAt)}</td>
+                                <td className="px-6 py-4 text-muted-foreground">{formatDate(assignment.createdAt)}</td>
                                 <td className="px-6 py-4 text-right">
                                     <div className="flex justify-end gap-2">
                                         <button
                                           onClick={() => handleEdit(assignment)}
-                                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                          className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
                                         >
                                             <Edit2 className="w-4 h-4" />
                                         </button>
                                         <button
                                           onClick={() => handleDelete(assignment.id!)}
-                                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                          className="p-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
@@ -214,7 +214,7 @@ export const TeacherAssignments: React.FC = () => {
             </div>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+        <div className="bg-card rounded-xl border border-border shadow-sm p-6">
           <EmptyState
             title="No assignments found"
             description="Try adjusting your search or create a new assignment."
@@ -222,7 +222,7 @@ export const TeacherAssignments: React.FC = () => {
             action={
               <button
                 onClick={handleCreate}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90"
               >
                 <Plus className="w-4 h-4" />
                 Create Assignment

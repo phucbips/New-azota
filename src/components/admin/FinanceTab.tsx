@@ -119,7 +119,7 @@ export const FinanceTab: React.FC = () => {
         </div>
         <button
             onClick={() => setShowForm(!showForm)}
-            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition-all"
+            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-xl text-sm font-semibold shadow-md hover:shadow-md transition-all"
         >
             <Plus className="w-4 h-4" /> Thêm Giao dịch
         </button>
@@ -127,8 +127,8 @@ export const FinanceTab: React.FC = () => {
 
       {/* Add Form */}
       {showForm && (
-          <div className="bg-card rounded-2xl p-6 border border-border shadow-md animate-in fade-in slide-in-from-top-4">
-              <h3 className="font-display text-xl font-bold mb-4">Ghi nhận Giao dịch mới</h3>
+          <div className="bg-card rounded-xl p-6 border border-border shadow-md animate-in fade-in slide-in-from-top-4">
+              <h3 className="text-xl font-semibold mb-4">Ghi nhận Giao dịch mới</h3>
               <form onSubmit={addTransaction} className="flex flex-col md:flex-row gap-4 items-end">
                   <div className="flex-1 w-full">
                       <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Loại</label>
@@ -187,7 +187,7 @@ export const FinanceTab: React.FC = () => {
                   <button
                       type="submit"
                       disabled={saving}
-                      className="px-6 py-2.5 bg-primary text-white font-bold rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-50"
+                      className="px-6 py-2.5 bg-primary text-primary-foreground font-semibold rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-50"
                   >
                       {saving ? '...' : 'Lưu'}
                   </button>
@@ -196,40 +196,40 @@ export const FinanceTab: React.FC = () => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm hover:shadow-md transition-shadow">
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 bg-emerald-500/10 rounded-xl">
-               <TrendingUp className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+            <div className="p-2 bg-success/10 rounded-xl">
+               <TrendingUp className="h-6 w-6 text-success" />
             </div>
             <span className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Tổng thu</span>
           </div>
-          <p className="font-display text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">{formatPrice(totalIncome)}</p>
+          <p className="text-3xl font-semibold text-success">{formatPrice(totalIncome)}</p>
         </div>
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm hover:shadow-md transition-shadow">
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 bg-red-500/10 rounded-xl">
-              <TrendingDown className="h-6 w-6 text-red-600 dark:text-red-400" />
+            <div className="p-2 bg-destructive/10 rounded-xl">
+              <TrendingDown className="h-6 w-6 text-destructive" />
             </div>
             <span className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Tổng chi</span>
           </div>
-          <p className="font-display text-3xl font-extrabold text-red-600 dark:text-red-400">{formatPrice(totalExpense)}</p>
+          <p className="text-3xl font-semibold text-destructive">{formatPrice(totalExpense)}</p>
         </div>
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm hover:shadow-md transition-shadow">
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2 bg-primary/10 rounded-xl">
               <Wallet className="h-6 w-6 text-primary" />
             </div>
             <span className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Lợi nhuận ròng</span>
           </div>
-          <p className={`font-display text-3xl font-extrabold ${totalIncome - totalExpense >= 0 ? "text-primary" : "text-destructive"}`}>
+          <p className={`text-3xl font-semibold ${totalIncome - totalExpense >= 0 ? "text-primary" : "text-destructive"}`}>
             {formatPrice(totalIncome - totalExpense)}
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 rounded-2xl border border-border bg-card p-6 shadow-sm flex flex-col">
-            <h3 className="font-display text-xl font-bold mb-6">Biểu đồ Doanh thu</h3>
+        <div className="lg:col-span-2 rounded-xl border border-border bg-card p-6 shadow-sm flex flex-col">
+            <h3 className="text-xl font-semibold mb-6">Biểu đồ Doanh thu</h3>
             <div className="h-[300px] w-full flex-1">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -270,15 +270,15 @@ export const FinanceTab: React.FC = () => {
             </div>
         </div>
 
-        <div className="rounded-2xl border border-border bg-card shadow-sm flex flex-col max-h-[400px]">
+        <div className="rounded-xl border border-border bg-card shadow-sm flex flex-col max-h-[400px]">
             <div className="p-4 border-b border-border flex items-center justify-between">
-                <h3 className="font-display text-lg font-bold">Lịch sử Giao dịch</h3>
+                <h3 className="text-lg font-semibold">Lịch sử Giao dịch</h3>
                 <div className="flex gap-1 bg-muted p-1 rounded-lg">
                     {['all', 'income', 'expense'].map(t => (
                         <button
                             key={t}
                             onClick={() => setFilterType(t as any)}
-                            className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${filterType === t ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'}`}
+                            className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${filterType === t ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'}`}
                         >
                             {t === 'all' ? 'Tất cả' : t === 'income' ? 'Thu' : 'Chi'}
                         </button>
@@ -292,16 +292,16 @@ export const FinanceTab: React.FC = () => {
                     listFiltered.map(t => (
                         <div key={t.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-colors group">
                             <div>
-                                <p className="text-sm font-bold text-foreground truncate max-w-[150px]">{t.description}</p>
+                                <p className="text-sm font-semibold text-foreground truncate max-w-[150px]">{t.description}</p>
                                 <p className="text-xs text-muted-foreground mt-0.5">
                                     {t.createdAt?.toDate ? t.createdAt.toDate().toLocaleDateString('vi-VN') : ''} • {t.category}
                                 </p>
                             </div>
                             <div className="flex items-center gap-3">
-                                <span className={`font-bold font-mono text-sm ${t.type === 'income' ? 'text-emerald-600' : 'text-red-600'}`}>
+                                <span className={`font-semibold font-mono text-sm ${t.type === 'income' ? 'text-success' : 'text-destructive'}`}>
                                     {t.type === 'income' ? '+' : '-'}{formatPrice(t.amount)}
                                 </span>
-                                <button onClick={() => deleteTransaction(t.id)} className="p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600 rounded-lg opacity-0 group-hover:opacity-100 transition-all">
+                                <button onClick={() => deleteTransaction(t.id)} className="p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-lg opacity-0 group-hover:opacity-100 transition-all">
                                     <Trash2 className="w-4 h-4" />
                                 </button>
                             </div>

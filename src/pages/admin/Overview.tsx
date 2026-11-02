@@ -73,18 +73,18 @@ export const AdminOverview: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-10">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card p-6 rounded-2xl border border-border shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card p-6 rounded-xl border border-border shadow-sm">
         <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('analytics.title')}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">{t('analytics.title')}</h1>
             <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                 <span>azota.vercel.app</span>
                 <span className="w-1 h-1 rounded-full bg-muted-foreground/30"></span>
                 <div className="flex items-center gap-1.5">
                     <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success/80 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
                     </span>
-                    <span className="text-emerald-500 font-medium">{onlineUsers} {t('analytics.online')}</span>
+                    <span className="text-success font-medium">{onlineUsers} {t('analytics.online')}</span>
                 </div>
             </div>
         </div>
@@ -98,7 +98,7 @@ export const AdminOverview: React.FC = () => {
                 </TabsList>
             </Tabs>
 
-            <div className="hidden lg:flex items-center px-4 py-2 bg-primary/10 text-primary rounded-xl text-sm font-bold">
+            <div className="hidden lg:flex items-center px-4 py-2 bg-primary/10 text-primary rounded-xl text-sm font-semibold">
                 Môi trường: Production
             </div>
 
@@ -150,7 +150,7 @@ export const AdminOverview: React.FC = () => {
           <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {isVisible('visitors') && (
-                    <div onClick={() => setActiveMetric('visitors')} className="cursor-pointer transition-transform hover:scale-[1.01]">
+                    <div onClick={() => setActiveMetric('visitors')} className="cursor-pointer transition-transform">
                         <AnalyticsStatCard
                             label={t('analytics.visitors')}
                             value={visitorsCount}
@@ -160,7 +160,7 @@ export const AdminOverview: React.FC = () => {
                     </div>
                 )}
                 {isVisible('page_views') && (
-                    <div onClick={() => setActiveMetric('page_views')} className="cursor-pointer transition-transform hover:scale-[1.01]">
+                    <div onClick={() => setActiveMetric('page_views')} className="cursor-pointer transition-transform">
                         <AnalyticsStatCard
                             label={t('analytics.page_views')}
                             value={pageViewsCount}

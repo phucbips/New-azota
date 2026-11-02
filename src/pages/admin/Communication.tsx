@@ -15,13 +15,13 @@ export const AdminCommunication: React.FC = () => {
       />
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-200">
+      <div className="flex border-b border-border">
         <button
             onClick={() => setActiveTab('notifications')}
             className={`px-6 py-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${
                 activeTab === 'notifications'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
         >
             <Bell className="w-4 h-4" />
@@ -31,8 +31,8 @@ export const AdminCommunication: React.FC = () => {
             onClick={() => setActiveTab('announcements')}
             className={`px-6 py-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${
                 activeTab === 'announcements'
-                ? 'border-purple-600 text-purple-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
         >
             <Megaphone className="w-4 h-4" />

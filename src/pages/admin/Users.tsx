@@ -10,7 +10,7 @@ export const AdminUsers: React.FC = () => {
         subtitle="Manage system access and roles across the organization."
       />
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <div className="bg-card rounded-xl shadow-sm border border-border p-6">
         <UserManagement />
       </div>
     </div>

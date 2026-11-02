@@ -58,15 +58,15 @@ export const AdminSettings: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-6 max-w-6xl mx-auto pb-10">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card p-6 rounded-2xl border border-border shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card p-6 rounded-xl border border-border shadow-sm">
         <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('sidebar.settings')}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">{t('sidebar.settings')}</h1>
             <p className="text-sm text-muted-foreground mt-2 font-medium">Cấu hình hệ thống, liên hệ và thanh toán</p>
         </div>
         <SaaSButton
             onClick={handleSave}
             disabled={isSaving}
-            className="flex items-center gap-2 rounded-xl px-6 py-2.5 shadow-md hover:shadow-lg transition-all"
+            className="flex items-center gap-2 rounded-xl px-6 py-2.5 shadow-md hover:shadow-md transition-all"
         >
             <Save className="w-4 h-4" />
             {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
@@ -82,13 +82,13 @@ export const AdminSettings: React.FC = () => {
             <SettingsContent />
 
             {/* General Features */}
-            <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+            <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                 <div className="p-6 border-b border-border flex items-center gap-4">
-                    <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl text-blue-600 dark:text-blue-400">
+                    <div className="p-3 bg-primary/5 rounded-xl text-primary">
                         <Settings className="w-6 h-6" />
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold text-card-foreground">Cấu hình chung</h3>
+                        <h3 className="text-lg font-semibold text-card-foreground">Cấu hình chung</h3>
                         <p className="text-sm font-medium text-muted-foreground mt-1">Tùy chỉnh các tính năng cốt lõi</p>
                     </div>
                 </div>
@@ -105,7 +105,7 @@ export const AdminSettings: React.FC = () => {
                                 checked={formData.features.enableRegistration}
                                 onChange={(e) => handleChange('features', 'enableRegistration', e.target.checked)}
                             />
-                            <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                            <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-background after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-card after:border-input after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                         </label>
                     </div>
 
@@ -121,20 +121,20 @@ export const AdminSettings: React.FC = () => {
                                 checked={formData.features.maintenanceMode}
                                 onChange={(e) => handleChange('features', 'maintenanceMode', e.target.checked)}
                             />
-                            <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                            <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-background after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-card after:border-input after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                         </label>
                     </div>
                 </div>
             </div>
 
             {/* Homepage Customization */}
-            <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+            <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                 <div className="p-6 border-b border-border flex items-center gap-4">
-                    <div className="p-3 bg-pink-50 dark:bg-pink-900/30 rounded-xl text-pink-600 dark:text-pink-400">
+                    <div className="p-3 bg-destructive/5 rounded-xl text-destructive">
                         <LayoutTemplate className="w-6 h-6" />
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold text-card-foreground">Giao diện Trang chủ</h3>
+                        <h3 className="text-lg font-semibold text-card-foreground">Giao diện Trang chủ</h3>
                         <p className="text-sm font-medium text-muted-foreground mt-1">Tùy chỉnh các khối hiển thị và nội dung</p>
                     </div>
                 </div>
@@ -174,7 +174,7 @@ export const AdminSettings: React.FC = () => {
                                 )}
                                 <button
                                     onClick={() => handleChange('homepage', 'heroBackgroundUrl', '')}
-                                    className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                                    className="absolute top-2 right-2 bg-destructive text-destructive-foreground p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
                                 >
                                     <Trash2 className="w-4 h-4" />
                                 </button>
@@ -204,7 +204,7 @@ export const AdminSettings: React.FC = () => {
                                          newStats[idx].value = e.target.value;
                                          handleChange('homepage', 'stats', newStats as any);
                                      }}
-                                     className="w-32 px-3 py-2 border border-input rounded-lg bg-background text-sm font-bold focus:ring-2 focus:ring-primary/20"
+                                     className="w-32 px-3 py-2 border border-input rounded-lg bg-background text-sm font-semibold focus:ring-2 focus:ring-primary/20"
                                      placeholder="VD: 10k+"
                                  />
                                  <button
@@ -212,7 +212,7 @@ export const AdminSettings: React.FC = () => {
                                          const newStats = formData.homepage.stats.filter((_, i) => i !== idx);
                                          handleChange('homepage', 'stats', newStats as any);
                                      }}
-                                     className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                     className="p-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
                                  >
                                      <Trash2 className="w-4 h-4" />
                                  </button>
@@ -223,7 +223,7 @@ export const AdminSettings: React.FC = () => {
                                  const newStats = [...(formData.homepage.stats || []), { label: 'Mục mới', value: '100' }];
                                  handleChange('homepage', 'stats', newStats as any);
                              }}
-                             className="text-primary text-sm font-bold flex items-center gap-1 hover:underline"
+                             className="text-primary text-sm font-semibold flex items-center gap-1 hover:underline"
                          >
                              <Plus className="w-4 h-4" /> Thêm chỉ số
                          </button>
@@ -242,7 +242,7 @@ export const AdminSettings: React.FC = () => {
                             ].map((item) => (
                                 <div key={item.id} className="flex items-center justify-between p-4 rounded-xl border border-border bg-background hover:border-primary/50 transition-colors">
                                     <div>
-                                        <div className="font-bold text-foreground text-sm">{item.label}</div>
+                                        <div className="font-semibold text-foreground text-sm">{item.label}</div>
                                         <div className="text-xs text-muted-foreground mt-0.5">{item.desc}</div>
                                     </div>
                                     <Switch
@@ -262,13 +262,13 @@ export const AdminSettings: React.FC = () => {
         <div className="flex flex-col gap-6">
 
             {/* Contact Info */}
-            <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+            <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                 <div className="p-6 border-b border-border flex items-center gap-4">
-                    <div className="p-3 bg-green-50 dark:bg-green-900/30 rounded-xl text-green-600 dark:text-green-400">
+                    <div className="p-3 bg-success/5 rounded-xl text-success">
                         <MessageSquare className="w-6 h-6" />
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold text-card-foreground">Thông tin Liên hệ</h3>
+                        <h3 className="text-lg font-semibold text-card-foreground">Thông tin Liên hệ</h3>
                         <p className="text-sm font-medium text-muted-foreground mt-1">Thông tin hiển thị cho học viên</p>
                     </div>
                 </div>
@@ -330,13 +330,13 @@ export const AdminSettings: React.FC = () => {
             </div>
 
             {/* Integrations */}
-            <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+            <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                 <div className="p-6 border-b border-border flex items-center gap-4">
-                    <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-xl text-purple-600 dark:text-purple-400">
+                    <div className="p-3 bg-primary/5 rounded-xl text-primary">
                         <CreditCard className="w-6 h-6" />
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold text-card-foreground">Thanh toán PayOS</h3>
+                        <h3 className="text-lg font-semibold text-card-foreground">Thanh toán PayOS</h3>
                         <p className="text-sm font-medium text-muted-foreground mt-1">Cấu hình cổng thanh toán tự động</p>
                     </div>
                 </div>

@@ -40,8 +40,8 @@ export const PaymentSuccess: React.FC = () => {
     if (loading) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center">
-                <Loader2 className="w-10 h-10 animate-spin text-blue-600 mb-4" />
-                <p className="text-slate-500">Đang xác nhận kết quả giao dịch...</p>
+                <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+                <p className="text-muted-foreground">Đang xác nhận kết quả giao dịch...</p>
             </div>
         );
     }
@@ -50,12 +50,12 @@ export const PaymentSuccess: React.FC = () => {
     if (!isSuccess) {
          return (
              <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
-                <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-6">
-                    <AlertCircle className="w-10 h-10 text-red-600" />
+                <div className="w-20 h-20 bg-destructive/10 rounded-full flex items-center justify-center mb-6">
+                    <AlertCircle className="w-10 h-10 text-destructive" />
                 </div>
-                <h1 className="text-3xl font-extrabold text-slate-900 mb-4">Giao dịch chưa hoàn tất</h1>
-                <p className="text-slate-600 max-w-md mb-8">Có vẻ như quá trình thanh toán đã bị hủy hoặc xảy ra lỗi. Vui lòng kiểm tra lại đơn hàng của bạn.</p>
-                <Link to="/student/courses" className="px-8 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors">
+                <h1 className="text-3xl font-semibold text-foreground mb-4">Giao dịch chưa hoàn tất</h1>
+                <p className="text-muted-foreground max-w-md mb-8">Có vẻ như quá trình thanh toán đã bị hủy hoặc xảy ra lỗi. Vui lòng kiểm tra lại đơn hàng của bạn.</p>
+                <Link to="/student/courses" className="px-8 py-3 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-colors">
                     Quay lại Khóa học
                 </Link>
              </div>
@@ -63,33 +63,33 @@ export const PaymentSuccess: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-50">
-            <div className="max-w-md w-full bg-white rounded-3xl shadow-xl border border-slate-200 p-8 text-center relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 to-emerald-600"></div>
+        <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-muted/50">
+            <div className="max-w-md w-full bg-card rounded-xl shadow-md border border-border p-8 text-center relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-2 bg-success"></div>
 
-                <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-                    <CheckCircle className="w-12 h-12 text-emerald-600" />
+                <div className="w-24 h-24 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6 shadow-none">
+                    <CheckCircle className="w-12 h-12 text-success" />
                 </div>
 
-                <h1 className="text-3xl font-extrabold text-slate-900 mb-2 font-display">Thanh toán thành công!</h1>
-                <p className="text-slate-500 mb-8">Cảm ơn bạn đã tin tưởng. Quyền truy cập khóa học đã được mở tự động.</p>
+                <h1 className="text-3xl font-semibold text-foreground mb-2">Thanh toán thành công!</h1>
+                <p className="text-muted-foreground mb-8">Cảm ơn bạn đã tin tưởng. Quyền truy cập khóa học đã được mở tự động.</p>
 
                 {order && (
-                    <div className="bg-slate-50 rounded-2xl p-5 mb-8 text-left border border-slate-100">
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Thông tin đơn hàng</p>
+                    <div className="bg-muted/50 rounded-xl p-5 mb-8 text-left border border-border">
+                        <p className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider mb-3">Thông tin đơn hàng</p>
                         <div className="flex justify-between items-center mb-3">
-                            <span className="text-slate-600">Mã đơn:</span>
-                            <span className="font-mono font-bold text-slate-900">{order.displayCode || order.orderCode}</span>
+                            <span className="text-muted-foreground">Mã đơn:</span>
+                            <span className="font-mono font-semibold text-foreground">{order.displayCode || order.orderCode}</span>
                         </div>
-                        <div className="flex justify-between items-center border-b border-slate-200 pb-3 mb-3">
-                            <span className="text-slate-600">Tổng tiền:</span>
-                            <span className="font-bold text-emerald-600">{new Intl.NumberFormat('vi-VN').format(order.amount)}đ</span>
+                        <div className="flex justify-between items-center border-b border-border pb-3 mb-3">
+                            <span className="text-muted-foreground">Tổng tiền:</span>
+                            <span className="font-semibold text-success">{new Intl.NumberFormat('vi-VN').format(order.amount)}đ</span>
                         </div>
 
                         <ul className="space-y-2">
                             {order.items.map((item, idx) => (
-                                <li key={idx} className="flex items-start gap-2 text-sm text-slate-700">
-                                    <BookOpen className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+                                <li key={idx} className="flex items-start gap-2 text-sm text-foreground">
+                                    <BookOpen className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                                     <span className="line-clamp-2">{item.courseTitle}</span>
                                 </li>
                             ))}
@@ -99,7 +99,7 @@ export const PaymentSuccess: React.FC = () => {
 
                 <Link
                     to="/student/assignments"
-                    className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"
+                    className="w-full py-4 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 shadow-md"
                 >
                     Vào học ngay
                     <ChevronRight className="w-5 h-5" />

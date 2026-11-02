@@ -8,13 +8,14 @@ export const ThemeToggle: React.FC = () => {
   return (
     <button
       onClick={toggleTheme}
-      className="p-2 rounded-full transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400"
-      title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+      className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      title={theme === 'light' ? 'Chế độ tối' : 'Chế độ sáng'}
+      aria-label="Đổi giao diện sáng/tối"
     >
       {theme === 'light' ? (
-        <Moon className="w-5 h-5" />
+        <Moon className="h-[18px] w-[18px]" />
       ) : (
-        <Sun className="w-5 h-5" />
+        <Sun className="h-[18px] w-[18px]" />
       )}
     </button>
   );

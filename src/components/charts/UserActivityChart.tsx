@@ -46,8 +46,8 @@ export const UserActivityChart: React.FC<UserActivityChartProps> = ({ users, day
   }, [users, days]);
 
   return (
-    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-      <h3 className="text-lg font-bold text-slate-800 mb-4">Người dùng mới (7 ngày qua)</h3>
+    <div className="bg-card p-6 rounded-xl border border-border shadow-sm">
+      <h3 className="text-lg font-semibold text-foreground mb-4">Người dùng mới (7 ngày qua)</h3>
       <div className="h-[300px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data}>
@@ -57,7 +57,7 @@ export const UserActivityChart: React.FC<UserActivityChartProps> = ({ users, day
             <Tooltip
                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
             />
-            <Bar dataKey="users" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Người dùng mới" />
+            <Bar dataKey="users" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Người dùng mới" />
           </BarChart>
         </ResponsiveContainer>
       </div>

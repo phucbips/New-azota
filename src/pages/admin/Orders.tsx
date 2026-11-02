@@ -304,7 +304,7 @@ export const AdminOrders: React.FC = () => {
         subtitle="Theo dõi và duyệt đăng ký khóa học của học viên."
       />
 
-      <div className="bg-card rounded-2xl border border-border shadow-sm p-4 flex items-center justify-between gap-4">
+      <div className="bg-card rounded-xl border border-border shadow-sm p-4 flex items-center justify-between gap-4">
           <div className="relative w-full md:w-96 group">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Search className="w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
@@ -319,7 +319,7 @@ export const AdminOrders: React.FC = () => {
           </div>
           <button
               onClick={() => setShowCreateModal(true)}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-xl font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 whitespace-nowrap"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-xl font-semibold transition-all shadow-md hover:shadow-md flex items-center justify-center gap-2 whitespace-nowrap"
           >
               <Plus className="w-5 h-5" />
               Tạo đơn hàng
@@ -335,7 +335,7 @@ export const AdminOrders: React.FC = () => {
                   <motion.div
                       key={order.id}
                       layout
-                      className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden"
+                      className="bg-card rounded-xl border border-border shadow-sm overflow-hidden"
                   >
                       {/* Header Row */}
                       <div
@@ -343,14 +343,14 @@ export const AdminOrders: React.FC = () => {
                         onClick={() => setExpandedId(isExpanded ? null : order.id)}
                       >
                           <div className="flex items-center gap-4">
-                              <div className={`p-3 rounded-xl ${order.status === 'paid' ? 'bg-emerald-500/10 text-emerald-600' : order.status === 'cancelled' ? 'bg-red-500/10 text-red-600' : 'bg-yellow-500/10 text-yellow-600'}`}>
+                              <div className={`p-3 rounded-xl ${order.status === 'paid' ? 'bg-success/10 text-success' : order.status === 'cancelled' ? 'bg-destructive/10 text-destructive' : 'bg-warning/10 text-warning'}`}>
                                   {order.status === 'paid' ? <CheckCircle className="w-6 h-6" /> : order.status === 'cancelled' ? <XCircle className="w-6 h-6" /> : <Banknote className="w-6 h-6" />}
                               </div>
                               <div>
                                   <div className="flex items-center gap-2">
-                                      <h3 className="font-bold text-foreground">{order.userEmail} - {order.orderCode}</h3>
+                                      <h3 className="font-semibold text-foreground">{order.userEmail} - {order.orderCode}</h3>
                                       {order.status === 'pay_later' ? (
-                                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800">Trả sau</span>
+                                          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-warning/10 text-warning">Trả sau</span>
                                       ) : (
                                           <StatusBadge status={order.status === 'paid' ? 'Active' : order.status === 'cancelled' ? 'Inactive' : 'Pending'} />
                                       )}
@@ -363,7 +363,7 @@ export const AdminOrders: React.FC = () => {
 
                           <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto">
                               <div className="text-left md:text-right">
-                                  <p className="font-bold text-primary">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.amount)}</p>
+                                  <p className="font-semibold text-primary">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.amount)}</p>
                                   <p className="text-xs text-muted-foreground mt-1">{order.paymentMethod === 'bank_transfer' ? 'Chuyển khoản' : 'Tiền mặt (trả sau)'}</p>
                               </div>
                               {isExpanded ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
@@ -383,7 +383,7 @@ export const AdminOrders: React.FC = () => {
                                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                           {/* Info */}
                                           <div className="space-y-4">
-                                              <h4 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Thông tin Học viên</h4>
+                                              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Thông tin Học viên</h4>
                                               <div className="space-y-3 bg-card p-4 rounded-xl border border-border shadow-sm">
                                                   <div className="flex items-center gap-3 text-sm text-foreground">
                                                       <User className="w-4 h-4 text-muted-foreground" />
@@ -402,11 +402,11 @@ export const AdminOrders: React.FC = () => {
 
                                           {/* Actions / Payment */}
                                           <div className="space-y-4">
-                                              <h4 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Thanh toán & Duyệt</h4>
+                                              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Thanh toán & Duyệt</h4>
                                               <div className="bg-card p-4 rounded-xl border border-border shadow-sm space-y-4">
                                                   <div className="flex justify-between items-center text-sm">
                                                       <span className="text-muted-foreground">Phương thức:</span>
-                                                      <span className="font-bold flex items-center gap-1">
+                                                      <span className="font-semibold flex items-center gap-1">
                                                           {order.paymentMethod === 'bank_transfer' ? <CreditCard className="w-4 h-4 text-primary" /> : <Banknote className="w-4 h-4 text-primary" />}
                                                           {order.paymentMethod === 'bank_transfer' ? (order.status === 'paid' ? 'Đã chuyển khoản' : 'Chưa chuyển khoản') : 'Tiền mặt (trả sau)'}
                                                       </span>
@@ -416,27 +416,27 @@ export const AdminOrders: React.FC = () => {
                                                       <div className="flex flex-col gap-2 pt-4 border-t border-border">
                                                           <button
                                                             onClick={() => handleUpdateStatus(order, 'paid', 'cash')}
-                                                            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm"
+                                                            className="w-full bg-success hover:bg-success/90 text-success-foreground py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm"
                                                           >
                                                               Đã nhận tiền mặt
                                                           </button>
                                                           <button
                                                             onClick={() => handleCreateQR(order)}
-                                                            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm"
+                                                            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm"
                                                           >
                                                               Tạo mã QR Chuyển khoản
                                                           </button>
                                                           {isPending && order.paymentMethod === 'cash' && (
                                                               <button
                                                                 onClick={() => handleUpdateStatus(order, 'pay_later')}
-                                                                className="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm"
+                                                                className="w-full bg-warning hover:bg-warning/90 text-warning-foreground py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm"
                                                               >
                                                                   Duyệt (Cấp khóa học - Trả sau)
                                                               </button>
                                                           )}
                                                           <button
                                                             onClick={() => handleUpdateStatus(order, 'cancelled')}
-                                                            className="w-full bg-muted hover:bg-red-50 text-red-600 border border-input hover:border-red-200 py-2.5 rounded-lg text-sm font-bold transition-colors"
+                                                            className="w-full bg-muted hover:bg-destructive/10 text-destructive border border-input hover:border-destructive/20 py-2.5 rounded-lg text-sm font-semibold transition-colors"
                                                           >
                                                               Hủy đơn
                                                           </button>
@@ -445,7 +445,7 @@ export const AdminOrders: React.FC = () => {
                                                   <div className="pt-4 border-t border-border mt-4">
                                                       <button
                                                           onClick={() => handleDeleteOrder(order.id)}
-                                                          className="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 py-2 rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2"
+                                                          className="w-full bg-destructive/5 hover:bg-destructive/15 text-destructive border border-destructive/20 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2"
                                                       >
                                                           <Trash2 className="w-4 h-4" />
                                                           Xóa đơn hàng
@@ -467,7 +467,7 @@ export const AdminOrders: React.FC = () => {
               )
           })}
           {filteredOrders.length === 0 && (
-              <div className="py-12 text-center text-muted-foreground bg-card rounded-2xl border border-border border-dashed">
+              <div className="py-12 text-center text-muted-foreground bg-card rounded-xl border border-border border-dashed">
                   Không tìm thấy đơn hàng nào.
               </div>
           )}
@@ -486,10 +486,10 @@ export const AdminOrders: React.FC = () => {
                       initial={{ scale: 0.95, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       exit={{ scale: 0.95, opacity: 0 }}
-                      className="bg-card w-full max-w-2xl rounded-2xl shadow-xl border border-border overflow-hidden flex flex-col max-h-[90vh]"
+                      className="bg-card w-full max-w-2xl rounded-xl shadow-md border border-border overflow-hidden flex flex-col max-h-[90vh]"
                   >
                       <div className="flex justify-between items-center p-6 border-b border-border bg-muted/30">
-                          <h2 className="text-xl font-bold text-foreground">Tạo Đơn Hàng Mới</h2>
+                          <h2 className="text-xl font-semibold text-foreground">Tạo Đơn Hàng Mới</h2>
                           <button onClick={() => setShowCreateModal(false)} className="text-muted-foreground hover:text-foreground transition-colors p-2 hover:bg-muted rounded-full">
                               <X className="w-5 h-5" />
                           </button>
@@ -497,7 +497,7 @@ export const AdminOrders: React.FC = () => {
 
                       <div className="p-6 overflow-y-auto flex-1 space-y-6">
                           <div>
-                              <label className="block text-sm font-bold text-foreground mb-2">Người mua</label>
+                              <label className="block text-sm font-semibold text-foreground mb-2">Người mua</label>
                               <select
                                   value={newOrder.userId}
                                   onChange={e => setNewOrder({...newOrder, userId: e.target.value})}
@@ -511,7 +511,7 @@ export const AdminOrders: React.FC = () => {
                           </div>
 
                           <div>
-                              <label className="block text-sm font-bold text-foreground mb-2">Khóa học</label>
+                              <label className="block text-sm font-semibold text-foreground mb-2">Khóa học</label>
                               <div className="space-y-2 border border-input rounded-xl p-4 max-h-60 overflow-y-auto">
                                   {courses.map(c => (
                                       <label key={c.id} className="flex items-center gap-3 p-2 hover:bg-muted rounded-lg cursor-pointer transition-colors">
@@ -538,7 +538,7 @@ export const AdminOrders: React.FC = () => {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                               <div>
-                                  <label className="block text-sm font-bold text-foreground mb-2">Mã giảm giá (Tùy chọn)</label>
+                                  <label className="block text-sm font-semibold text-foreground mb-2">Mã giảm giá (Tùy chọn)</label>
                                   <div className="flex gap-2">
                                       <input
                                           type="text"
@@ -555,13 +555,13 @@ export const AdminOrders: React.FC = () => {
                                       <button
                                           onClick={handleValidateVoucher}
                                           disabled={isValidatingVoucher || !newOrder.voucherCode}
-                                          className="px-4 py-2 bg-primary/10 text-primary font-bold rounded-xl hover:bg-primary/20 transition-colors disabled:opacity-50 whitespace-nowrap"
+                                          className="px-4 py-2 bg-primary/10 text-primary font-semibold rounded-xl hover:bg-primary/20 transition-colors disabled:opacity-50 whitespace-nowrap"
                                       >
                                           {isValidatingVoucher ? 'Đang kiểm tra...' : 'Kiểm tra'}
                                       </button>
                                   </div>
                                   {validatedVoucher && newOrder.voucherCode === validatedVoucher.code && (
-                                      <p className="text-sm text-emerald-600 mt-2 font-medium flex items-center gap-1">
+                                      <p className="text-sm text-success mt-2 font-medium flex items-center gap-1">
                                           <CheckCircle className="w-4 h-4" />
                                           Giảm {validatedVoucher.type === 'percent' ? `${validatedVoucher.value}%` : new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(validatedVoucher.value)}
                                       </p>
@@ -573,14 +573,14 @@ export const AdminOrders: React.FC = () => {
                       <div className="p-6 border-t border-border bg-muted/30 flex justify-end gap-3">
                           <button
                               onClick={() => setShowCreateModal(false)}
-                              className="px-6 py-2.5 rounded-xl font-bold text-muted-foreground hover:bg-muted transition-colors"
+                              className="px-6 py-2.5 rounded-xl font-semibold text-muted-foreground hover:bg-muted transition-colors"
                           >
                               Hủy
                           </button>
                           <button
                               onClick={handleCreateOrder}
                               disabled={isCreating}
-                              className="px-6 py-2.5 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-md disabled:opacity-50"
+                              className="px-6 py-2.5 rounded-xl font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-md disabled:opacity-50"
                           >
                               {isCreating ? 'Đang tạo...' : 'Tạo đơn hàng'}
                           </button>

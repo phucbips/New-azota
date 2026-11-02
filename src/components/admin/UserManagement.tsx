@@ -179,7 +179,7 @@ export const UserManagement: React.FC = () => {
             return (
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
                     ${role === 'admin' ? 'bg-primary/10 text-primary border border-primary/20' :
-                    role === 'teacher' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'}`}>
+                    role === 'teacher' ? 'bg-primary/10 text-primary' : 'bg-success/10 text-success'}`}>
                     {role === 'teacher' ? 'Giáo viên' : role === 'student' ? 'Học sinh' : 'Admin'}
                 </span>
             )
@@ -237,7 +237,7 @@ export const UserManagement: React.FC = () => {
       {/* Add User Form (Collapsible) */}
       {isAddMode && (
           <div className="bg-card p-6 rounded-xl border border-border shadow-sm animate-fadeIn">
-            <h3 className="text-lg font-bold mb-4 text-card-foreground">Mời người dùng mới</h3>
+            <h3 className="text-lg font-semibold mb-4 text-card-foreground">Mời người dùng mới</h3>
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col md:flex-row gap-4 items-end">
             <div className="flex-1 w-full">
                 <label className="block text-sm font-medium mb-1 text-muted-foreground">Email</label>
@@ -353,8 +353,8 @@ const EditUserModal: React.FC<{ user: User, courses: Course[], onClose: () => vo
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn px-4">
-            <div className="bg-card p-6 rounded-xl w-full max-w-md shadow-2xl border border-border">
-                <h3 className="text-xl font-bold mb-4 text-card-foreground">Edit User</h3>
+            <div className="bg-card p-6 rounded-xl w-full max-w-md shadow-md border border-border">
+                <h3 className="text-xl font-semibold mb-4 text-card-foreground">Edit User</h3>
                 <p className="text-sm text-muted-foreground mb-4">{user.email}</p>
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -398,7 +398,7 @@ const EditUserModal: React.FC<{ user: User, courses: Course[], onClose: () => vo
                                     />
                                     <label htmlFor={`course-${course.id}`} className="text-sm font-medium text-muted-foreground flex-1 cursor-pointer flex justify-between">
                                         <span>{course.title}</span>
-                                        <span className={selectedCourses.includes(course.id) ? "text-emerald-600 font-bold" : "text-slate-400"}>
+                                        <span className={selectedCourses.includes(course.id) ? "text-success font-semibold" : "text-muted-foreground/70"}>
                                             {selectedCourses.includes(course.id) ? "(Đã mua)" : "(Chưa mua)"}
                                         </span>
                                     </label>

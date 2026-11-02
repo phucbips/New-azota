@@ -10,7 +10,7 @@ export const AdminVouchers: React.FC = () => {
         subtitle="Tạo, sửa và quản lý các mã giảm giá cho khóa học."
       />
 
-      <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden p-6">
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden p-6">
           <VoucherManagement />
       </div>
     </div>

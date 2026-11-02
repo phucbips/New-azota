@@ -80,7 +80,7 @@ const ImageCropper = ({ imageSrc, onCropDone, onCancel, aspect = 1 }: ImageCropp
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                     currentAspect === ratio.value
                         ? 'bg-primary text-white shadow-md'
-                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                        : 'bg-background/10 text-white/70 hover:bg-background/20'
                 }`}
             >
                 {ratio.icon}
@@ -106,7 +106,7 @@ const ImageCropper = ({ imageSrc, onCropDone, onCancel, aspect = 1 }: ImageCropp
           />
           <ZoomIn className="h-4 w-4 text-muted-foreground" />
         </div>
-        <button type="button" onClick={handleDone} className="flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:bg-primary/90">
+        <button type="button" onClick={handleDone} className="flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
           <Check className="h-4 w-4" /> Xong
         </button>
       </div>
