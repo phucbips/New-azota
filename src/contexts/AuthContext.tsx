@@ -6,6 +6,7 @@ import {
   GoogleAuthProvider,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signOut as firebaseSignOut,
   User as FirebaseUser,
 } from 'firebase/auth';
@@ -282,6 +283,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
+  const resetPassword = useCallback(async (email: string) => {
+    const trimmed = email.trim();
+    if (!trimmed) {
+      const msg = 'Vui lòng nhập địa chỉ email của bạn.';
+      toast.error(msg);
+      throw new Error(msg);
+    }
+    try {
+      auth.languageCode = 'vi';
+      await sendPasswordResetEmail(auth, trimmed);
+      toast.success('Đã gửi email đặt lại mật khẩu. Vui lòng kiểm tra hộp thư (kể cả mục Spam).');
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      let message = 'Không thể gửi email đặt lại mật khẩu.';
+
+      if (error.code === 'auth/invalid-email') {
+        message = 'Địa chỉ email không hợp lệ.';
+      } else if (error.code === 'auth/user-not-found') {
+        message = 'Không tìm thấy tài khoản nào với email này.';
+      } else if (error.code === 'auth/too-many-requests') {
+        message = 'Bạn đã yêu cầu quá nhiều lần. Vui lòng thử lại sau ít phút.';
+      }
+
+      toast.error(message);
+      throw new Error(message);
+    }
+  }, []);
+
   const signOut = useCallback(async () => {
     localStorage.removeItem('sessionId');
     await firebaseSignOut(auth);
@@ -293,6 +322,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signInWithGoogle,
     signInWithEmail,
     signUpWithEmail,
+    resetPassword,
     signOut,
   };
 
