@@ -13,42 +13,97 @@ import { PageTracker } from './components/shared/PageTracker';
 import { RouteMiddleware } from './middleware/RouteMiddleware';
 import './styles/globals.css';
 import { Toaster } from 'sonner';
+
+const CHUNK_RELOAD_KEY = 'azota_chunk_reload_ts';
+
+function isChunkLoadError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error ?? '');
+  return (
+    msg.includes('Failed to fetch dynamically imported module') ||
+    msg.includes('Importing a module script failed') ||
+    msg.includes('error loading dynamically imported module') ||
+    msg.includes('Unable to preload CSS') ||
+    msg.includes('Loading chunk') ||
+    msg.includes('Loading CSS chunk')
+  );
+}
+
+function reloadOnceOnChunkError(): boolean {
+  try {
+    const lastReload = Number(sessionStorage.getItem(CHUNK_RELOAD_KEY) || '0');
+    const now = Date.now();
+    // Allow automatic reload if we haven't reloaded within the last 15 seconds
+    if (now - lastReload > 15000) {
+      sessionStorage.setItem(CHUNK_RELOAD_KEY, String(now));
+      window.location.reload();
+      return true;
+    }
+  } catch {
+    // Ignore storage errors
+  }
+  return false;
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('vite:preloadError', (event) => {
+    event.preventDefault();
+    reloadOnceOnChunkError();
+  });
+}
+
+function lazyWithRetry<T extends React.ComponentType<any>>(
+  importer: () => Promise<{ default: T }>
+): React.LazyExoticComponent<T> {
+  return React.lazy(async () => {
+    try {
+      const mod = await importer();
+      return mod;
+    } catch (error) {
+      if (isChunkLoadError(error) && reloadOnceOnChunkError()) {
+        // Return a never-resolving promise while the browser reloads
+        return new Promise<{ default: T }>(() => {});
+      }
+      throw error;
+    }
+  });
+}
+
 // Lazy load Layouts
-const AdminLayout = React.lazy(() => import('./layouts/AdminLayout').then(module => ({ default: module.AdminLayout })));
-const TeacherLayout = React.lazy(() => import('./layouts/TeacherLayout').then(module => ({ default: module.TeacherLayout })));
-const StudentLayout = React.lazy(() => import('./layouts/StudentLayout').then(module => ({ default: module.StudentLayout })));
+const AdminLayout = lazyWithRetry(() => import('./layouts/AdminLayout').then(module => ({ default: module.AdminLayout })));
+const TeacherLayout = lazyWithRetry(() => import('./layouts/TeacherLayout').then(module => ({ default: module.TeacherLayout })));
+const StudentLayout = lazyWithRetry(() => import('./layouts/StudentLayout').then(module => ({ default: module.StudentLayout })));
 
 // Lazy load Admin Pages
-const SmartAssignmentBuilderPage = React.lazy(() => import('./pages/shared/SmartAssignmentBuilderPage').then(module => ({ default: module.SmartAssignmentBuilderPage })));
-const AdminOverview = React.lazy(() => import('./pages/admin/Overview').then(module => ({ default: module.AdminOverview })));
-const AdminUsers = React.lazy(() => import('./pages/admin/Users').then(module => ({ default: module.AdminUsers })));
-const AdminAssignments = React.lazy(() => import('./pages/admin/Assignments').then(module => ({ default: module.AdminAssignments })));
-const AdminCourses = React.lazy(() => import('./pages/admin/Courses').then(module => ({ default: module.AdminCourses })));
-const AdminOrders = React.lazy(() => import('./pages/admin/Orders').then(module => ({ default: module.AdminOrders })));
-const AdminVouchers = React.lazy(() => import('./pages/admin/Vouchers').then(module => ({ default: module.AdminVouchers })));
-const AdminCommunication = React.lazy(() => import('./pages/admin/Communication').then(module => ({ default: module.AdminCommunication })));
-const AdminAuditLogs = React.lazy(() => import('./pages/admin/AuditLogs').then(module => ({ default: module.AuditLogs })));
-const AdminSettings = React.lazy(() => import('./pages/admin/Settings').then(module => ({ default: module.AdminSettings })));
-const AdminProfile = React.lazy(() => import('./pages/admin/Profile').then(module => ({ default: module.AdminProfile })));
+const SmartAssignmentBuilderPage = lazyWithRetry(() => import('./pages/shared/SmartAssignmentBuilderPage').then(module => ({ default: module.SmartAssignmentBuilderPage })));
+const AdminOverview = lazyWithRetry(() => import('./pages/admin/Overview').then(module => ({ default: module.AdminOverview })));
+const AdminUsers = lazyWithRetry(() => import('./pages/admin/Users').then(module => ({ default: module.AdminUsers })));
+const AdminAssignments = lazyWithRetry(() => import('./pages/admin/Assignments').then(module => ({ default: module.AdminAssignments })));
+const AdminCourses = lazyWithRetry(() => import('./pages/admin/Courses').then(module => ({ default: module.AdminCourses })));
+const AdminOrders = lazyWithRetry(() => import('./pages/admin/Orders').then(module => ({ default: module.AdminOrders })));
+const AdminVouchers = lazyWithRetry(() => import('./pages/admin/Vouchers').then(module => ({ default: module.AdminVouchers })));
+const AdminCommunication = lazyWithRetry(() => import('./pages/admin/Communication').then(module => ({ default: module.AdminCommunication })));
+const AdminAuditLogs = lazyWithRetry(() => import('./pages/admin/AuditLogs').then(module => ({ default: module.AuditLogs })));
+const AdminSettings = lazyWithRetry(() => import('./pages/admin/Settings').then(module => ({ default: module.AdminSettings })));
+const AdminProfile = lazyWithRetry(() => import('./pages/admin/Profile').then(module => ({ default: module.AdminProfile })));
 
 // Lazy load Teacher Pages
-const TeacherOverview = React.lazy(() => import('./pages/teacher/Overview').then(module => ({ default: module.TeacherOverview })));
-const TeacherAssignments = React.lazy(() => import('./pages/teacher/Assignments').then(module => ({ default: module.TeacherAssignments })));
-const TeacherCourses = React.lazy(() => import('./pages/teacher/Courses').then(module => ({ default: module.TeacherCourses })));
-const TeacherSettings = React.lazy(() => import('./pages/teacher/Settings').then(module => ({ default: module.TeacherSettings })));
-const TeacherProfile = React.lazy(() => import('./pages/teacher/Profile').then(module => ({ default: module.TeacherProfile })));
+const TeacherOverview = lazyWithRetry(() => import('./pages/teacher/Overview').then(module => ({ default: module.TeacherOverview })));
+const TeacherAssignments = lazyWithRetry(() => import('./pages/teacher/Assignments').then(module => ({ default: module.TeacherAssignments })));
+const TeacherCourses = lazyWithRetry(() => import('./pages/teacher/Courses').then(module => ({ default: module.TeacherCourses })));
+const TeacherSettings = lazyWithRetry(() => import('./pages/teacher/Settings').then(module => ({ default: module.TeacherSettings })));
+const TeacherProfile = lazyWithRetry(() => import('./pages/teacher/Profile').then(module => ({ default: module.TeacherProfile })));
 
 // Lazy load Student Pages
-const StudentHome = React.lazy(() => import('./pages/student/Home').then(module => ({ default: module.StudentHome })));
-const StudentAssignments = React.lazy(() => import('./pages/student/Assignments').then(module => ({ default: module.StudentAssignments })));
-const StudentCourses = React.lazy(() => import('./pages/student/Courses').then(module => ({ default: module.StudentCourses })));
-const StudentSettings = React.lazy(() => import('./pages/student/Settings').then(module => ({ default: module.StudentSettings })));
-const StudentProfile = React.lazy(() => import('./pages/student/Profile').then(module => ({ default: module.StudentProfile })));
-const PaymentQR = React.lazy(() => import('./pages/student/PaymentQR').then(module => ({ default: module.PaymentQR })));
-const PaymentSuccess = React.lazy(() => import('./pages/student/PaymentSuccess').then(module => ({ default: module.PaymentSuccess })));
-const CartOrders = React.lazy(() => import('./pages/student/CartOrders').then(module => ({ default: module.CartOrders })));
-const LandingPage = React.lazy(() => import('./pages/public/Landing').then(module => ({ default: module.LandingPage })));
-const PublicCourses = React.lazy(() => import('./pages/public/PublicCourses').then(module => ({ default: module.PublicCourses })));
+const StudentHome = lazyWithRetry(() => import('./pages/student/Home').then(module => ({ default: module.StudentHome })));
+const StudentAssignments = lazyWithRetry(() => import('./pages/student/Assignments').then(module => ({ default: module.StudentAssignments })));
+const StudentCourses = lazyWithRetry(() => import('./pages/student/Courses').then(module => ({ default: module.StudentCourses })));
+const StudentSettings = lazyWithRetry(() => import('./pages/student/Settings').then(module => ({ default: module.StudentSettings })));
+const StudentProfile = lazyWithRetry(() => import('./pages/student/Profile').then(module => ({ default: module.StudentProfile })));
+const PaymentQR = lazyWithRetry(() => import('./pages/student/PaymentQR').then(module => ({ default: module.PaymentQR })));
+const PaymentSuccess = lazyWithRetry(() => import('./pages/student/PaymentSuccess').then(module => ({ default: module.PaymentSuccess })));
+const CartOrders = lazyWithRetry(() => import('./pages/student/CartOrders').then(module => ({ default: module.CartOrders })));
+const LandingPage = lazyWithRetry(() => import('./pages/public/Landing').then(module => ({ default: module.LandingPage })));
+const PublicCourses = lazyWithRetry(() => import('./pages/public/PublicCourses').then(module => ({ default: module.PublicCourses })));
 
 // Specialized Login Wrapper to redirect if already logged in
 const LoginWrapper: React.FC = () => {
