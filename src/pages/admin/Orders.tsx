@@ -255,13 +255,11 @@ export const AdminOrders: React.FC = () => {
 
               // Automatically add courses to the user's enrolledCourses array
               if (order.userId && courseIds.length > 0) {
-                  import('../../services/user.service').then(({ userService }) => {
-                      userService.getUser(order.userId).then(u => {
-                          if (u) {
-                              const newEnrolled = new Set([...(u.enrolledCourses || []), ...courseIds]);
-                              userService.updateUser(u.uid, { enrolledCourses: Array.from(newEnrolled) });
-                          }
-                      });
+                  userService.getUser(order.userId).then(u => {
+                      if (u) {
+                          const newEnrolled = new Set([...(u.enrolledCourses || []), ...courseIds]);
+                          userService.updateUser(u.uid, { enrolledCourses: Array.from(newEnrolled) });
+                      }
                   });
               }
 

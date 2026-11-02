@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   onAuthStateChanged,
   signInWithPopup,
@@ -68,6 +68,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [sessionId] = useState(getSessionId);
+  const currentUidRef = useRef<string | null>(null);
 
   const getOrCreateUser = useCallback(
     async (firebaseUser: FirebaseUser): Promise<User> => {
@@ -166,8 +167,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       if (firebaseUser) {
-        setLoading(true);
+        if (currentUidRef.current !== firebaseUser.uid) {
+          setLoading(true);
+        }
         const dbUser = await getOrCreateUser(firebaseUser);
+        currentUidRef.current = firebaseUser.uid;
         setUser(dbUser);
 
         unsubscribeUser = userService.subscribeToUser(
@@ -198,6 +202,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
         );
       } else {
+        currentUidRef.current = null;
         setUser(null);
         setLoading(false);
       }

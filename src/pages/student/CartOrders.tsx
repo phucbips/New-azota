@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../../config/firebase';
 import { useCart } from '../../contexts/CartContext';
 import { orderService, Order } from '../../services/order.service';
 import { useAuth } from '../../hooks/useAuth';
@@ -109,8 +111,6 @@ export const CartOrders: React.FC = () => {
 
             // We update the existing order with the new orderCode so PayOS thinks it's a new request
             // And we clear the checkoutUrl so it generates a new one.
-            const { doc, updateDoc } = await import('firebase/firestore');
-            const { db } = await import('../../config/firebase');
             await updateDoc(doc(db, 'orders', order.id), {
                 orderCode: newOrderCode,
                 displayCode: displayCode,
