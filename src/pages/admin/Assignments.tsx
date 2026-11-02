@@ -54,6 +54,10 @@ export const AdminAssignments: React.FC = () => {
   };
 
   const handleEdit = (assignment: Assignment) => {
+      if (assignment.type === 'smart_exam' && assignment.id) {
+          navigate(/admin/assignments/builder?id=${assignment.id}&courseId=${assignment.courseId || 'general'});
+          return;
+      }
       setEditingAssignment(assignment);
       setIsModalOpen(true);
   };
@@ -131,13 +135,22 @@ export const AdminAssignments: React.FC = () => {
             title="All Assignments"
             description="Manage all assignments across the platform."
         />
-        <button
-            onClick={handleCreate}
-            className="h-10 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg shadow-sm transition-all flex items-center gap-2"
-        >
-            <Plus className="w-5 h-5" />
-            Create Assignment
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+              onClick={() => navigate('/admin/assignments/builder')}
+              className="h-10 px-4 bg-secondary hover:bg-secondary/80 text-secondary-foreground font-semibold rounded-lg border border-border transition-all flex items-center gap-2 text-sm"
+          >
+              <Plus className="w-4 h-4" />
+              Tạo Đề thi Azota (.docx)
+          </button>
+          <button
+              onClick={handleCreate}
+              className="h-10 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg shadow-sm transition-all flex items-center gap-2 text-sm"
+          >
+              <Plus className="w-4 h-4" />
+              Create Assignment
+          </button>
+        </div>
       </div>
 
       {/* List */}

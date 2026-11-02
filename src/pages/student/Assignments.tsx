@@ -8,6 +8,7 @@ import { BookOpen, ChevronRight, AlertCircle, Clock, ArrowLeft, Maximize, Minimi
 import { formatDate, safeString } from '../../lib/formatters';
 import { SubjectFilterBar } from '../../components/student/SubjectFilterBar';
 import { StudentSupportWidget } from '../../components/student/StudentSupportWidget';
+import { SmartExamPlayer } from '../../components/student/SmartExamPlayer';
 import { Skeleton } from '../../components/shared/Skeleton';
 
 export const StudentAssignments: React.FC = () => {
@@ -290,6 +291,7 @@ ${embed}
                   />
               )}
            </div>
+           )}
         </div>
 
         {/* Support Widget even in detail view */}
