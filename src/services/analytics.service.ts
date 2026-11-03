@@ -1,11 +1,51 @@
 import { db } from '../config/firebase';
-import { doc, setDoc, increment, getDoc, onSnapshot, query, where, collection, orderBy, runTransaction } from 'firebase/firestore';
+import {
+  doc,
+  setDoc,
+  increment,
+  getDoc,
+  onSnapshot,
+  query,
+  where,
+  collection,
+  orderBy,
+  runTransaction,
+} from 'firebase/firestore';
 import { UAParser } from 'ua-parser-js';
 
 const COLLECTIONS = {
   DAILY: 'analytics_daily',
   AGGREGATES: 'analytics_aggregates',
 };
+
+const VISITOR_ID_KEY = 'azota_real_visitor_id';
+
+function isBotOrAutomated(): boolean {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return true;
+  if ((navigator as any).webdriver) return true;
+  const ua = navigator.userAgent || '';
+  if (!ua) return true;
+  return /bot|crawler|spider|crawling|headless|lighthouse|vercel|prerender|phantomjs|slurp|mediapartners|facebookexternalhit|whatsapp|telegrambot|discordbot|bingpreview|playwright|puppeteer|cypress/i.test(
+    ua
+  );
+}
+
+function getOrCreateVisitorId(): string {
+  try {
+    let id = localStorage.getItem(VISITOR_ID_KEY);
+    if (!id) {
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        id = crypto.randomUUID();
+      } else {
+        id = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+      }
+      localStorage.setItem(VISITOR_ID_KEY, id);
+    }
+    return id;
+  } catch {
+    return `anon_${Date.now().toString(36)}`;
+  }
+}
 
 function normalizeDeviceLabel(raw: string): string {
   const lower = raw.trim().toLowerCase();
@@ -23,12 +63,12 @@ function normalizeOsLabel(raw: string): string {
   if (lower === 'windows') return 'Windows';
   if (lower === 'android') return 'Android';
   if (lower === 'linux') return 'Linux';
-  return trimmed || 'Other';
+  return trimmed || 'Khác';
 }
 
 function normalizeBrowserLabel(raw: string): string {
   const trimmed = raw.trim();
-  if (!trimmed) return 'Other';
+  if (!trimmed) return 'Khác';
   return trimmed;
 }
 
@@ -47,7 +87,6 @@ function normalizeAggregates(raw: Record<string, any> | undefined) {
     target[key] = (target[key] || 0) + num;
   };
 
-  // 1. Read nested maps if present
   if (raw.os && typeof raw.os === 'object') {
     for (const [k, v] of Object.entries(raw.os)) {
       addCount(os, normalizeOsLabel(k), v);
@@ -61,20 +100,6 @@ function normalizeAggregates(raw: Record<string, any> | undefined) {
   if (raw.devices && typeof raw.devices === 'object') {
     for (const [k, v] of Object.entries(raw.devices)) {
       addCount(devices, normalizeDeviceLabel(k), v);
-    }
-  }
-
-  // 2. Read dotted top-level keys written by setDoc({ "os.Windows": increment(1) }, { merge: true })
-  for (const [fullKey, val] of Object.entries(raw)) {
-    if (fullKey.startsWith('os.')) {
-      const subKey = fullKey.slice(3);
-      addCount(os, normalizeOsLabel(subKey), val);
-    } else if (fullKey.startsWith('browsers.')) {
-      const subKey = fullKey.slice(9);
-      addCount(browsers, normalizeBrowserLabel(subKey), val);
-    } else if (fullKey.startsWith('devices.')) {
-      const subKey = fullKey.slice(8);
-      addCount(devices, normalizeDeviceLabel(subKey), val);
     }
   }
 
@@ -94,106 +119,129 @@ class AnalyticsService {
     this.parser = new UAParser();
   }
 
-  async logVisit(uid: string) {
+  private getClientDemographics() {
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+    this.parser.setUA(ua);
+    const result = this.parser.getResult();
+
+    const osName = normalizeOsLabel(
+      result.os.name ||
+        (/Windows/i.test(ua)
+          ? 'Windows'
+          : /iOS|iPhone|iPad/i.test(ua)
+            ? 'iOS'
+            : /Mac/i.test(ua)
+              ? 'macOS'
+              : /Android/i.test(ua)
+                ? 'Android'
+                : /Linux/i.test(ua)
+                  ? 'Linux'
+                  : 'Khác')
+    );
+
+    const browserName = normalizeBrowserLabel(
+      result.browser.name ||
+        (ua.includes('Edg')
+          ? 'Edge'
+          : ua.includes('Chrome')
+            ? 'Chrome'
+            : ua.includes('Firefox')
+              ? 'Firefox'
+              : ua.includes('Safari')
+                ? 'Safari'
+                : 'Khác')
+    );
+
+    const deviceType = normalizeDeviceLabel(
+      result.device.type ||
+        (/Mobi|Android/i.test(ua)
+          ? 'Mobile'
+          : /Tablet|iPad/i.test(ua)
+            ? 'Tablet'
+            : 'Desktop')
+    );
+
+    return { osName, browserName, deviceType };
+  }
+
+  private async ensureDailyUniqueVisitor(): Promise<void> {
+    if (isBotOrAutomated()) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const visitorId = getOrCreateVisitorId();
+    const { osName, browserName, deviceType } = this.getClientDemographics();
+
+    const dailyRef = doc(db, COLLECTIONS.DAILY, today);
+    const visitorRef = doc(db, COLLECTIONS.DAILY, today, 'visitors', visitorId);
+    const aggRef = doc(db, COLLECTIONS.AGGREGATES, 'global_stats');
+
+    await runTransaction(db, async (transaction) => {
+      const visitorDoc = await transaction.get(visitorRef);
+      if (!visitorDoc.exists()) {
+        transaction.set(visitorRef, {
+          timestamp: new Date(),
+          os: osName,
+          browser: browserName,
+          device: deviceType,
+        });
+
+        transaction.set(
+          dailyRef,
+          {
+            date: today,
+            visitors: increment(1),
+          },
+          { merge: true }
+        );
+
+        transaction.set(
+          aggRef,
+          {
+            os: { [osName]: increment(1) },
+            browsers: { [browserName]: increment(1) },
+            devices: { [deviceType]: increment(1) },
+            total_visits: increment(1),
+          },
+          { merge: true }
+        );
+      }
+    });
+  }
+
+  async logVisit(_uid: string) {
     try {
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-      const result = this.parser.getResult();
-
-      const osName = normalizeOsLabel(result.os.name || 'Other');
-      const browserName = normalizeBrowserLabel(result.browser.name || 'Other');
-      const deviceType = normalizeDeviceLabel(result.device.type || 'Desktop');
-
-      const dailyRef = doc(db, COLLECTIONS.DAILY, today);
-      const visitorRef = doc(db, COLLECTIONS.DAILY, today, 'visitors', uid);
-      const aggRef = doc(db, COLLECTIONS.AGGREGATES, 'global_stats');
-
-      await runTransaction(db, async (transaction) => {
-        const visitorDoc = await transaction.get(visitorRef);
-
-        if (!visitorDoc.exists()) {
-          // New unique visitor for today
-          transaction.set(visitorRef, { timestamp: new Date() });
-
-          // Increment daily visitors
-          transaction.set(
-            dailyRef,
-            {
-              date: today,
-              visitors: increment(1),
-            },
-            { merge: true }
-          );
-
-          // Update Aggregates using nested maps so Firestore merges properly
-          transaction.set(
-            aggRef,
-            {
-              os: { [osName]: increment(1) },
-              browsers: { [browserName]: increment(1) },
-              devices: { [deviceType]: increment(1) },
-              total_visits: increment(1),
-            },
-            { merge: true }
-          );
-        }
-      });
+      await this.ensureDailyUniqueVisitor();
     } catch (error) {
-      console.error('Failed to log analytics:', error);
+      console.error('Failed to log analytics visit:', error);
     }
-  }
-
-  private detectBrowser(ua: string): string {
-    if (ua.includes('Firefox')) return 'Firefox';
-    if (ua.includes('Edg')) return 'Edge';
-    if (ua.includes('Chrome')) return 'Chrome';
-    if (ua.includes('Safari')) return 'Safari';
-    if (ua.includes('Opera') || ua.includes('OPR')) return 'Opera';
-    return 'Other';
-  }
-
-  private detectDevice(ua: string, width: number): string {
-    if (/Mobi|Android/i.test(ua) || width < 768) return 'Mobile';
-    if (/Tablet|iPad/i.test(ua) || (width >= 768 && width < 1024)) return 'Tablet';
-    return 'Desktop';
   }
 
   async logPageView() {
     try {
+      if (isBotOrAutomated()) return;
+
       const today = new Date().toISOString().split('T')[0];
       const dailyRef = doc(db, COLLECTIONS.DAILY, today);
       const aggRef = doc(db, COLLECTIONS.AGGREGATES, 'global_stats');
 
-      const ua = navigator.userAgent;
-      const browserName = this.detectBrowser(ua);
-      const deviceType = this.detectDevice(ua, window.innerWidth);
-      const osName = /Windows/i.test(ua)
-        ? 'Windows'
-        : /iOS|iPhone|iPad/i.test(ua)
-          ? 'iOS'
-          : /Mac/i.test(ua)
-            ? 'macOS'
-            : /Android/i.test(ua)
-              ? 'Android'
-              : /Linux/i.test(ua)
-                ? 'Linux'
-                : 'Other';
-
-      const updates = {
-        date: today,
-        page_views: increment(1),
-      };
-
-      const aggUpdates = {
-        total_page_views: increment(1),
-        os: { [osName]: increment(1) },
-        browsers: { [browserName]: increment(1) },
-        devices: { [deviceType]: increment(1) },
-      };
-
-      const p1 = setDoc(dailyRef, updates, { merge: true });
-      const p2 = setDoc(aggRef, aggUpdates, { merge: true });
-
-      await Promise.all([p1, p2]);
+      await Promise.all([
+        this.ensureDailyUniqueVisitor(),
+        setDoc(
+          dailyRef,
+          {
+            date: today,
+            page_views: increment(1),
+          },
+          { merge: true }
+        ),
+        setDoc(
+          aggRef,
+          {
+            total_page_views: increment(1),
+          },
+          { merge: true }
+        ),
+      ]);
     } catch (error) {
       console.error('Failed to log page view:', error);
     }
