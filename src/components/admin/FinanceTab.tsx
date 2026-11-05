@@ -556,9 +556,9 @@ export const FinanceTab: React.FC = () => {
                 <span>• {currentBatch.description}</span>
               )}
             </div>
-            <div className="flex items-center gap-3">
-              {currentBatch.status === 'closed' &&
-                currentBatch.id !== PRE_NOV_BATCH_ID && (
+            {currentBatch.status === 'closed' &&
+              currentBatch.id !== PRE_NOV_BATCH_ID && (
+                <div className="flex items-center gap-3">
                   <button
                     type="button"
                     onClick={() => handleReopenBatch(currentBatch)}
@@ -567,18 +567,8 @@ export const FinanceTab: React.FC = () => {
                     <RotateCcw className="w-3.5 h-3.5" />
                     Mở lại đợt này
                   </button>
-                )}
-              {currentBatch.status === 'active' && (
-                <button
-                  type="button"
-                  onClick={() => setConfirmCloseBatch(currentBatch)}
-                  className="inline-flex items-center gap-1 text-destructive hover:underline font-medium"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  Chốt & Kết thúc đợt này
-                </button>
+                </div>
               )}
-            </div>
           </div>
         )}
       </div>

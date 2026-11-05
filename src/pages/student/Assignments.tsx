@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { assignmentService } from '../../services/assignment.service';
 import { Course, courseService } from '../../services/course.service';
+import { Order, orderService } from '../../services/order.service';
 import { Assignment } from '../../types';
 import { BookOpen, ChevronRight, AlertCircle, Clock, ArrowLeft, Maximize, Minimize } from 'lucide-react';
 import { formatDate, safeString } from '../../lib/formatters';
@@ -17,6 +18,7 @@ export const StudentAssignments: React.FC = () => {
   const searchQuery = (searchParams.get('q') || '').toLowerCase();
   const [allAssignments, setAllAssignments] = useState<Assignment[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [userOrders, setUserOrders] = useState<Order[]>([]);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
   const [isFetchingAssignments, setIsFetchingAssignments] = useState(true);
   const [isFetchingCourses, setIsFetchingCourses] = useState(true);
@@ -46,7 +48,10 @@ export const StudentAssignments: React.FC = () => {
         setCourses(data);
         setIsFetchingCourses(false);
     });
-    return () => unsubCourses();
+    const unsubOrders = orderService.subscribeToUserOrders(user.uid, (data) => {
+        setUserOrders(data);
+    });
+    return () => { unsubCourses(); unsubOrders(); };
   }, [user]);
 
   useEffect(() => {
@@ -65,8 +70,12 @@ export const StudentAssignments: React.FC = () => {
 
   const assignments = useMemo(() => {
       if (!user) return [];
-      const enrolledCourseIds = user.enrolledCourses || [];
-      const activeEnrolledCourses = courses.filter(c => enrolledCourseIds.includes(c.id));
+      const enrolledSet = new Set<string>(user.enrolledCourses || []);
+      userOrders.filter(o => o.status === 'paid' || o.status === 'pay_later').forEach(o => {
+          if (o.courseId) enrolledSet.add(o.courseId);
+          if (Array.isArray(o.items)) o.items.forEach(i => { if (i.courseId) enrolledSet.add(i.courseId); });
+      });
+      const activeEnrolledCourses = courses.filter(c => enrolledSet.has(c.id));
 
       const allowedAssignmentIds = new Set<string>();
       activeEnrolledCourses.forEach(c => {
@@ -76,7 +85,7 @@ export const StudentAssignments: React.FC = () => {
       });
 
       return allAssignments.filter(a => a.id && allowedAssignmentIds.has(a.id));
-  }, [user, courses, allAssignments]);
+  }, [user, courses, allAssignments, userOrders]);
 
   // Extract unique subjects
   const availableSubjects = useMemo(() => {

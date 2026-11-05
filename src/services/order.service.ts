@@ -1,4 +1,17 @@
-import { collection, doc, getDocs, getDoc, setDoc, updateDoc, deleteDoc, query, serverTimestamp, onSnapshot, where } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  getDocs,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  serverTimestamp,
+  onSnapshot,
+  where,
+  arrayUnion,
+} from 'firebase/firestore';
 import { db } from '../config/firebase';
 
 export type OrderStatus = 'pending' | 'paid' | 'pay_later' | 'cancelled';
@@ -13,8 +26,9 @@ export interface OrderItem {
 export interface Order {
   id: string;
   orderCode: string;
+  previousOrderCodes?: string[];
   displayCode?: string;
-  checkoutUrl?: string;
+  checkoutUrl?: string | null;
   userId: string;
   userEmail: string;
   userName: string;
@@ -49,7 +63,6 @@ export function isFreeNonVoucherOrder(order: Partial<Order>): boolean {
     return false;
   }
 
-  // Also check items in case originalAmount was omitted on legacy orders
   if (Array.isArray(order.items) && order.items.some((item) => Number(item.price ?? 0) > 0)) {
     return false;
   }
@@ -60,25 +73,54 @@ export function isFreeNonVoucherOrder(order: Partial<Order>): boolean {
 class OrderService {
   private collection = collection(db, 'orders');
 
-  async createOrder(orderData: Omit<Order, 'id' | 'orderCode' | 'createdAt' | 'updatedAt'>): Promise<string> {
+  async createOrder(
+    orderData: Omit<Order, 'id' | 'orderCode' | 'createdAt' | 'updatedAt'>
+  ): Promise<string> {
     const newDoc = doc(this.collection);
-    // PayOS requires orderCode to be an Int32 number
     const orderCodeNum = Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 9000);
     const orderCode = String(orderCodeNum);
-    // Generate a human readable display code (e.g. DH1234 KH5678)
-    const userSuffix = orderData.userId ? orderData.userId.substring(0, 4).toUpperCase() : 'GUst';
+    const userSuffix = orderData.userId
+      ? orderData.userId.substring(0, 4).toUpperCase()
+      : 'GUst';
     const displayCode = `DH${String(orderCodeNum).slice(-4)} KH${userSuffix}`;
 
     const data = {
       ...orderData,
       id: newDoc.id,
       orderCode,
+      previousOrderCodes: [orderCode],
       displayCode,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
     await setDoc(newDoc, data);
     return newDoc.id;
+  }
+
+  /**
+   * Generates a fresh PayOS orderCode while preserving the old orderCode in `previousOrderCodes`
+   * so that if the user pays an older QR code or a new QR code, both match this order.
+   */
+  async rotateOrderCode(order: Order): Promise<{ orderCode: string; displayCode: string }> {
+    const newOrderCodeNum =
+      Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 9000);
+    const newOrderCode = String(newOrderCodeNum);
+    const userSuffix = order.userId
+      ? order.userId.substring(0, 4).toUpperCase()
+      : 'GUst';
+    const displayCode = `DH${String(newOrderCodeNum).slice(-4)} KH${userSuffix}`;
+
+    const oldCodes = [String(order.orderCode), newOrderCode].filter(Boolean);
+
+    await updateDoc(doc(db, 'orders', order.id), {
+      orderCode: newOrderCode,
+      previousOrderCodes: arrayUnion(...oldCodes),
+      displayCode,
+      checkoutUrl: null,
+      updatedAt: serverTimestamp(),
+    });
+
+    return { orderCode: newOrderCode, displayCode };
   }
 
   async updateOrderStatus(id: string, status: OrderStatus): Promise<void> {

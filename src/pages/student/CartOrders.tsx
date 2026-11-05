@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useCart } from '../../contexts/CartContext';
 import { orderService, Order } from '../../services/order.service';
 import { useAuth } from '../../hooks/useAuth';
-import { useNavigate, Link } from 'react-router-dom';
-import { BookOpen, ShoppingCart, Clock, CheckCircle, ArrowLeft, Loader2, CreditCard, Banknote, Tag } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { BookOpen, ShoppingCart, Clock, CheckCircle, Loader2, CreditCard, Banknote } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const CartOrders: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const { cartItems, removeFromCart, clearCart } = useCart();
+    const { cartItems, removeFromCart } = useCart();
 
     const [activeTab, setActiveTab] = useState<'cart' | 'pending' | 'paid'>('cart');
     const [orders, setOrders] = useState<Order[]>([]);
@@ -37,6 +37,34 @@ export const CartOrders: React.FC = () => {
         }
         return () => unsub();
     }, [user]);
+
+    // Tự động đồng bộ (Auto-heal) enrolledCourses từ các đơn hàng đã thanh toán / trả sau
+    useEffect(() => {
+        if (!user?.uid || orders.length === 0) return;
+        const currentEnrolled = new Set<string>(user.enrolledCourses || []);
+        const missingIds: string[] = [];
+
+        orders.forEach(o => {
+            if (o.status === 'paid' || o.status === 'pay_later') {
+                if (Array.isArray(o.items)) {
+                    o.items.forEach(item => {
+                        if (item.courseId && !currentEnrolled.has(item.courseId)) {
+                            missingIds.push(item.courseId);
+                        }
+                    });
+                } else if ((o as any).courseId && !currentEnrolled.has((o as any).courseId)) {
+                    missingIds.push((o as any).courseId);
+                }
+            }
+        });
+
+        if (missingIds.length > 0) {
+            const uniqueMissing = Array.from(new Set(missingIds));
+            updateDoc(doc(db, 'users', user.uid), {
+                enrolledCourses: arrayUnion(...uniqueMissing)
+            }).catch(() => {});
+        }
+    }, [user?.uid, user?.enrolledCourses, orders]);
 
     const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.checked) {
@@ -77,6 +105,12 @@ export const CartOrders: React.FC = () => {
             itemsToCheckout.forEach(item => removeFromCart(item.id));
 
             if (totalPrice === 0) {
+                const courseIds = items.map(i => i.courseId).filter(Boolean);
+                if (courseIds.length > 0) {
+                    await updateDoc(doc(db, 'users', user.uid), {
+                        enrolledCourses: arrayUnion(...courseIds)
+                    }).catch(() => {});
+                }
                 toast.success("Nhận khóa học miễn phí thành công!");
                 setActiveTab('paid');
                 return;
@@ -96,27 +130,15 @@ export const CartOrders: React.FC = () => {
         }
     };
 
-    // Khởi tạo thanh toán lại cho đơn hàng cũ
-    // Tạo orderCode mới để PayOS chấp nhận (không bị trùng)
+    // Tiếp tục thanh toán an toàn:
+    // - Nếu đơn đã có checkoutUrl hợp lệ, mở lại trang QR hiện tại (học sinh có thể bấm "Tạo mã QR mới" nếu link hết hạn).
+    // - Nếu chưa có checkoutUrl, xoay mã orderCode mới nhưng vẫn giữ lại mã cũ trong previousOrderCodes để tránh mất đồng bộ.
     const handleContinuePayment = async (order: Order) => {
         setIsCheckingOut(true);
         try {
-            // Because PayOS throws error on duplicate orderCode, we just generate a brand new order
-            // with the same items and cancel the old one, OR we could just update the orderCode.
-            // But Firestore document ID is not orderCode. We can just update orderCode in the document.
-            const newOrderCodeNum = Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 9000);
-            const newOrderCode = String(newOrderCodeNum);
-            const userSuffix = order.userId ? order.userId.substring(0, 4).toUpperCase() : 'GUst';
-            const displayCode = `DH${String(newOrderCodeNum).slice(-4)} KH${userSuffix}`;
-
-            // We update the existing order with the new orderCode so PayOS thinks it's a new request
-            // And we clear the checkoutUrl so it generates a new one.
-            await updateDoc(doc(db, 'orders', order.id), {
-                orderCode: newOrderCode,
-                displayCode: displayCode,
-                checkoutUrl: null // clear old URL
-            });
-
+            if (!order.checkoutUrl) {
+                await orderService.rotateOrderCode(order);
+            }
             navigate(`/student/payment?orderId=${order.id}`);
         } catch (err) {
             console.error(err);
