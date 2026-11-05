@@ -32,6 +32,7 @@ import {
   resolveTransactionBatchId,
   getTransactionDateMs,
 } from '../../services/finance.service';
+import { orderService, Order } from '../../services/order.service';
 import { useAuth } from '../../hooks/useAuth';
 import { toast } from 'sonner';
 
@@ -43,6 +44,7 @@ export const FinanceTab: React.FC = () => {
 
   const [timePeriod, setTimePeriod] = useState<'today' | 'week' | 'month' | 'all'>('all');
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Transaction form state
@@ -78,11 +80,22 @@ export const FinanceTab: React.FC = () => {
     const unsubBatches = financeService.subscribeToBatches((data) => {
       setBatches(data);
     });
+    const unsubOrders = orderService.subscribeToOrders((data) => {
+      setOrders(data);
+    });
     return () => {
       unsubTx();
       unsubBatches();
+      unsubOrders();
     };
   }, []);
+
+  // Automatically sync any paid orders (e.g. from PayOS QR or Orders page) into financial_transactions & active batch
+  useEffect(() => {
+    if (!loading && orders.length > 0 && batches.length > 0) {
+      financeService.syncPaidOrdersToTransactions(orders, transactions, batches);
+    }
+  }, [loading, orders, transactions, batches]);
 
   const activeBatch = useMemo(
     () => batches.find((b) => b.status === 'active') || null,
@@ -251,7 +264,8 @@ export const FinanceTab: React.FC = () => {
     if (!confirmCloseBatch) return;
     setBatchSaving(true);
     try {
-      await financeService.closeBatch(confirmCloseBatch.id);
+      const txIds = (transactionsByBatch[confirmCloseBatch.id] || []).map((t) => t.id);
+      await financeService.closeBatch(confirmCloseBatch.id, txIds);
       toast.success(`Đã kết thúc và chốt sổ "${confirmCloseBatch.name}"`);
       setConfirmCloseBatch(null);
     } catch (err) {

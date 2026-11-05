@@ -293,6 +293,7 @@ export const AdminOrders: React.FC = () => {
             order.voucherCode ? `- ${order.voucherCode}` : ''
           }`.trim();
           await financeService.addTransaction({
+            orderId: order.id,
             type: 'income',
             category: 'Bán khóa học',
             amount: order.amount,
