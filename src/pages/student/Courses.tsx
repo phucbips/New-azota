@@ -6,7 +6,7 @@ import { db } from '../../config/firebase';
 import { Order, orderService } from '../../services/order.service';
 import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../contexts/CartContext';
-import { BookOpen, Tag, ShoppingCart, Loader2, CheckCircle } from 'lucide-react';
+import { BookOpen, Tag, ShoppingCart, Loader2, CheckCircle, Search, Filter, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -17,6 +17,10 @@ export const StudentCourses: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
+
+  // Filter States
+  const [searchQuery, setSearchQuery] = useState('');
+  const [courseFilter, setCourseFilter] = useState<'all' | 'owned' | 'unowned' | 'free'>('all');
 
   useEffect(() => {
     const unsubCourses = courseService.subscribeToCourses((data) => {
@@ -158,6 +162,37 @@ export const StudentCourses: React.FC = () => {
     return 'unpurchased';
   };
 
+  const filterCounts = useMemo(() => {
+    let owned = 0;
+    let unowned = 0;
+    let free = 0;
+
+    courses.forEach((c) => {
+      const st = getCourseStatus(c.id);
+      if (st === 'paid') owned++;
+      else unowned++;
+      if (c.price === 0) free++;
+    });
+
+    return { all: courses.length, owned, unowned, free };
+  }, [courses, enrolledSet, orders]);
+
+  const filteredCourses = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    return courses.filter((c) => {
+      const st = getCourseStatus(c.id);
+      if (courseFilter === 'owned' && st !== 'paid') return false;
+      if (courseFilter === 'unowned' && st === 'paid') return false;
+      if (courseFilter === 'free' && c.price !== 0) return false;
+
+      if (q) {
+        const hay = `${c.title || ''} ${c.description || ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [courses, courseFilter, searchQuery, enrolledSet, orders]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -170,11 +205,75 @@ export const StudentCourses: React.FC = () => {
     <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-10">
       <PageHeader
         title="Danh sách Khóa học"
-        subtitle="Khám phá và đăng ký các khóa học mới nhất."
+        subtitle="Khám phá, lọc nhanh khóa học đã sở hữu hoặc đăng ký khóa học mới."
       />
 
+      {/* Course Filter Bar */}
+      {courses.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 shadow-sm">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs font-semibold text-muted-foreground mr-1 flex items-center gap-1">
+              <Filter className="w-3.5 h-3.5" /> Bộ lọc:
+            </span>
+            {(
+              [
+                { id: 'all', label: 'Tất cả khóa học', count: filterCounts.all },
+                { id: 'owned', label: 'Đã sở hữu', count: filterCounts.owned },
+                { id: 'unowned', label: 'Chưa đăng ký', count: filterCounts.unowned },
+                { id: 'free', label: 'Miễn phí', count: filterCounts.free },
+              ] as const
+            ).map((tab) => {
+              const active = courseFilter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setCourseFilter(tab.id)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    active
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[11px] ${
+                      active
+                        ? 'bg-primary-foreground/20 text-primary-foreground'
+                        : 'bg-background text-muted-foreground'
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="relative w-full md:w-72">
+            <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tìm tên khóa học..."
+              className="w-full pl-9 pr-8 py-1.5 bg-background border border-input rounded-lg text-sm text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {courses.map((course) => {
+        {filteredCourses.map((course) => {
           const status = getCourseStatus(course.id);
           const pendingOrder = orders.find(
             (o) =>
@@ -239,7 +338,7 @@ export const StudentCourses: React.FC = () => {
                 <div className="mt-auto pt-5">
                   {status === 'paid' ? (
                     <Link
-                      to="/student/assignments"
+                      to={`/student/assignments?courseId=${course.id}`}
                       className="w-full py-2.5 bg-success/10 text-success border border-success/20 rounded-lg text-sm font-semibold hover:bg-success/15 transition-colors flex items-center justify-center gap-1.5"
                     >
                       <CheckCircle className="w-4 h-4" />
@@ -275,13 +374,26 @@ export const StudentCourses: React.FC = () => {
             </div>
           );
         })}
-        {courses.length === 0 && (
-          <div className="col-span-full py-20 text-center bg-card rounded-xl border border-border border-dashed">
-            <BookOpen className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-            <p className="text-lg font-medium text-foreground">
-              Hiện tại chưa có khóa học nào.
+        {filteredCourses.length === 0 && (
+          <div className="col-span-full py-16 text-center bg-card rounded-xl border border-border border-dashed">
+            <BookOpen className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="text-base font-semibold text-foreground">
+              {courses.length === 0
+                ? 'Hiện tại chưa có khóa học nào.'
+                : 'Không tìm thấy khóa học phù hợp với bộ lọc.'}
             </p>
-            <p className="text-muted-foreground">Vui lòng quay lại sau.</p>
+            {courses.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setCourseFilter('all');
+                  setSearchQuery('');
+                }}
+                className="mt-3 px-4 py-2 text-xs font-semibold bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                Xem tất cả khóa học
+              </button>
+            )}
           </div>
         )}
       </div>

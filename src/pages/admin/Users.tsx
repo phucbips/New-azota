@@ -6,8 +6,8 @@ export const AdminUsers: React.FC = () => {
   return (
     <div className="flex flex-col gap-6 h-full">
       <PageHeader
-        title="Quản lý User"
-        subtitle="Manage system access and roles across the organization."
+        title="Quản lý Học sinh & Người dùng"
+        subtitle="Phân loại học sinh theo khối lớp, khóa học và cấp quyền truy cập hệ thống."
       />
 
       <div className="bg-card rounded-xl shadow-sm border border-border p-6">
