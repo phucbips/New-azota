@@ -19,7 +19,7 @@ export const TrafficChart: React.FC<TrafficChartProps> = ({ data }) => {
   return (
     <div className="bg-card p-6 rounded-xl border border-border shadow-sm flex flex-col h-[350px]">
       <div className="mb-6">
-          <h3 className="text-lg font-bold text-card-foreground">Visitors</h3>
+          <h3 className="text-lg font-semibold text-card-foreground">Visitors</h3>
           <p className="text-sm text-muted-foreground">Lưu lượng truy cập 7 ngày qua</p>
       </div>
       <div className="flex-1 w-full min-h-0">

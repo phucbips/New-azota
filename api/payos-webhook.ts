@@ -2,21 +2,19 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import admin from 'firebase-admin';
 import crypto from 'crypto';
 
-// Initialize Firebase Admin dynamically inside handler to avoid top level crashes
 const initAdmin = () => {
     if (!admin.apps?.length) {
         try {
             if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
                 try {
                     const serviceAccountStr = process.env.FIREBASE_SERVICE_ACCOUNT_KEY.trim();
-                    // Handle case where Vercel environment variables might escape newlines incorrectly
                     const parsedStr = serviceAccountStr.replace(/\\\\n/g, '\\n');
                     const serviceAccount = JSON.parse(parsedStr);
                     admin.initializeApp({
                         credential: admin.credential.cert(serviceAccount)
                     });
                 } catch (parseError) {
-                    console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY as JSON - String was: " + serviceAccountStr.substring(0, 50) + "...', parseError);
+                    console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY as JSON', parseError);
                 }
             } else if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
                 admin.initializeApp({
@@ -38,7 +36,6 @@ const initAdmin = () => {
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    // CORS Configuration
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -58,47 +55,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             try {
                 body = JSON.parse(body);
             } catch (e) {
-                console.log('Non-JSON request received, returning success');
                 return res.status(200).json({ success: true });
             }
         }
-
-        console.log('Webhook received:', JSON.stringify(body));
 
         const code = body?.code;
         const data = body?.data;
         const signature = body?.signature;
 
-        // BẢO MẬT: Xác minh chữ ký (Signature Checksum) HMAC-SHA256
-        // Bước 1: Lấy CHECKSUM_KEY từ môi trường (chỉ server và PayOS biết)
         const checksumKey = process.env.PAYOS_CHECKSUM_KEY;
 
         if (checksumKey && data && signature) {
-            // Bước 2: Tạo mảng chứa các keys của object data, sắp xếp theo Alphabet (A-Z)
             const sortedDataKeys = Object.keys(data).sort();
-
-            // Bước 3: Nối các value thành chuỗi với định dạng key=value, cách nhau bằng dấu &
             const signData = sortedDataKeys
                 .map((key) => `${key}=${data[key]}`)
                 .join('&');
 
-            // Bước 4: Dùng thuật toán HMAC-SHA256 với CHECKSUM_KEY để băm (hash) chuỗi data ở bước 3
             const generatedSignature = crypto
                 .createHmac('sha256', checksumKey)
                 .update(signData)
                 .digest('hex');
 
-            // Bước 5: So sánh chữ ký tạo ra với chữ ký PayOS gửi lên
             if (generatedSignature !== signature) {
                 console.error('Invalid signature. Potential spoofing attack detected!');
-                // Ngắt ngay lập tức, không cập nhật CSDL
                 return res.status(200).json({ success: false, message: 'Invalid signature' });
             }
         }
 
-        // Handle missing/invalid data gracefully
         if (!data || !data.orderCode) {
-            console.log('No orderCode in webhook data - test request or invalid payload');
             return res.status(200).json({ success: true });
         }
 
@@ -113,10 +97,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const orderCode = String(data.orderCode);
         const paymentStatus = code === '00' ? 'paid' : 'cancelled';
 
-        // Find payment
+        // Find payment by current orderCode (number or string) OR in previousOrderCodes array (for resumed payments)
         let snapshot = await db.collection('orders').where('orderCode', '==', Number(orderCode)).limit(1).get();
         if (snapshot.empty) {
             snapshot = await db.collection('orders').where('orderCode', '==', String(orderCode)).limit(1).get();
+        }
+        if (snapshot.empty) {
+            snapshot = await db.collection('orders').where('previousOrderCodes', 'array-contains', String(orderCode)).limit(1).get();
         }
 
         if (snapshot.empty) {
@@ -128,7 +115,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const orderData = orderDoc.data();
 
         if (orderData.status === 'paid') {
-            console.log(`Order ${orderCode} already paid. Skipping.`);
             return res.status(200).json({ success: true });
         }
 
@@ -136,39 +122,96 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             await orderDoc.ref.update({
                 status: 'paid',
                 paidAt: admin.firestore.FieldValue.serverTimestamp(),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
                 paymentMethod: 'bank_transfer'
             });
 
-            if (orderData.items && Array.isArray(orderData.items)) {
-                const courseIds: string[] = [];
-                for (const item of orderData.items) {
-                    courseIds.push(item.courseId);
+            const courseIds: string[] = [];
+            const courseTitles: string[] = [];
 
-                    const cRef = db.collection('courses').doc(item.courseId);
+            if (orderData.items && Array.isArray(orderData.items)) {
+                for (const item of orderData.items) {
+                    if (item.courseId) courseIds.push(item.courseId);
+                    if (item.courseTitle) courseTitles.push(item.courseTitle);
+                }
+            } else if (orderData.courseId) {
+                courseIds.push(orderData.courseId);
+                if (orderData.courseTitle) courseTitles.push(orderData.courseTitle);
+            }
+
+            // Increment enrollmentCount for each course
+            for (const cid of courseIds) {
+                try {
+                    const cRef = db.collection('courses').doc(cid);
                     await db.runTransaction(async (t) => {
                         const cDoc = await t.get(cRef);
                         if (cDoc.exists) {
                             t.update(cRef, { enrollmentCount: admin.firestore.FieldValue.increment(1) });
                         }
                     });
+                } catch (cErr) {
+                    console.warn('Could not increment course enrollmentCount:', cErr);
                 }
+            }
 
-                if (orderData.userId && courseIds.length > 0) {
+            // Grant courses to student immediately
+            if (orderData.userId && courseIds.length > 0) {
+                try {
                     const userRef = db.collection('users').doc(orderData.userId);
-                    await userRef.update({
+                    await userRef.set({
                         enrolledCourses: admin.firestore.FieldValue.arrayUnion(...courseIds)
-                    });
+                    }, { merge: true });
+                } catch (uErr) {
+                    console.error('Could not update user enrolledCourses:', uErr);
+                }
+            }
+
+            // Increment voucher usage safely by querying code
+            if (orderData.voucherCode) {
+                try {
+                    const vSnap = await db.collection('vouchers').where('code', '==', orderData.voucherCode).limit(1).get();
+                    if (!vSnap.empty) {
+                        await vSnap.docs[0].ref.update({
+                            usageCount: admin.firestore.FieldValue.increment(1)
+                        });
+                    }
+                } catch (vErr) {
+                    console.warn('Could not increment voucher usage:', vErr);
+                }
+            }
+
+            // Automatically record financial transaction and assign to active sales batch
+            const paidAmount = Number(orderData.amount ?? data.amount ?? 0);
+            if (paidAmount > 0) {
+                let activeBatchId: string | null = null;
+                try {
+                    const batchesSnap = await db.collection('app_settings').doc('finance_batches').get();
+                    if (batchesSnap.exists) {
+                        const batchesList = batchesSnap.data()?.batches;
+                        if (Array.isArray(batchesList)) {
+                            const active = batchesList.find((b: any) => b.status === 'active');
+                            if (active?.id) activeBatchId = active.id;
+                        }
+                    }
+                } catch (batchErr) {
+                    console.warn('Could not read active batch in webhook:', batchErr);
                 }
 
-                if (orderData.voucherCode) {
-                    const voucherRef = db.collection('vouchers').doc(orderData.voucherCode);
-                    await db.runTransaction(async (t) => {
-                        const vDoc = await t.get(voucherRef);
-                        if (vDoc.exists) {
-                            t.update(voucherRef, { usedCount: admin.firestore.FieldValue.increment(1) });
-                        }
-                    });
-                }
+                const titlesStr = courseTitles.length > 0 ? courseTitles.join(', ') : (orderData.courseTitle || 'Khóa học');
+                const desc = `${orderData.userEmail || orderData.userName || orderCode} - ${titlesStr}${orderData.voucherCode ? ` - ${orderData.voucherCode}` : ''}`.trim();
+                const txId = `order_${orderDoc.id}`;
+
+                await db.collection('financial_transactions').doc(txId).set({
+                    id: txId,
+                    orderId: orderDoc.id,
+                    type: 'income',
+                    category: 'Bán khóa học',
+                    amount: paidAmount,
+                    description: desc,
+                    batchId: activeBatchId,
+                    createdBy: 'payos_webhook',
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                }, { merge: true });
             }
         }
 
@@ -176,7 +219,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     } catch (error: unknown) {
         console.error('Webhook error:', error);
-        // Always return success to PayOS to prevent retry loops
         return res.status(200).json({ success: true });
     }
 }

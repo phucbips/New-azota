@@ -1,6 +1,5 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Globe } from 'lucide-react';
 
 export const LanguageToggle: React.FC = () => {
   const { i18n } = useTranslation();
@@ -13,7 +12,7 @@ export const LanguageToggle: React.FC = () => {
   return (
     <button
       onClick={toggleLanguage}
-      className="p-2 rounded-full transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold text-xs flex items-center justify-center w-9 h-9 border border-slate-200 dark:border-slate-700"
+      className="flex h-8 min-w-9 items-center justify-center rounded-md border border-border px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
       title="Switch Language"
     >
       {i18n.language === 'en' ? 'EN' : 'VI'}

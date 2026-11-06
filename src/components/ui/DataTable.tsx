@@ -68,10 +68,10 @@ export function DataTable<TData, TValue>({
     <div className="w-full space-y-4 relative">
       {/* Floating Bulk Action Bar */}
       {Object.keys(rowSelection).length > 0 && (
-        <div className="absolute top-0 left-0 right-0 z-10 mx-auto w-full max-w-2xl transform -translate-y-2 animate-in slide-in-from-top-4 fade-in duration-200">
-            <div className="bg-primary text-primary-foreground rounded-full shadow-xl px-6 py-3 flex items-center justify-between gap-4">
+        <div className="absolute top-0 left-0 right-0 z-10 mx-auto w-full max-w-2xl -translate-y-2 animate-in slide-in-from-top-4 fade-in duration-200">
+            <div className="bg-primary text-primary-foreground rounded-full shadow-md px-6 py-3 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="bg-white/20 px-2 py-0.5 rounded text-sm font-bold">
+                    <div className="bg-background/20 px-2 py-0.5 rounded text-sm font-semibold">
                         {selectedRows.length}
                     </div>
                     <span className="text-sm font-medium">Selected</span>
@@ -86,14 +86,14 @@ export function DataTable<TData, TValue>({
                                 onBulkDelete(selectedRows);
                                 setRowSelection({});
                             }}
-                            className="p-2 hover:bg-white/20 rounded-full transition-colors text-white"
+                            className="p-2 hover:bg-background/20 rounded-full transition-colors text-white"
                             title="Delete Selected"
                         >
                             <Trash2 className="w-4 h-4" />
                         </button>
                     )}
 
-                    <div className="h-4 w-px bg-white/20 mx-2"></div>
+                    <div className="h-4 w-px bg-background/20 mx-2"></div>
 
                     <button
                         onClick={() => setRowSelection({})}

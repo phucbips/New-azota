@@ -62,7 +62,7 @@ export const NotificationManager: React.FC = () => {
         <div className="p-2 bg-primary/10 rounded-lg text-primary">
             <Send className="w-5 h-5" />
         </div>
-        <h2 className="text-lg font-bold text-card-foreground">Gửi thông báo</h2>
+        <h2 className="text-lg font-semibold text-card-foreground">Gửi thông báo</h2>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -74,7 +74,7 @@ export const NotificationManager: React.FC = () => {
                     className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
                     placeholder="VD: Thông báo bảo trì..."
                 />
-                {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title.message}</p>}
+                {errors.title && <p className="text-xs text-destructive mt-1">{errors.title.message}</p>}
             </div>
 
             <div>
@@ -98,7 +98,7 @@ export const NotificationManager: React.FC = () => {
                 className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
                 placeholder="Nhập nội dung thông báo..."
             />
-            {errors.message && <p className="text-xs text-red-500 mt-1">{errors.message.message}</p>}
+            {errors.message && <p className="text-xs text-destructive mt-1">{errors.message.message}</p>}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -131,7 +131,7 @@ export const NotificationManager: React.FC = () => {
             <button
                 type="submit"
                 disabled={loading}
-                className="px-6 py-2.5 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-lg shadow-primary/30 disabled:opacity-50 flex items-center gap-2"
+                className="px-6 py-2.5 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-colors shadow-md shadow-primary/30 disabled:opacity-50 flex items-center gap-2"
             >
                 <Send className="w-4 h-4" />
                 {loading ? 'Đang gửi...' : 'Gửi thông báo'}

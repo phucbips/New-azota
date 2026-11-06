@@ -1,100 +1,252 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { assignmentService } from '../../services/assignment.service';
 import { Course, courseService } from '../../services/course.service';
+import { Order, orderService } from '../../services/order.service';
 import { Assignment } from '../../types';
-import { BookOpen, ChevronRight, AlertCircle, Clock, ArrowLeft, Maximize, Minimize } from 'lucide-react';
+import {
+  BookOpen,
+  ChevronRight,
+  AlertCircle,
+  Clock,
+  ArrowLeft,
+  Maximize,
+  Minimize,
+  Search,
+  Filter,
+  GraduationCap,
+  CheckCircle2,
+  Circle,
+  X,
+  ArrowUpDown,
+} from 'lucide-react';
 import { formatDate, safeString } from '../../lib/formatters';
-import { SubjectFilterBar } from '../../components/student/SubjectFilterBar';
 import { StudentSupportWidget } from '../../components/student/StudentSupportWidget';
+import { SmartExamPlayer } from '../../components/student/SmartExamPlayer';
 import { Skeleton } from '../../components/shared/Skeleton';
 
 export const StudentAssignments: React.FC = () => {
   const { user } = useAuth();
-  const [searchParams] = useSearchParams();
-  const searchQuery = (searchParams.get('q') || '').toLowerCase();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlSearchQuery = searchParams.get('q') || '';
+  const urlCourseId = searchParams.get('courseId') || 'all';
+  const urlAssignmentId = searchParams.get('assignmentId') || '';
+
   const [allAssignments, setAllAssignments] = useState<Assignment[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [userOrders, setUserOrders] = useState<Order[]>([]);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
   const [isFetchingAssignments, setIsFetchingAssignments] = useState(true);
   const [isFetchingCourses, setIsFetchingCourses] = useState(true);
 
   // Filter States
-  const [selectedSubject, setSelectedSubject] = useState('All');
+  const [localSearch, setLocalSearch] = useState(urlSearchQuery);
+  const [selectedCourseId, setSelectedCourseId] = useState<string>(urlCourseId);
+  const [selectedSubject, setSelectedSubject] = useState<string>('all');
+  const [selectedGrade, setSelectedGrade] = useState<'all' | '10' | '11' | '12'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'todo' | 'completed'>('all');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'title'>('newest');
+
+  // Completed assignments tracking (persisted per student UID)
+  const storageKey = user?.uid ? `azota_completed_assignments_${user.uid}` : '';
+  const [completedIds, setCompletedIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!storageKey) return;
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setCompletedIds(parsed);
+      }
+    } catch {
+      // ignore localStorage read errors
+    }
+  }, [storageKey]);
+
+  const toggleCompleted = (assignmentId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (!assignmentId || !storageKey) return;
+    setCompletedIds((prev) => {
+      const next = prev.includes(assignmentId)
+        ? prev.filter((id) => id !== assignmentId)
+        : [...prev, assignmentId];
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(next));
+      } catch {
+        // ignore localStorage write errors
+      }
+      return next;
+    });
+  };
+
+  // Sync URL query params if changed externally
+  useEffect(() => {
+    if (urlSearchQuery) setLocalSearch(urlSearchQuery);
+  }, [urlSearchQuery]);
+
+  useEffect(() => {
+    if (urlCourseId && urlCourseId !== 'all') {
+      setSelectedCourseId(urlCourseId);
+    }
+  }, [urlCourseId]);
+
   const [isFullscreen, setIsFullscreen] = useState(false);
   const fullscreenContainerRef = React.useRef<HTMLDivElement>(null);
 
   // Sync state if user presses ESC to exit fullscreen
   useEffect(() => {
-      const onFullscreenChange = () => {
-          if (!document.fullscreenElement) {
-              setIsFullscreen(false);
-          }
-      };
-      document.addEventListener('fullscreenchange', onFullscreenChange);
-      return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+    const onFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        setIsFullscreen(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
   }, []);
 
   useEffect(() => {
     if (!user) {
-        setIsFetchingCourses(false);
-        return;
+      setIsFetchingCourses(false);
+      return;
     }
     const unsubCourses = courseService.subscribeToCourses((data) => {
-        setCourses(data);
-        setIsFetchingCourses(false);
+      setCourses(data);
+      setIsFetchingCourses(false);
     });
-    return () => unsubCourses();
+    const unsubOrders = orderService.subscribeToUserOrders(user.uid, (data) => {
+      setUserOrders(data);
+    });
+    return () => {
+      unsubCourses();
+      unsubOrders();
+    };
   }, [user]);
 
   useEffect(() => {
     if (!user) {
-        setIsFetchingAssignments(false);
-        return;
+      setIsFetchingAssignments(false);
+      return;
     }
     const unsubAssignments = assignmentService.subscribeToAllAssignments((data) => {
-        setAllAssignments(data);
-        setIsFetchingAssignments(false);
+      setAllAssignments(data);
+      setIsFetchingAssignments(false);
     });
     return () => unsubAssignments();
   }, [user]);
 
   const isLoading = isFetchingAssignments || isFetchingCourses;
 
+  // Danh sách các khóa học mà học sinh đang sở hữu
+  const activeEnrolledCourses = useMemo(() => {
+    if (!user) return [];
+    const enrolledSet = new Set<string>(user.enrolledCourses || []);
+    userOrders
+      .filter((o) => o.status === 'paid' || o.status === 'pay_later')
+      .forEach((o) => {
+        if (o.courseId) enrolledSet.add(o.courseId);
+        if (Array.isArray(o.items)) {
+          o.items.forEach((i) => {
+            if (i.courseId) enrolledSet.add(i.courseId);
+          });
+        }
+      });
+    return courses.filter((c) => enrolledSet.has(c.id));
+  }, [user, courses, userOrders]);
+
+  // Danh sách toàn bộ bài tập thuộc các khóa học đã sở hữu
   const assignments = useMemo(() => {
-      if (!user) return [];
-      const enrolledCourseIds = user.enrolledCourses || [];
-      const activeEnrolledCourses = courses.filter(c => enrolledCourseIds.includes(c.id));
+    const allowedAssignmentIds = new Set<string>();
+    activeEnrolledCourses.forEach((c) => {
+      if (c.assignmentIds) {
+        c.assignmentIds.forEach((id) => allowedAssignmentIds.add(id));
+      }
+    });
+    return allAssignments.filter((a) => a.id && allowedAssignmentIds.has(a.id));
+  }, [activeEnrolledCourses, allAssignments]);
 
-      const allowedAssignmentIds = new Set<string>();
-      activeEnrolledCourses.forEach(c => {
-          if (c.assignmentIds) {
-              c.assignmentIds.forEach(id => allowedAssignmentIds.add(id));
-          }
-      });
+  // Nếu URL có ?assignmentId=... thì tự động mở bài tập đó
+  useEffect(() => {
+    if (urlAssignmentId && assignments.length > 0 && !selectedAssignment) {
+      const target = assignments.find((a) => a.id === urlAssignmentId);
+      if (target) {
+        setSelectedAssignment(target);
+      }
+    }
+  }, [urlAssignmentId, assignments, selectedAssignment]);
 
-      return allAssignments.filter(a => a.id && allowedAssignmentIds.has(a.id));
-  }, [user, courses, allAssignments]);
+  // Bài tập sau khi lọc theo Khóa học đang chọn (để tính số lượng cho Môn & Khối)
+  const courseScopedAssignments = useMemo(() => {
+    if (selectedCourseId === 'all') return assignments;
+    const targetCourse = activeEnrolledCourses.find((c) => c.id === selectedCourseId);
+    if (!targetCourse) return assignments;
+    const courseAssignSet = new Set(targetCourse.assignmentIds || []);
+    return assignments.filter((a) => a.id && courseAssignSet.has(a.id));
+  }, [assignments, selectedCourseId, activeEnrolledCourses]);
 
-  // Extract unique subjects
-  const availableSubjects = useMemo(() => {
-      const subjects = new Set<string>();
-      assignments.forEach(a => {
-          if (a.subject) subjects.add(a.subject);
-      });
-      return Array.from(subjects).sort();
-  }, [assignments]);
+  // Danh sách các môn học kèm số lượng
+  const subjectStats = useMemo(() => {
+    const map = new Map<string, number>();
+    courseScopedAssignments.forEach((a) => {
+      const subj = (a.subject || 'Chung').trim();
+      map.set(subj, (map.get(subj) || 0) + 1);
+    });
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0], 'vi'));
+  }, [courseScopedAssignments]);
 
-  // Optimized: Use useMemo for filtering
-  const filteredAssignments = useMemo(() => {
-      if (selectedSubject === 'All') return assignments;
-      return assignments.filter(a => a.subject === selectedSubject);
-  }, [assignments, selectedSubject]);
+  // Số lượng theo Khối lớp (10, 11, 12)
+  const gradeCounts = useMemo(() => {
+    const counts = { all: courseScopedAssignments.length, '10': 0, '11': 0, '12': 0 };
+    courseScopedAssignments.forEach((a) => {
+      const g = String(a.gradeLevel || '').trim();
+      if (g === '10') counts['10']++;
+      else if (g === '11') counts['11']++;
+      else if (g === '12') counts['12']++;
+    });
+    return counts;
+  }, [courseScopedAssignments]);
 
-  const searchedAssignments = useMemo(() => {
-      if (!searchQuery) return filteredAssignments;
-      return filteredAssignments.filter((assignment) => {
+  const completedSet = useMemo(() => new Set(completedIds), [completedIds]);
+
+  // Thống kê trạng thái học tập
+  const statusCounts = useMemo(() => {
+    let completed = 0;
+    courseScopedAssignments.forEach((a) => {
+      if (a.id && completedSet.has(a.id)) completed++;
+    });
+    return {
+      all: courseScopedAssignments.length,
+      completed,
+      todo: Math.max(0, courseScopedAssignments.length - completed),
+    };
+  }, [courseScopedAssignments, completedSet]);
+
+  // Kết quả bài tập sau khi áp dụng toàn bộ bộ lọc & sắp xếp
+  const filteredAndSortedAssignments = useMemo(() => {
+    const q = localSearch.toLowerCase().trim();
+
+    const list = courseScopedAssignments.filter((assignment) => {
+      // 1. Lọc theo Môn học
+      if (selectedSubject !== 'all') {
+        const subj = (assignment.subject || 'Chung').trim();
+        if (subj !== selectedSubject) return false;
+      }
+
+      // 2. Lọc theo Khối lớp
+      if (selectedGrade !== 'all') {
+        if (String(assignment.gradeLevel || '').trim() !== selectedGrade) return false;
+      }
+
+      // 3. Lọc theo Trạng thái hoàn thành
+      if (statusFilter !== 'all') {
+        const isDone = Boolean(assignment.id && completedSet.has(assignment.id));
+        if (statusFilter === 'completed' && !isDone) return false;
+        if (statusFilter === 'todo' && isDone) return false;
+      }
+
+      // 4. Lọc theo từ khóa tìm kiếm
+      if (q) {
         const haystack = [
           assignment.title,
           assignment.topic,
@@ -104,24 +256,64 @@ export const StudentAssignments: React.FC = () => {
           .filter(Boolean)
           .join(' ')
           .toLowerCase();
-        return haystack.includes(searchQuery);
-      });
-  }, [filteredAssignments, searchQuery]);
+        if (!haystack.includes(q)) return false;
+      }
+
+      return true;
+    });
+
+    // Sắp xếp
+    return [...list].sort((a, b) => {
+      if (sortOrder === 'title') {
+        return safeString(a.title).localeCompare(safeString(b.title), 'vi');
+      }
+      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+      return sortOrder === 'newest' ? timeB - timeA : timeA - timeB;
+    });
+  }, [
+    courseScopedAssignments,
+    selectedSubject,
+    selectedGrade,
+    statusFilter,
+    localSearch,
+    sortOrder,
+    completedSet,
+  ]);
+
+  const hasActiveFilters =
+    localSearch.trim() !== '' ||
+    selectedCourseId !== 'all' ||
+    selectedSubject !== 'all' ||
+    selectedGrade !== 'all' ||
+    statusFilter !== 'all';
+
+  const resetFilters = () => {
+    setLocalSearch('');
+    setSelectedCourseId('all');
+    setSelectedSubject('all');
+    setSelectedGrade('all');
+    setStatusFilter('all');
+    if (searchParams.has('q') || searchParams.has('courseId') || searchParams.has('assignmentId')) {
+      setSearchParams({});
+    }
+  };
 
   const embedHtml = useMemo(() => {
     if (!selectedAssignment) return '';
     const embed = safeString(selectedAssignment.embedUrl);
 
     if (selectedAssignment.type === 'native_code') {
-        // For HTML code, ensure it has a viewport meta tag so mobile browsers scale it correctly.
-        // If it's just a raw snippet, wrap it in a basic HTML5 boilerplate.
-        if (embed.toLowerCase().includes('<html')) {
-            if (!embed.toLowerCase().includes('name="viewport"')) {
-                return embed.replace(/<head>/i, '<head>\n<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">');
-            }
-            return embed;
-        } else {
-            return `<!DOCTYPE html>
+      if (embed.toLowerCase().includes('<html')) {
+        if (!embed.toLowerCase().includes('name="viewport"')) {
+          return embed.replace(
+            /<head>/i,
+            '<head>\n<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">'
+          );
+        }
+        return embed;
+      } else {
+        return `<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -136,7 +328,7 @@ export const StudentAssignments: React.FC = () => {
 ${embed}
 </body>
 </html>`;
-        }
+      }
     }
 
     if (!embed.startsWith('<iframe')) return embed;
@@ -157,7 +349,7 @@ ${embed}
         existingAllow
           .split(';')
           .map((token) => token.trim())
-          .filter(Boolean),
+          .filter(Boolean)
       );
       allowTokens.add('fullscreen');
       iframe.setAttribute('allow', Array.from(allowTokens).join('; '));
@@ -181,229 +373,556 @@ ${embed}
     const description = safeString(selectedAssignment.description || selectedAssignment.topic);
     const targetGrade = String(selectedAssignment.gradeLevel);
     const subjectTitle = safeString(selectedAssignment.subject || 'Chung');
+    const isCompleted = Boolean(selectedAssignment.id && completedSet.has(selectedAssignment.id));
 
     const handleEnterFullscreen = () => {
-        setIsFullscreen(true);
-        // Delay slightly to ensure the DOM element is rendered before requesting
-        setTimeout(() => {
-            if (fullscreenContainerRef.current) {
-                fullscreenContainerRef.current.requestFullscreen().catch(err => {
-                    console.log("Error attempting to enable fullscreen:", err.message);
-                });
-            }
-        }, 50);
+      setIsFullscreen(true);
+      setTimeout(() => {
+        if (fullscreenContainerRef.current) {
+          fullscreenContainerRef.current.requestFullscreen().catch((err) => {
+            console.log('Error attempting to enable fullscreen:', err.message);
+          });
+        }
+      }, 50);
     };
 
     const handleExitFullscreen = () => {
-        if (document.fullscreenElement) {
-            document.exitFullscreen().catch(err => console.log(err));
-        }
-        setIsFullscreen(false);
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch((err) => console.log(err));
+      }
+      setIsFullscreen(false);
     };
 
     if (isFullscreen && selectedAssignment.type === 'native_code') {
-        return (
-            <div ref={fullscreenContainerRef} className="fixed inset-0 z-[9999] h-[100dvh] w-screen bg-background flex flex-col overflow-hidden animate-in fade-in duration-200">
-                <div className="absolute top-4 right-4 z-10">
-                    <button
-                        onClick={handleExitFullscreen}
-                        className="bg-slate-900/80 hover:bg-slate-900 text-white p-3 rounded-full shadow-lg backdrop-blur-sm transition-all flex items-center gap-2 font-medium"
-                    >
-                        <Minimize className="w-5 h-5" />
-                        Thu nhỏ
-                    </button>
-                </div>
-                <div className="flex-1 w-full relative bg-white">
-                    <iframe
-                        key={`fullscreen-${selectedAssignment.id}`}
-                        srcDoc={embed}
-                        className="w-full h-full border-none absolute inset-0"
-                        title={title}
-                        sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin"
-                    />
-                </div>
-            </div>
-        );
+      return (
+        <div
+          ref={fullscreenContainerRef}
+          className="fixed inset-0 z-[9999] h-[100dvh] w-screen bg-background flex flex-col overflow-hidden animate-in fade-in duration-200"
+        >
+          <div className="absolute top-4 right-4 z-10">
+            <button
+              onClick={handleExitFullscreen}
+              className="bg-foreground/80 hover:bg-foreground/90 text-white p-3 rounded-full shadow-md backdrop-blur-sm transition-all flex items-center gap-2 font-medium"
+            >
+              <Minimize className="w-5 h-5" />
+              Thu nhỏ
+            </button>
+          </div>
+          <div className="flex-1 w-full relative bg-card">
+            <iframe
+              key={`fullscreen-${selectedAssignment.id}`}
+              srcDoc={embed}
+              className="w-full h-full border-none absolute inset-0"
+              title={title}
+              sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin"
+            />
+          </div>
+        </div>
+      );
     }
 
     return (
       <>
-        <button
-          onClick={() => setSelectedAssignment(null)}
-          className="mb-4 flex items-center gap-2 text-slate-600 hover:text-blue-600 font-medium transition-colors"
-        >
-           <ArrowLeft className="w-4 h-4" />
-           Back to Assignments {subjectTitle} Grade {targetGrade} • {topic}
-        </button>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <button
+            onClick={() => {
+              setSelectedAssignment(null);
+              if (searchParams.has('assignmentId')) {
+                const next = new URLSearchParams(searchParams);
+                next.delete('assignmentId');
+                setSearchParams(next);
+              }
+            }}
+            className="flex items-center gap-2 text-muted-foreground hover:text-primary font-medium transition-colors text-sm"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Quay lại danh sách • {subjectTitle} (Khối {targetGrade}) {topic ? `• ${topic}` : ''}
+          </button>
+
+          {selectedAssignment.id && (
+            <button
+              type="button"
+              onClick={() => toggleCompleted(selectedAssignment.id!)}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                isCompleted
+                  ? 'bg-success/10 text-success border-success/30 hover:bg-success/15'
+                  : 'bg-card text-muted-foreground border-border hover:text-foreground hover:bg-muted'
+              }`}
+            >
+              {isCompleted ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-success" />
+                  Đã hoàn thành
+                </>
+              ) : (
+                <>
+                  <Circle className="w-4 h-4" />
+                  Đánh dấu đã hoàn thành
+                </>
+              )}
+            </button>
+          )}
+        </div>
 
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
-            <div>
-                <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{title}</h1>
-            </div>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-semibold text-foreground tracking-tight">
+              {title}
+            </h1>
+          </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 min-h-[600px] flex flex-col relative group">
-           {description && description !== topic && (
-               <div className="mb-6 pr-12">
-                   <p className="text-slate-600 leading-relaxed">{description}</p>
-               </div>
-           )}
+        <div className="bg-card rounded-xl shadow-sm border border-border p-6 min-h-[600px] flex flex-col relative group">
+          {description && description !== topic && (
+            <div className="mb-6 pr-12">
+              <p className="text-muted-foreground leading-relaxed">{description}</p>
+            </div>
+          )}
 
-           {selectedAssignment.type === 'native_code' && (
-               <button
-                   onClick={handleEnterFullscreen}
-                   className="absolute top-6 right-6 p-2 bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 rounded-lg transition-colors border border-slate-200 shadow-sm z-10"
-                   title="Phóng to (Mở toàn màn hình)"
-               >
-                   <Maximize className="w-5 h-5" />
-               </button>
-           )}
+          {selectedAssignment.type === 'native_code' && (
+            <button
+              onClick={handleEnterFullscreen}
+              className="absolute top-6 right-6 p-2 bg-muted hover:bg-primary/10 text-muted-foreground hover:text-primary rounded-lg transition-colors border border-border shadow-sm z-10"
+              title="Phóng to (Mở toàn màn hình)"
+            >
+              <Maximize className="w-5 h-5" />
+            </button>
+          )}
 
-           <div className={`flex-1 w-full relative overflow-hidden ${selectedAssignment.type !== 'native_code' ? 'bg-slate-50 rounded-lg border border-slate-200' : 'bg-white rounded-lg border border-slate-200'}`}>
+          {selectedAssignment.type === 'smart_exam' ? (
+            <SmartExamPlayer
+              title={title}
+              questions={selectedAssignment.questions || []}
+              durationMin={Number(
+                selectedAssignment.duration || selectedAssignment.timeLimit || 45
+              )}
+              shuffleQuestions={Boolean(selectedAssignment.shuffleQuestions)}
+              shuffleOptions={Boolean(selectedAssignment.shuffleOptions)}
+            />
+          ) : (
+            <div
+              className={`flex-1 w-full relative overflow-hidden ${
+                selectedAssignment.type !== 'native_code'
+                  ? 'bg-muted/50 rounded-lg border border-border'
+                  : 'bg-card rounded-lg border border-border'
+              }`}
+            >
               {selectedAssignment.type === 'native_code' ? (
-                  <iframe
-                      key={`inline-${selectedAssignment.id}`}
-                      srcDoc={embed}
-                      className="w-full h-full border-none absolute inset-0"
-                      title={title}
-                      sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin"
-                  />
+                <iframe
+                  key={`inline-${selectedAssignment.id}`}
+                  srcDoc={embed}
+                  className="w-full h-full border-none absolute inset-0"
+                  title={title}
+                  sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin"
+                />
               ) : selectedAssignment.type === 'video' ? (
-                  <div className="w-full h-full flex items-center justify-center bg-black absolute inset-0">
-                      <iframe
-                          src={selectedAssignment.embedUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
-                          className="w-full h-full max-w-4xl max-h-[600px] aspect-video"
-                          title={title}
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                      />
-                  </div>
-              ) : embed.startsWith('<iframe') ? (
-                  <div dangerouslySetInnerHTML={{ __html: embed }} className="w-full h-full absolute inset-0 [&>iframe]:w-full [&>iframe]:h-full" />
-              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-black absolute inset-0">
                   <iframe
-                    src={embed}
-                    className="w-full h-full absolute inset-0"
+                    src={selectedAssignment.embedUrl
+                      .replace('watch?v=', 'embed/')
+                      .replace('youtu.be/', 'youtube.com/embed/')}
+                    className="w-full h-full max-w-4xl max-h-[600px] aspect-video"
                     title={title}
-                    allow="fullscreen"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                   />
+                </div>
+              ) : embed.startsWith('<iframe') ? (
+                <div
+                  dangerouslySetInnerHTML={{ __html: embed }}
+                  className="w-full h-full absolute inset-0 [&>iframe]:w-full [&>iframe]:h-full"
+                />
+              ) : (
+                <iframe
+                  src={embed}
+                  className="w-full h-full absolute inset-0"
+                  title={title}
+                  allow="fullscreen"
+                  allowFullScreen
+                />
               )}
-           </div>
+            </div>
+          )}
         </div>
 
-        {/* Support Widget even in detail view */}
         <StudentSupportWidget />
       </>
     );
   }
 
-  // Handle Loading/Empty/Error States
-  if (!user.grade) {
+  // Handle Missing Grade Level
+  if (!user?.grade) {
     return (
-        <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-           <div className="p-4 bg-red-100 rounded-full mb-4">
-             <AlertCircle className="w-8 h-8 text-red-600" />
-           </div>
-           <h2 className="text-xl font-bold text-slate-900 mb-2">Missing Grade Level</h2>
-           <p className="text-slate-500 max-w-md">Please select your grade level to continue.</p>
+      <div className="flex flex-col items-center justify-center h-[60vh] text-center">
+        <div className="p-4 bg-destructive/10 rounded-full mb-4">
+          <AlertCircle className="w-8 h-8 text-destructive" />
         </div>
+        <h2 className="text-xl font-semibold text-foreground mb-2">Chưa cập nhật Khối lớp</h2>
+        <p className="text-muted-foreground max-w-md">
+          Vui lòng cập nhật khối lớp của bạn trong phần Hồ sơ hoặc liên hệ Admin để tiếp tục.
+        </p>
+      </div>
     );
   }
 
   return (
-      <div className="flex flex-col gap-6 relative">
-        {/* Header & Filters */}
-        <div className="flex flex-col gap-6">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                <div className="flex flex-col gap-2">
-                    <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">My Assignments</h1>
-                    <p className="text-slate-500 text-sm md:text-base">Track your progress and manage your upcoming coursework.</p>
-                </div>
-            </div>
-
-            {/* Subject Filter Bar - Inserted Between Header and Grid */}
-            <SubjectFilterBar
-                subjects={availableSubjects}
-                selectedSubject={selectedSubject}
-                onSelectSubject={setSelectedSubject}
-            />
+    <div className="flex flex-col gap-6 relative">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className="flex flex-col gap-1.5">
+          <h1 className="text-3xl font-semibold text-foreground tracking-tight">
+            Bài tập của tôi
+          </h1>
+          <p className="text-muted-foreground text-sm md:text-base">
+            Theo dõi tiến độ và luyện tập các bài học thuộc khóa học bạn đã đăng ký.
+          </p>
         </div>
 
-        {isLoading ? (
-            <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
-                <Skeleton className="h-6 w-1/3" />
-                <Skeleton className="h-40 w-full" />
-                <Skeleton className="h-40 w-full" />
-            </div>
-        ) : searchedAssignments.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-            {searchedAssignments.map((assignment, index) => (
-                <div
-                    key={assignment.id}
-                    onClick={() => setSelectedAssignment(assignment)}
-                    className="group flex flex-col rounded-xl bg-white shadow-sm border border-slate-200 overflow-hidden hover:shadow-lg hover:border-blue-600/30 transition-all duration-300 cursor-pointer"
-                >
-                    {/* Optimized Image: Use img with loading="lazy" */}
-                    <div className="h-44 bg-slate-100 relative overflow-hidden">
-                        <img
-                            src={assignment.coverImageUrl || `https://source.unsplash.com/random/800x600?education,book,${index}`}
-                            alt="Course cover"
-                            loading="lazy"
-                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                        <div className="absolute top-3 right-3">
-                            <span className="px-2.5 py-1 rounded-md bg-white/95 text-slate-700 text-xs font-bold shadow-sm backdrop-blur-sm border border-transparent flex items-center gap-1">
-                                <Clock className="w-3.5 h-3.5 text-orange-500" />
-                                {formatDate(assignment.createdAt)}
-                            </span>
-                        </div>
-                        <div className="absolute bottom-3 left-3">
-                            <p className="text-white text-xs font-medium bg-black/30 px-2 py-1 rounded backdrop-blur-md">Grade {assignment.gradeLevel}</p>
-                        </div>
-                    </div>
-
-                    <div className="p-5 flex flex-col gap-3 flex-1">
-                        <div>
-                             <div className="flex items-center gap-2 mb-2">
-                                <span className="text-xs font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 uppercase tracking-wide">
-                                    {assignment.subject || 'Chung'}
-                                </span>
-                             </div>
-                            <h3 className="text-lg font-bold text-slate-900 leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">
-                                {safeString(assignment.title)}
-                            </h3>
-                            <p className="text-sm text-slate-500 mt-1 line-clamp-2 font-medium">
-                                {safeString(assignment.topic)}
-                            </p>
-                            {assignment.description && (
-                                <p className="text-xs text-slate-400 mt-1 line-clamp-1">
-                                    {safeString(assignment.description)}
-                                </p>
-                            )}
-                        </div>
-
-                        <button className="w-full mt-2 h-10 flex items-center justify-center gap-2 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors group-hover:shadow-md mt-auto">
-                            Continue
-                            <ChevronRight className="w-4 h-4" />
-                        </button>
-                    </div>
-                </div>
-            ))}
-            </div>
-        ) : (
-            <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                <div className="bg-blue-50 rounded-full p-6 mb-6">
-                    <BookOpen className="w-16 h-16 text-blue-600" />
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">Bạn chưa có bài tập nào</h3>
-                <p className="text-slate-500 max-w-sm mx-auto mb-6">Bạn chưa được cấp quyền truy cập khóa học nào. Vui lòng liên hệ Admin để được hỗ trợ nhé.</p>
-            </div>
+        {assignments.length > 0 && (
+          <div className="flex items-center gap-3 text-xs font-medium bg-card border border-border px-3.5 py-2 rounded-xl">
+            <span className="text-muted-foreground">
+              Tiến độ hoàn thành:{' '}
+              <strong className="text-success">
+                {statusCounts.completed}/{statusCounts.all}
+              </strong>{' '}
+              bài tập
+            </span>
+          </div>
         )}
-
-        {/* Support Widget - Inserted at End of Page Fragment */}
-        <StudentSupportWidget />
       </div>
+
+      {/* Multi-dimensional Student Filter Panel */}
+      {assignments.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-4 space-y-4 shadow-sm">
+          {/* Row 1: Search Input + Course Selector + Sort + Reset */}
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={localSearch}
+                onChange={(e) => setLocalSearch(e.target.value)}
+                placeholder="Tìm bài tập theo tên, chủ đề, môn học..."
+                className="w-full pl-10 pr-9 py-2 bg-background border border-input rounded-lg text-sm text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              />
+              {localSearch && (
+                <button
+                  type="button"
+                  onClick={() => setLocalSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              {/* Filter by Owned Course */}
+              {activeEnrolledCourses.length > 1 && (
+                <div className="flex items-center gap-2 bg-background border border-input rounded-lg px-3 py-1.5">
+                  <BookOpen className="w-4 h-4 text-primary shrink-0" />
+                  <select
+                    value={selectedCourseId}
+                    onChange={(e) => setSelectedCourseId(e.target.value)}
+                    className="bg-transparent text-sm text-foreground font-medium outline-none cursor-pointer max-w-[220px] truncate"
+                  >
+                    <option value="all">
+                      Tất cả khóa học ({activeEnrolledCourses.length})
+                    </option>
+                    {activeEnrolledCourses.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Sort Order */}
+              <div className="flex items-center gap-1.5 bg-background border border-input rounded-lg px-3 py-1.5">
+                <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <select
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value as any)}
+                  className="bg-transparent text-sm text-foreground font-medium outline-none cursor-pointer"
+                >
+                  <option value="newest">Mới nhất</option>
+                  <option value="oldest">Cũ nhất</option>
+                  <option value="title">Tên A → Z</option>
+                </select>
+              </div>
+
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-destructive bg-destructive/10 hover:bg-destructive/15 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Xóa lọc
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Row 2: Subject Filter Pills */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-3 border-t border-border/70">
+            <span className="text-xs font-semibold text-muted-foreground mr-1 flex items-center gap-1">
+              <Filter className="w-3.5 h-3.5" /> Môn học:
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedSubject('all')}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                selectedSubject === 'all'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted'
+              }`}
+            >
+              <span>Tất cả môn</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[11px] ${
+                  selectedSubject === 'all'
+                    ? 'bg-primary-foreground/20 text-primary-foreground'
+                    : 'bg-background text-muted-foreground'
+                }`}
+              >
+                {courseScopedAssignments.length}
+              </span>
+            </button>
+
+            {subjectStats.map(([subj, count]) => {
+              const active = selectedSubject === subj;
+              return (
+                <button
+                  key={subj}
+                  type="button"
+                  onClick={() => setSelectedSubject(subj)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    active
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
+                >
+                  <span>{subj}</span>
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[11px] ${
+                      active
+                        ? 'bg-primary-foreground/20 text-primary-foreground'
+                        : 'bg-background text-muted-foreground'
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Row 3: Grade Filter & Completion Status Filter */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-border/70">
+            {/* Grade Filter */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs font-semibold text-muted-foreground mr-1 flex items-center gap-1">
+                <GraduationCap className="w-3.5 h-3.5" /> Khối lớp:
+              </span>
+              {(
+                [
+                  { id: 'all', label: 'Tất cả khối', count: gradeCounts.all },
+                  { id: '10', label: 'Khối 10', count: gradeCounts['10'] },
+                  { id: '11', label: 'Khối 11', count: gradeCounts['11'] },
+                  { id: '12', label: 'Khối 12', count: gradeCounts['12'] },
+                ] as const
+              ).map((g) => {
+                const active = selectedGrade === g.id;
+                return (
+                  <button
+                    key={g.id}
+                    type="button"
+                    onClick={() => setSelectedGrade(g.id)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      active
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <span>{g.label}</span>
+                    <span
+                      className={`px-1.5 py-0.2 rounded-full text-[11px] ${
+                        active
+                          ? 'bg-primary-foreground/20 text-primary-foreground'
+                          : 'bg-background text-muted-foreground'
+                      }`}
+                    >
+                      {g.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Completion Status Filter */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs font-semibold text-muted-foreground mr-1">Trạng thái:</span>
+              {(
+                [
+                  { id: 'all', label: 'Tất cả', count: statusCounts.all },
+                  { id: 'todo', label: 'Chưa làm', count: statusCounts.todo },
+                  { id: 'completed', label: 'Đã hoàn thành', count: statusCounts.completed },
+                ] as const
+              ).map((st) => {
+                const active = statusFilter === st.id;
+                return (
+                  <button
+                    key={st.id}
+                    type="button"
+                    onClick={() => setStatusFilter(st.id)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      active
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <span>{st.label}</span>
+                    <span
+                      className={`px-1.5 py-0.2 rounded-full text-[11px] ${
+                        active
+                          ? 'bg-primary-foreground/20 text-primary-foreground'
+                          : 'bg-background text-muted-foreground'
+                      }`}
+                    >
+                      {st.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="bg-card rounded-xl border border-border p-6 space-y-4">
+          <Skeleton className="h-6 w-1/3" />
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-40 w-full" />
+        </div>
+      ) : filteredAndSortedAssignments.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
+          {filteredAndSortedAssignments.map((assignment, index) => {
+            const isDone = Boolean(assignment.id && completedSet.has(assignment.id));
+            return (
+              <div
+                key={assignment.id}
+                onClick={() => setSelectedAssignment(assignment)}
+                className="group flex flex-col rounded-xl bg-card shadow-sm border border-border overflow-hidden hover:shadow-md hover:border-primary/30 transition-all duration-300 cursor-pointer"
+              >
+                <div className="h-44 bg-muted relative overflow-hidden">
+                  <img
+                    src={
+                      assignment.coverImageUrl ||
+                      `https://source.unsplash.com/random/800x600?education,book,${index}`
+                    }
+                    alt="Course cover"
+                    loading="lazy"
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 from-black/60 to-transparent"></div>
+                  <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                    {assignment.id && (
+                      <button
+                        type="button"
+                        onClick={(e) => toggleCompleted(assignment.id!, e)}
+                        title={
+                          isDone ? 'Bỏ đánh dấu hoàn thành' : 'Đánh dấu đã hoàn thành bài này'
+                        }
+                        className={`px-2.5 py-1 rounded-md text-xs font-semibold shadow-sm backdrop-blur-sm flex items-center gap-1 transition-colors ${
+                          isDone
+                            ? 'bg-success text-success-foreground'
+                            : 'bg-background/95 text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        {isDone ? 'Đã xong' : 'Đánh dấu xong'}
+                      </button>
+                    )}
+                    <span className="px-2.5 py-1 rounded-md bg-background/95 text-foreground text-xs font-semibold shadow-sm backdrop-blur-sm flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-warning" />
+                      {formatDate(assignment.createdAt)}
+                    </span>
+                  </div>
+                  <div className="absolute bottom-3 left-3">
+                    <p className="text-white text-xs font-medium bg-black/40 px-2.5 py-1 rounded backdrop-blur-md">
+                      Khối {assignment.gradeLevel}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-5 flex flex-col gap-3 flex-1">
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded bg-primary/10 text-primary uppercase tracking-wide">
+                        {assignment.subject || 'Chung'}
+                      </span>
+                      {assignment.type === 'smart_exam' && (
+                        <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                          Đề thi thông minh
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground leading-tight group-hover:text-primary transition-colors line-clamp-2">
+                      {safeString(assignment.title)}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2 font-medium">
+                      {safeString(assignment.topic)}
+                    </p>
+                    {assignment.description && (
+                      <p className="text-xs text-muted-foreground/70 mt-1 line-clamp-1">
+                        {safeString(assignment.description)}
+                      </p>
+                    )}
+                  </div>
+
+                  <button className="w-full mt-auto pt-0 h-10 flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors group-hover:shadow-md">
+                    {isDone ? 'Ôn tập lại' : 'Vào làm bài'}
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : assignments.length > 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center bg-card rounded-xl border border-border shadow-sm p-6">
+          <Search className="w-12 h-12 text-muted-foreground/40 mb-3" />
+          <h3 className="text-lg font-semibold text-foreground mb-1">
+            Không tìm thấy bài tập phù hợp
+          </h3>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto mb-4">
+            Không có bài tập nào khớp với bộ lọc hiện tại của bạn.
+          </p>
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            Xóa bộ lọc để xem tất cả
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-20 text-center bg-card rounded-xl border border-border shadow-sm p-6">
+          <div className="bg-primary/5 rounded-full p-6 mb-6">
+            <BookOpen className="w-16 h-16 text-primary" />
+          </div>
+          <h3 className="text-xl font-semibold text-foreground mb-2">Bạn chưa có bài tập nào</h3>
+          <p className="text-muted-foreground max-w-sm mx-auto mb-6">
+            Bạn chưa được cấp quyền truy cập khóa học nào. Vui lòng đăng ký khóa học hoặc liên hệ
+            Admin để được hỗ trợ nhé.
+          </p>
+        </div>
+      )}
+
+      <StudentSupportWidget />
+    </div>
   );
 };

@@ -1,193 +1,284 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { db } from '../../config/firebase';
 import { Order, orderService } from '../../services/order.service';
-import { Loader2, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import { Loader2, CheckCircle, AlertTriangle, RefreshCw, ExternalLink } from 'lucide-react';
 
 export const PaymentQR: React.FC = () => {
-    const [searchParams] = useSearchParams();
-    const orderId = searchParams.get('orderId');
-    const navigate = useNavigate();
-    const [order, setOrder] = useState<Order | null>(null);
-     // 10 minutes
-    const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const orderId = searchParams.get('orderId');
+  const navigate = useNavigate();
+  const [order, setOrder] = useState<Order | null>(null);
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [regenerating, setRegenerating] = useState(false);
 
-    useEffect(() => {
-        if (!orderId) {
-            navigate('/student/courses');
-            return;
+  const createPayOSLink = useCallback(
+    async (targetOrder: Order, forceNewCode = false) => {
+      setError(null);
+      let activeOrderCode = targetOrder.orderCode;
+      let activeDisplayCode = targetOrder.displayCode;
+
+      if (forceNewCode) {
+        const rotated = await orderService.rotateOrderCode(targetOrder);
+        activeOrderCode = rotated.orderCode;
+        activeDisplayCode = rotated.displayCode;
+        setOrder((prev) =>
+          prev
+            ? {
+                ...prev,
+                orderCode: activeOrderCode,
+                displayCode: activeDisplayCode,
+                checkoutUrl: null,
+              }
+            : prev
+        );
+      }
+
+      const baseUrl = window.location.origin;
+      const emailStr = targetOrder.userEmail || '';
+      let prefix = emailStr.split('@')[0].replace(/[^a-zA-Z0-9 ]/g, '');
+      if (!prefix) prefix = activeDisplayCode || `${activeOrderCode}`;
+
+      const response = await fetch('/api/create-payment-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderCode: activeOrderCode,
+          amount: targetOrder.amount,
+          description: prefix.substring(0, 25),
+          returnUrl: `${baseUrl}/student/payment/success?orderId=${targetOrder.id}`,
+          cancelUrl: `${baseUrl}/student/payment/success?orderId=${targetOrder.id}&cancel=true`,
+        }),
+      });
+
+      if (!response.ok) {
+        // If PayOS complains about duplicate orderCode (e.g. Error 231), automatically rotate orderCode once and retry!
+        if (!forceNewCode) {
+          return createPayOSLink(targetOrder, true);
         }
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.message || 'Lỗi kết nối cổng thanh toán');
+      }
 
-        const fetchOrderAndGenerateLink = async () => {
-            const o = await orderService.getOrder(orderId);
-            if (!o) {
-                setError("Không tìm thấy đơn hàng.");
-                return;
-            }
-            setOrder(o);
+      const result = await response.json();
+      setCheckoutUrl(result.checkoutUrl);
+      await orderService.updateCheckoutUrl(targetOrder.id, result.checkoutUrl);
+      window.location.href = result.checkoutUrl;
+    },
+    []
+  );
 
-            if (o.status === 'paid') {
-                navigate('/student/courses');
-                return;
-            }
-
-            if (o.checkoutUrl) {
-                setCheckoutUrl(o.checkoutUrl);
-                window.location.href = o.checkoutUrl;
-                return;
-            }
-
-            try {
-                // Determine base URL dynamically depending on environment
-                const baseUrl = window.location.origin;
-
-                const response = await fetch('/api/create-payment-link', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        orderCode: o.orderCode,
-                        amount: o.amount,
-                        description: (() => {
-                            // Extract name from email (before @)
-                            const emailStr = o.userEmail || '';
-                            let prefix = emailStr.split('@')[0];
-                            // Remove special chars to comply with PayOS
-                            prefix = prefix.replace(/[^a-zA-Z0-9 ]/g, '');
-                            if (!prefix) prefix = o.displayCode || `${o.orderCode}`;
-                            return prefix.substring(0, 25);
-                        })(),
-                        returnUrl: `${baseUrl}/student/payment/success`,
-                        cancelUrl: `${baseUrl}/student/payment/success`,
-                    })
-                });
-
-                if (!response.ok) {
-                    const errData = await response.json();
-                    throw new Error(errData.message || 'Lỗi server');
-                }
-
-                const result = await response.json();
-                setCheckoutUrl(result.checkoutUrl);
-                // Save checkoutUrl to prevent PayOS Error 231 on resume
-                await orderService.updateCheckoutUrl(orderId, result.checkoutUrl);
-                // Automatically redirect to PayOS checkout page
-                window.location.href = result.checkoutUrl;
-            } catch (err: any) {
-                console.error("Lỗi tạo PayOS link:", err);
-                // Display the specific error message from the server if available
-                setError(err.message || "Không thể tạo link thanh toán tự động lúc này. Vui lòng chuyển khoản thủ công.");
-            }
-        };
-
-        fetchOrderAndGenerateLink();
-    }, [orderId, navigate]);
-
-
-
-    // Timer logic removed: Orders now wait indefinitely.
-
-    // Polling order status logic to detect webhook/admin approval
-    useEffect(() => {
-        if (!order || order.status === 'paid') return;
-
-        const pollTimer = setInterval(async () => {
-            const currentOrder = await orderService.getOrder(order.id);
-            if (currentOrder && currentOrder.status === 'paid') {
-                 clearInterval(pollTimer);
-                 navigate('/student/courses');
-            }
-        }, 5000); // Poll every 5s
-
-        return () => clearInterval(pollTimer);
-    }, [order, navigate]);
-
-    if (error && order) {
-         return (
-            <div className="min-h-screen bg-muted/30 flex flex-col items-center justify-center p-4">
-                <div className="bg-background max-w-md w-full rounded-3xl shadow-xl border border-border p-8 text-center">
-                    <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-                    <h2 className="text-xl font-bold mb-2">Lỗi kết nối Cổng Thanh Toán</h2>
-                    <p className="text-muted-foreground mb-6">{error}</p>
-                    <p className="mb-4">Bạn có thể chuyển khoản thủ công với nội dung: <strong>{order.displayCode || order.orderCode}</strong></p>
-                    <p className="text-xl font-bold text-primary mb-6">{new Intl.NumberFormat('vi-VN').format(order.amount)}đ</p>
-                    <button onClick={() => navigate('/student/courses')} className="w-full py-3 bg-primary text-white font-bold rounded-xl">Quay lại Khóa học</button>
-                </div>
-            </div>
-         );
+  useEffect(() => {
+    if (!orderId) {
+      navigate('/student/courses');
+      return;
     }
 
-    if (!order || !checkoutUrl) {
-         return (
-             <div className="min-h-screen flex flex-col items-center justify-center">
-                 <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
-                 <p className="text-muted-foreground">Đang khởi tạo thanh toán bảo mật...</p>
-             </div>
-         );
+    const fetchOrderAndGenerateLink = async () => {
+      const o = await orderService.getOrder(orderId);
+      if (!o) {
+        setError('Không tìm thấy đơn hàng.');
+        return;
+      }
+      setOrder(o);
+
+      if (o.status === 'paid') {
+        navigate('/student/courses');
+        return;
+      }
+
+      if (o.checkoutUrl) {
+        setCheckoutUrl(o.checkoutUrl);
+        return;
+      }
+
+      try {
+        await createPayOSLink(o, false);
+      } catch (err: any) {
+        console.error('Lỗi tạo PayOS link:', err);
+        setError(
+          err.message ||
+            'Không thể tạo link thanh toán tự động lúc này. Vui lòng thử tạo mã QR mới hoặc chuyển khoản thủ công.'
+        );
+      }
+    };
+
+    fetchOrderAndGenerateLink();
+  }, [orderId, navigate, createPayOSLink]);
+
+  const handleRegenerateQR = async () => {
+    if (!order) return;
+    setRegenerating(true);
+    try {
+      await createPayOSLink(order, true);
+    } catch (err: any) {
+      setError(err.message || 'Không thể tạo lại mã QR.');
+    } finally {
+      setRegenerating(false);
     }
+  };
 
+  // Real-time polling to detect payment completion and unlock course immediately
+  useEffect(() => {
+    if (!order || order.status === 'paid') return;
 
+    const pollTimer = setInterval(async () => {
+      const currentOrder = await orderService.getOrder(order.id);
+      if (currentOrder && currentOrder.status === 'paid') {
+        clearInterval(pollTimer);
+        const courseIds: string[] = [];
+        if (currentOrder.courseId) courseIds.push(currentOrder.courseId);
+        if (Array.isArray(currentOrder.items)) {
+          currentOrder.items.forEach((i) => {
+            if (i.courseId) courseIds.push(i.courseId);
+          });
+        }
+        if (currentOrder.userId && courseIds.length > 0) {
+          await updateDoc(doc(db, 'users', currentOrder.userId), {
+            enrolledCourses: arrayUnion(...Array.from(new Set(courseIds))),
+          }).catch(() => {});
+        }
+        navigate('/student/courses');
+      }
+    }, 4000);
 
+    return () => clearInterval(pollTimer);
+  }, [order, navigate]);
+
+  if (error && order) {
     return (
-        <div className="min-h-screen bg-muted/30 flex flex-col items-center justify-center p-4">
-            <div className="bg-background max-w-4xl w-full rounded-3xl shadow-xl border border-border overflow-hidden flex flex-col lg:flex-row min-h-[100dvh] md:min-h-[600px] md:h-[80vh]">
-
-                {/* Left Side - Details & Timer */}
-                <div className="lg:w-1/3 p-8 border-b lg:border-b-0 lg:border-r border-border bg-card flex flex-col">
-                    <h2 className="text-2xl font-bold font-display mb-1 text-foreground">Thanh toán</h2>
-                    <p className="text-sm text-muted-foreground mb-6">Mã đơn hàng: {order.displayCode || order.orderCode}</p>
-
-                    <div className="flex-1">
-                        <h3 className="text-lg font-bold text-foreground mb-4">Sản phẩm:</h3>
-                        <ul className="space-y-3 mb-6">
-                            {order.items.map((item, idx) => (
-                                <li key={idx} className="flex justify-between items-start">
-                                    <span className="text-sm line-clamp-2 pr-4">{item.courseTitle}</span>
-                                    <span className="font-medium text-sm whitespace-nowrap">{new Intl.NumberFormat('vi-VN').format(item.price)}đ</span>
-                                </li>
-                            ))}
-                        </ul>
-
-                        <div className="border-t border-border pt-4 mt-auto">
-                            <div className="flex justify-between items-center mb-6">
-                                <span className="font-bold text-foreground">Tổng cộng</span>
-                                <span className="text-2xl font-extrabold text-primary">
-                                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.amount)}
-                                </span>
-                            </div>
-
-                            <div className="bg-blue-50 text-blue-600 p-4 rounded-xl flex items-center justify-center gap-3 font-mono text-xl font-bold border border-blue-100 mb-4">
-                                Đơn hàng đang chờ thanh toán
-                            </div>
-                            <p className="text-xs text-center text-muted-foreground">Vui lòng hoàn tất thanh toán. Đơn hàng không bị giới hạn thời gian.</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Right Side - Redirecting */}
-                <div className="lg:w-2/3 bg-white w-full flex-1 md:h-full min-h-[500px] relative flex flex-col items-center justify-center p-8 text-center" id="embeded-payment-container">
-                     {checkoutUrl ? (
-                         <div className="space-y-6">
-                            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                                <CheckCircle className="w-10 h-10 text-green-600" />
-                            </div>
-                            <h3 className="text-2xl font-bold text-slate-900">Đơn hàng đã được tạo!</h3>
-                            <p className="text-slate-500 max-w-md mx-auto">
-                                Hệ thống đang chuyển hướng bạn đến cổng thanh toán an toàn của PayOS...
-                            </p>
-                            <a href={checkoutUrl} className="inline-block mt-4 px-8 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-700 transition-colors">
-                                Đi đến trang thanh toán ngay
-                            </a>
-                         </div>
-                     ) : (
-                         <div className="flex flex-col items-center justify-center h-full space-y-4">
-                            <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
-                            <p className="text-slate-500">Đang khởi tạo kết nối bảo mật...</p>
-                         </div>
-                     )}
-                </div>
-            </div>
+      <div className="min-h-screen bg-muted/30 flex flex-col items-center justify-center p-4">
+        <div className="bg-card max-w-md w-full rounded-xl border border-border p-8 text-center space-y-4">
+          <AlertTriangle className="w-12 h-12 text-warning mx-auto" />
+          <h2 className="text-lg font-semibold">Lỗi kết nối Cổng Thanh Toán</h2>
+          <p className="text-sm text-muted-foreground">{error}</p>
+          <p className="text-sm">
+            Nội dung chuyển khoản:{' '}
+            <strong className="font-mono">{order.displayCode || order.orderCode}</strong>
+          </p>
+          <p className="text-xl font-semibold text-primary">
+            {new Intl.NumberFormat('vi-VN').format(order.amount)}đ
+          </p>
+          <div className="flex flex-col gap-2 pt-2">
+            <button
+              onClick={handleRegenerateQR}
+              disabled={regenerating}
+              className="w-full py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-lg flex items-center justify-center gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${regenerating ? 'animate-spin' : ''}`} />
+              Thử tạo mã QR mới
+            </button>
+            <button
+              onClick={() => navigate('/student/courses')}
+              className="w-full py-2.5 bg-muted text-foreground text-sm font-semibold rounded-lg"
+            >
+              Quay lại Khóa học
+            </button>
+          </div>
         </div>
+      </div>
     );
-}
+  }
+
+  if (!order || !checkoutUrl) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
+        <p className="text-sm text-muted-foreground">
+          Đang khởi tạo thanh toán bảo mật...
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-muted/30 flex flex-col items-center justify-center p-4">
+      <div className="bg-card max-w-3xl w-full rounded-xl border border-border overflow-hidden flex flex-col lg:flex-row">
+        {/* Left Side - Order Details */}
+        <div className="lg:w-5/12 p-6 border-b lg:border-b-0 lg:border-r border-border flex flex-col justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">
+              Thông tin Thanh toán
+            </h2>
+            <p className="text-xs text-muted-foreground mt-1 mb-5 font-mono">
+              Mã đơn: {order.displayCode || order.orderCode}
+            </p>
+
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+              Khóa học đăng ký
+            </h3>
+            <ul className="space-y-2.5 mb-6">
+              {(order.items || []).map((item, idx) => (
+                <li key={idx} className="flex justify-between items-start text-sm">
+                  <span className="line-clamp-2 pr-3 text-foreground">
+                    {item.courseTitle}
+                  </span>
+                  <span className="font-semibold whitespace-nowrap font-mono">
+                    {new Intl.NumberFormat('vi-VN').format(item.price)}đ
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="border-t border-border pt-4">
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-sm font-semibold text-foreground">Tổng cộng</span>
+              <span className="text-xl font-semibold text-primary">
+                {new Intl.NumberFormat('vi-VN', {
+                  style: 'currency',
+                  currency: 'VND',
+                }).format(order.amount)}
+              </span>
+            </div>
+            <button
+              onClick={() => navigate('/student/courses')}
+              className="w-full py-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              ← Quay lại danh sách khóa học
+            </button>
+          </div>
+        </div>
+
+        {/* Right Side - Actions */}
+        <div className="lg:w-7/12 p-8 flex flex-col items-center justify-center text-center space-y-5">
+          <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center">
+            <CheckCircle className="w-8 h-8 text-success" />
+          </div>
+          <div className="space-y-1.5">
+            <h3 className="text-lg font-semibold text-foreground">
+              Sẵn sàng thanh toán qua PayOS
+            </h3>
+            <p className="text-xs text-muted-foreground max-w-sm">
+              Bấm nút bên dưới để mở trang quét mã QR chuyển khoản tự động. Nếu link cũ đã hết hạn, bạn có thể bấm tạo mã QR mới.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-xs pt-2">
+            <a
+              href={checkoutUrl}
+              className="w-full py-2.5 px-5 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+            >
+              <ExternalLink className="w-4 h-4" />
+              Mở trang quét QR
+            </a>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleRegenerateQR}
+            disabled={regenerating}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-primary transition-colors"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${regenerating ? 'animate-spin' : ''}`} />
+            {regenerating ? 'Đang tạo mã QR mới...' : 'Link hết hạn? Tạo mã QR mới'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default PaymentQR;

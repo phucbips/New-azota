@@ -11,12 +11,12 @@ service cloud.firestore {
 
     // Kiểm tra có phải Admin không
     function isAdmin() {
-      return getUserData().role == 'admin' || request.auth.token.email == 'thanhphucn06@gmail.com';
+      return request.auth.token.email == 'thanhphucn06@gmail.com' || request.auth.token.email == 'thanhphucn4u@gmail.com' || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role == 'admin');
     }
 
     // Kiểm tra có phải Giáo viên không
     function isTeacher() {
-      return getUserData().role == 'teacher';
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role == 'teacher';
     }
 
     // --- COLLECTION: USERS ---

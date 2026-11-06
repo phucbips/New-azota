@@ -1,10 +1,12 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
   GoogleAuthProvider,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signOut as firebaseSignOut,
   User as FirebaseUser,
 } from 'firebase/auth';
@@ -25,10 +27,9 @@ const getSessionId = () => {
   let sessionId = localStorage.getItem('sessionId');
   if (!sessionId) {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-       sessionId = crypto.randomUUID();
+      sessionId = crypto.randomUUID();
     } else {
-       // Fallback for older browsers
-       sessionId = Date.now().toString(36) + Math.random().toString(36).substring(2);
+      sessionId = Date.now().toString(36) + Math.random().toString(36).substring(2);
     }
     localStorage.setItem('sessionId', sessionId);
   }
@@ -42,194 +43,171 @@ const detectDevice = () => {
   return 'PC';
 };
 
-const SUPER_ADMIN_EMAIL = 'thanhphucn06@gmail.com';
+const SUPER_ADMIN_EMAILS = ['thanhphucn06@gmail.com', 'thanhphucn4u@gmail.com'];
+
+const buildFallbackUser = (firebaseUser: FirebaseUser, sessionId: string): User => {
+  const userEmail = firebaseUser.email ? firebaseUser.email.toLowerCase() : '';
+  const isSuperAdmin = SUPER_ADMIN_EMAILS.includes(userEmail);
+  return {
+    uid: firebaseUser.uid,
+    email: userEmail,
+    displayName: firebaseUser.displayName || userEmail.split('@')[0] || 'User',
+    photoURL:
+      firebaseUser.photoURL ||
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(userEmail[0] || 'U')}&background=4f46e5&color=fff&size=200`,
+    role: isSuperAdmin ? 'admin' : 'student',
+    grade: null,
+    sessionId,
+    joinedAt: Timestamp.now(),
+    lastDevice: detectDevice(),
+    lastLoginAt: Timestamp.now(),
+  };
+};
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [sessionId] = useState(getSessionId);
+  const currentUidRef = useRef<string | null>(null);
 
-  // This function handles the one-time operation of fetching or creating a user in Firestore.
-  const getOrCreateUser = useCallback(async (firebaseUser: FirebaseUser): Promise<User | null> => {
-    try {
-      // First, try to get the user by UID
-      let existingUser = await userService.getUser(firebaseUser.uid);
-
-      // If not found by UID, try to find by Email (pre-created by Admin)
-      // Normalize email to avoid case sensitivity issues
+  const getOrCreateUser = useCallback(
+    async (firebaseUser: FirebaseUser): Promise<User> => {
       const userEmail = firebaseUser.email ? firebaseUser.email.toLowerCase() : null;
-
-      if (!existingUser && userEmail) {
-        try {
-            const userByEmail = await userService.findUserByEmail(userEmail);
-            if (userByEmail) {
-            // Found an invitation document
-
-            if (userByEmail.uid !== firebaseUser.uid) {
-                // Migrate the pre-created user data to the correct UID doc
-                const { uid: oldUid, ...userData } = userByEmail;
-
-                // Create the real user doc
-                await userService.createUser(firebaseUser.uid, {
-                    ...userData,
-                    // Ensure we keep the role and grade set by admin
-                    sessionId: sessionId,
-                    joinedAt: userData.joinedAt || Timestamp.now(),
-                    lastLoginAt: Timestamp.now()
-                });
-
-                // IMPORTANT: Delete the old invitation doc to prevent duplicates in Admin list
-                if (oldUid) {
-                    await userService.deleteUser(oldUid);
-                }
-
-                existingUser = await userService.getUser(firebaseUser.uid);
-            } else {
-                existingUser = userByEmail;
-            }
-            }
-        } catch (error: any) {
-            // If we hit a permission error (e.g. non-admin trying to query users),
-            // just ignore the invitation check and proceed to create a new user.
-            console.warn('Error checking for invitation (likely permission issue), creating new user instead:', error);
-        }
-      }
-
-      const isSuperAdmin = userEmail === SUPER_ADMIN_EMAIL.toLowerCase();
+      const isSuperAdmin = Boolean(userEmail && SUPER_ADMIN_EMAILS.includes(userEmail));
       const currentDevice = detectDevice();
 
-      if (existingUser) {
-        // User exists, check if an update is needed
-        const updates: Partial<User> = {};
-        let needsUpdate = false;
+      try {
+        let existingUser = await userService.getUser(firebaseUser.uid);
 
-        // Log analytics visit if it's a new session or different day
-        // For simplicity, we log on every "getOrCreateUser" which happens on page reload/auth init.
-        // The analytics service handles daily counters so duplicates are acceptable for "Page Views" metric,
-        // but for strict "Visits" we might want to check session storage.
-        // Let's rely on analyticsService.logVisit being idempotent per day/user logic if we wanted strictness,
-        // but for now simple logging is enough.
-        analyticsService.logVisit(firebaseUser.uid);
-
-        if (existingUser.sessionId !== sessionId) {
-          updates.sessionId = sessionId;
-          needsUpdate = true;
+        if (!existingUser && userEmail) {
+          try {
+            const userByEmail = await userService.findUserByEmail(userEmail);
+            if (userByEmail) {
+              if (userByEmail.uid !== firebaseUser.uid) {
+                const { uid: oldUid, ...userData } = userByEmail;
+                await userService.createUser(firebaseUser.uid, {
+                  ...userData,
+                  sessionId,
+                  joinedAt: userData.joinedAt || Timestamp.now(),
+                  lastLoginAt: Timestamp.now(),
+                });
+                if (oldUid) {
+                  try {
+                    await userService.deleteUser(oldUid);
+                  } catch (delErr) {
+                    console.warn('Could not delete old invitation doc:', delErr);
+                  }
+                }
+                existingUser = await userService.getUser(firebaseUser.uid);
+              } else {
+                existingUser = userByEmail;
+              }
+            }
+          } catch (error) {
+            console.warn('Error checking for invitation, creating new user instead:', error);
+          }
         }
 
-        if (existingUser.lastDevice !== currentDevice) {
+        if (existingUser) {
+          const updates: Partial<User> = {};
+          let needsUpdate = false;
+
+          analyticsService.logVisit(firebaseUser.uid);
+
+          if (existingUser.sessionId !== sessionId) {
+            updates.sessionId = sessionId;
+            needsUpdate = true;
+          }
+
+          if (existingUser.lastDevice !== currentDevice) {
             updates.lastDevice = currentDevice;
             needsUpdate = true;
-        }
+          }
 
-        // Always update lastLoginAt on new session initialization
-        updates.lastLoginAt = Timestamp.now();
-        needsUpdate = true;
-
-        if (isSuperAdmin && existingUser.role !== 'admin') {
-          updates.role = 'admin';
+          updates.lastLoginAt = Timestamp.now();
           needsUpdate = true;
-        }
 
-        if (needsUpdate) {
-          await userService.updateUser(firebaseUser.uid, updates);
-          return { ...existingUser, ...updates }; // Return updated user data immediately
-        }
-        
-        return existingUser; // Return existing user data
-      } else {
-        // User does not exist, and wasn't pre-created. Create a new one.
-        const newUser: Omit<User, 'uid'> = {
-          email: userEmail || '',
-          displayName: firebaseUser.displayName || userEmail?.split('@')[0] || 'User',
-          photoURL: firebaseUser.photoURL || `https://ui-avatars.com/api/?name=${userEmail?.[0]}&background=667eea&color=fff&size=200`,
-          role: isSuperAdmin ? 'admin' : 'student',
-          grade: null, // Default to null
-          sessionId: sessionId,
-          joinedAt: Timestamp.now(),
-          lastDevice: currentDevice,
-          lastLoginAt: Timestamp.now()
-        };
+          if (isSuperAdmin && existingUser.role !== 'admin') {
+            updates.role = 'admin';
+            needsUpdate = true;
+          }
 
-        await userService.createUser(firebaseUser.uid, newUser);
-        analyticsService.logVisit(firebaseUser.uid);
-        
-        // Return the full user object including the UID
-        return { ...newUser, uid: firebaseUser.uid };
+          if (needsUpdate) {
+            try {
+              await userService.updateUser(firebaseUser.uid, updates);
+            } catch (updateErr) {
+              console.warn('Could not update user metadata:', updateErr);
+            }
+            return { ...existingUser, ...updates };
+          }
+
+          return existingUser;
+        } else {
+          const fallback = buildFallbackUser(firebaseUser, sessionId);
+          const { uid: _uid, ...newUser } = fallback;
+          await userService.createUser(firebaseUser.uid, newUser);
+          analyticsService.logVisit(firebaseUser.uid);
+          return fallback;
+        }
+      } catch (error) {
+        console.error('Error getting or creating user in Firestore, using auth fallback:', error);
+        return buildFallbackUser(firebaseUser, sessionId);
       }
-    } catch (error) {
-        console.error("Error getting or creating user:", error);
-        // Important: Return null here so we don't crash, but the user state will be null, triggering sign out
-        return null;
-    }
-  }, [sessionId]);
+    },
+    [sessionId]
+  );
 
-
-  // Handle auth state changes
   useEffect(() => {
     let unsubscribeUser: (() => void) | null = null;
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
-      // First, cancel any existing user subscription
       if (unsubscribeUser) {
         unsubscribeUser();
         unsubscribeUser = null;
       }
 
       if (firebaseUser) {
-        setLoading(true);
-        // Get or create the user document in Firestore
-        const dbUser = await getOrCreateUser(firebaseUser);
-
-        if (dbUser) {
-          // We have the initial user data. Now, set up a real-time listener.
-          unsubscribeUser = userService.subscribeToUser(
-            firebaseUser.uid,
-            (updatedUser) => {
-              if (updatedUser) {
-                // Enforce single session
-                if (updatedUser.sessionId !== sessionId) {
-                  toast.error('Tài khoản đã được đăng nhập nơi khác. Đang đăng xuất...');
-                  localStorage.removeItem('sessionId');
-                  firebaseSignOut(auth); // This will trigger onAuthStateChanged again
-                  return;
-                }
-                
-                // Handle account deactivation
-                if (updatedUser.isActive === false) {
-                  toast.error('Tài khoản của bạn đã bị vô hiệu hóa.');
-                  localStorage.removeItem('sessionId');
-                  firebaseSignOut(auth); // This will trigger onAuthStateChanged again
-                  return;
-                }
-                
-                // Update state with the latest data
-                setUser(updatedUser);
-              } else {
-                // The user document was deleted from Firestore.
-                console.warn(`User document for ${firebaseUser.uid} not found or deleted.`);
-                firebaseSignOut(auth); // This will trigger onAuthStateChanged again
-              }
-              setLoading(false); // Stop loading once we have a definitive state
-            },
-            (error) => {
-              console.error('Error in user subscription:', error);
-              firebaseSignOut(auth);
-              setLoading(false);
-            }
-          );
-        } else {
-          // Failed to get or create the user in Firestore, so sign out.
-          firebaseSignOut(auth);
-          setLoading(false);
+        if (currentUidRef.current !== firebaseUser.uid) {
+          setLoading(true);
         }
+        const dbUser = await getOrCreateUser(firebaseUser);
+        currentUidRef.current = firebaseUser.uid;
+        setUser(dbUser);
+
+        unsubscribeUser = userService.subscribeToUser(
+          firebaseUser.uid,
+          (updatedUser) => {
+            if (updatedUser) {
+              if (updatedUser.sessionId && updatedUser.sessionId !== sessionId) {
+                toast.error('Tài khoản đã được đăng nhập nơi khác. Đang đăng xuất...');
+                localStorage.removeItem('sessionId');
+                firebaseSignOut(auth);
+                return;
+              }
+
+              if (updatedUser.isActive === false) {
+                toast.error('Tài khoản của bạn đã bị vô hiệu hóa.');
+                localStorage.removeItem('sessionId');
+                firebaseSignOut(auth);
+                return;
+              }
+
+              setUser(updatedUser);
+            }
+            setLoading(false);
+          },
+          (error) => {
+            console.warn('Error in user subscription (using initial profile):', error);
+            setLoading(false);
+          }
+        );
       } else {
-        // No Firebase user, so clear our state
+        currentUidRef.current = null;
         setUser(null);
         setLoading(false);
       }
     });
 
-    // Cleanup function for the component unmounting
     return () => {
       unsubscribeAuth();
       if (unsubscribeUser) {
@@ -240,68 +218,103 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signInWithGoogle = useCallback(async () => {
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
     try {
       await signInWithPopup(auth, provider);
     } catch (error: any) {
       console.error('Google sign in error:', error);
+
+      // Fallback to redirect if popup was blocked by browser
+      if (error.code === 'auth/popup-blocked') {
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+
       let message = `Đăng nhập Google thất bại: ${error.message}`;
-      
-      if (error.code === 'auth/popup-closed-by-user') {
+
+      if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
         message = 'Đăng nhập bị hủy bởi người dùng.';
       } else if (error.code === 'auth/operation-not-allowed') {
-        message = 'Lỗi cấu hình Firebase: Phương thức Đăng nhập Google chưa được kích hoạt.';
+        message = 'Phương thức Đăng nhập Google chưa được bật trong Firebase Console (Authentication -> Sign-in method).';
       } else if (error.code === 'auth/unauthorized-domain') {
-        message = 'Lỗi cấu hình Firebase: Tên miền ứng dụng chưa được thêm vào Authorized domains.';
+        const domain = typeof window !== 'undefined' ? window.location.hostname : '';
+        message = `Tên miền "${domain}" chưa được cấp phép trong Firebase. Hãy thêm "${domain}" vào Firebase Console -> Authentication -> Settings -> Authorized domains.`;
       }
-      
+
+      toast.error(message);
       throw new Error(message);
     }
   }, []);
 
-  const signInWithEmail = useCallback(
-    async (email: string, password: string) => {
-      try {
-        await signInWithEmailAndPassword(auth, email, password);
-      } catch (error: any) {
-        console.error('Email sign in error:', error);
-        let message = 'Đăng nhập thất bại.';
-        
-        if (error.code === 'auth/user-not-found' || 
-            error.code === 'auth/wrong-password' || 
-            error.code === 'auth/invalid-credential') {
-          message = 'Email hoặc mật khẩu không chính xác.';
-        } else if (error.code === 'auth/operation-not-allowed') {
-          message = 'Lỗi cấu hình Firebase: Phương thức Đăng nhập Email/Password chưa được kích hoạt.';
-        }
-        
-        toast.error(message);
-        throw new Error(message);
-      }
-    },
-    []
-  );
+  const signInWithEmail = useCallback(async (email: string, password: string) => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error: any) {
+      console.error('Email sign in error:', error);
+      let message = 'Đăng nhập thất bại.';
 
-  const signUpWithEmail = useCallback(
-    async (email: string, password: string) => {
-      try {
-        await createUserWithEmailAndPassword(auth, email, password);
-      } catch (error: any) {
-        console.error('Email sign up error:', error);
-        let message = 'Đăng ký thất bại.';
-        
-        if (error.code === 'auth/weak-password') {
-          message = 'Mật khẩu quá yếu (phải có ít nhất 6 ký tự).';
-        } else if (error.code === 'auth/email-already-in-use') {
-          message = 'Email đã được sử dụng.';
-        } else if (error.code === 'auth/operation-not-allowed') {
-          message = 'Lỗi cấu hình Firebase: Phương thức Đăng nhập Email/Password chưa được kích hoạt.';
-        }
-        
-        throw new Error(message);
+      if (
+        error.code === 'auth/user-not-found' ||
+        error.code === 'auth/wrong-password' ||
+        error.code === 'auth/invalid-credential'
+      ) {
+        message = 'Email hoặc mật khẩu không chính xác.';
+      } else if (error.code === 'auth/operation-not-allowed') {
+        message = 'Phương thức Đăng nhập Email/Password chưa được kích hoạt trong Firebase.';
       }
-    },
-    []
-  );
+
+      toast.error(message);
+      throw new Error(message);
+    }
+  }, []);
+
+  const signUpWithEmail = useCallback(async (email: string, password: string) => {
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+    } catch (error: any) {
+      console.error('Email sign up error:', error);
+      let message = 'Đăng ký thất bại.';
+
+      if (error.code === 'auth/weak-password') {
+        message = 'Mật khẩu quá yếu (phải có ít nhất 6 ký tự).';
+      } else if (error.code === 'auth/email-already-in-use') {
+        message = 'Email đã được sử dụng.';
+      } else if (error.code === 'auth/operation-not-allowed') {
+        message = 'Phương thức Đăng nhập Email/Password chưa được kích hoạt trong Firebase.';
+      }
+
+      toast.error(message);
+      throw new Error(message);
+    }
+  }, []);
+
+  const resetPassword = useCallback(async (email: string) => {
+    const trimmed = email.trim();
+    if (!trimmed) {
+      const msg = 'Vui lòng nhập địa chỉ email của bạn.';
+      toast.error(msg);
+      throw new Error(msg);
+    }
+    try {
+      auth.languageCode = 'vi';
+      await sendPasswordResetEmail(auth, trimmed);
+      toast.success('Đã gửi email đặt lại mật khẩu. Vui lòng kiểm tra hộp thư (kể cả mục Spam).');
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      let message = 'Không thể gửi email đặt lại mật khẩu.';
+
+      if (error.code === 'auth/invalid-email') {
+        message = 'Địa chỉ email không hợp lệ.';
+      } else if (error.code === 'auth/user-not-found') {
+        message = 'Không tìm thấy tài khoản nào với email này.';
+      } else if (error.code === 'auth/too-many-requests') {
+        message = 'Bạn đã yêu cầu quá nhiều lần. Vui lòng thử lại sau ít phút.';
+      }
+
+      toast.error(message);
+      throw new Error(message);
+    }
+  }, []);
 
   const signOut = useCallback(async () => {
     localStorage.removeItem('sessionId');
@@ -314,6 +327,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signInWithGoogle,
     signInWithEmail,
     signUpWithEmail,
+    resetPassword,
     signOut,
   };
 
