@@ -35,6 +35,39 @@ const initAdmin = () => {
     }
 };
 
+function sortObjDataByKey(object: Record<string, any>): Record<string, any> {
+    const orderedObject: Record<string, any> = {};
+    Object.keys(object)
+        .sort()
+        .forEach((key) => {
+            orderedObject[key] = object[key];
+        });
+    return orderedObject;
+}
+
+/**
+ * Matches @payos/node's official convertObjToQueryStr implementation:
+ * - Sorts keys alphabetically
+ * - Converts [null, undefined, 'undefined', 'null'] to '' (empty string)
+ * - Serializes nested arrays with sorted keys
+ */
+function buildPayOSSignData(data: Record<string, any>): string {
+    const sorted = sortObjDataByKey(data);
+    return Object.keys(sorted)
+        .filter((key) => sorted[key] !== undefined)
+        .map((key) => {
+            let value = sorted[key];
+            if (value && Array.isArray(value)) {
+                value = JSON.stringify(value.map((val) => (val && typeof val === 'object' ? sortObjDataByKey(val) : val)));
+            }
+            if ([null, undefined, 'undefined', 'null'].includes(value)) {
+                value = '';
+            }
+            return `${key}=${value}`;
+        })
+        .join('&');
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -66,10 +99,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const checksumKey = process.env.PAYOS_CHECKSUM_KEY;
 
         if (checksumKey && data && signature) {
-            const sortedDataKeys = Object.keys(data).sort();
-            const signData = sortedDataKeys
-                .map((key) => `${key}=${data[key]}`)
-                .join('&');
+            const signData = buildPayOSSignData(data);
 
             const generatedSignature = crypto
                 .createHmac('sha256', checksumKey)
@@ -77,7 +107,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 .digest('hex');
 
             if (generatedSignature !== signature) {
-                console.error('Invalid signature. Potential spoofing attack detected!');
+                console.error('Invalid signature on PayOS webhook.');
                 return res.status(200).json({ success: false, message: 'Invalid signature' });
             }
         }

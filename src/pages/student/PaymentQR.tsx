@@ -1,7 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
-import { db } from '../../config/firebase';
 import { Order, orderService } from '../../services/order.service';
 import { Loader2, CheckCircle, AlertTriangle, RefreshCw, ExternalLink } from 'lucide-react';
 
@@ -89,6 +87,13 @@ export const PaymentQR: React.FC = () => {
         return;
       }
 
+      // First check if PayOS already marked an existing orderCode as PAID
+      const alreadyPaidOnPayOS = await orderService.verifyOrderWithPayOS(o);
+      if (alreadyPaidOnPayOS) {
+        navigate('/student/courses');
+        return;
+      }
+
       if (o.checkoutUrl) {
         setCheckoutUrl(o.checkoutUrl);
         return;
@@ -120,26 +125,24 @@ export const PaymentQR: React.FC = () => {
     }
   };
 
-  // Real-time polling to detect payment completion and unlock course immediately
+  // Real-time polling to detect payment completion (both Firestore & PayOS API) and unlock course immediately
   useEffect(() => {
     if (!order || order.status === 'paid') return;
 
     const pollTimer = setInterval(async () => {
       const currentOrder = await orderService.getOrder(order.id);
-      if (currentOrder && currentOrder.status === 'paid') {
+      if (!currentOrder) return;
+
+      if (currentOrder.status === 'paid') {
         clearInterval(pollTimer);
-        const courseIds: string[] = [];
-        if (currentOrder.courseId) courseIds.push(currentOrder.courseId);
-        if (Array.isArray(currentOrder.items)) {
-          currentOrder.items.forEach((i) => {
-            if (i.courseId) courseIds.push(i.courseId);
-          });
-        }
-        if (currentOrder.userId && courseIds.length > 0) {
-          await updateDoc(doc(db, 'users', currentOrder.userId), {
-            enrolledCourses: arrayUnion(...Array.from(new Set(courseIds))),
-          }).catch(() => {});
-        }
+        await orderService.completePaidOrder(currentOrder);
+        navigate('/student/courses');
+        return;
+      }
+
+      const isPaidOnPayOS = await orderService.verifyOrderWithPayOS(currentOrder);
+      if (isPaidOnPayOS) {
+        clearInterval(pollTimer);
         navigate('/student/courses');
       }
     }, 4000);

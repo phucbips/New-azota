@@ -64,6 +64,12 @@ export const CartOrders: React.FC = () => {
                 enrolledCourses: arrayUnion(...uniqueMissing)
             }).catch(() => {});
         }
+
+        // Tự động đối chiếu với cổng PayOS cho các đơn đang chờ thanh toán
+        const unpaid = orders.filter(o => (o.status === 'pending' || o.status === 'pay_later') && Number(o.amount || 0) > 0);
+        unpaid.forEach(ord => {
+            orderService.verifyOrderWithPayOS(ord).catch(() => {});
+        });
     }, [user?.uid, user?.enrolledCourses, orders]);
 
     const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -11,8 +11,10 @@ import {
   onSnapshot,
   where,
   arrayUnion,
+  limit,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { financeService } from './finance.service';
 
 export type OrderStatus = 'pending' | 'paid' | 'pay_later' | 'cancelled';
 export type PaymentMethod = 'bank_transfer' | 'cash';
@@ -41,6 +43,7 @@ export interface Order {
   paymentMethod: PaymentMethod;
   createdAt: Date | any;
   updatedAt: Date | any;
+  paidAt?: Date | any;
   notes?: string;
   // Backward compatibility:
   courseId?: string;
@@ -148,6 +151,121 @@ class OrderService {
       return { id: snap.id, ...snap.data() } as Order;
     }
     return null;
+  }
+
+  /**
+   * Finds an order by its current `orderCode` or any historical code in `previousOrderCodes`.
+   * Works regardless of which user (student or admin) is currently logged in.
+   */
+  async findOrderByOrderCode(orderCode: string): Promise<Order | null> {
+    const cleanCode = String(orderCode || '').trim();
+    if (!cleanCode) return null;
+
+    let snap = await getDocs(
+      query(this.collection, where('orderCode', '==', cleanCode), limit(1))
+    );
+    if (snap.empty && !isNaN(Number(cleanCode))) {
+      snap = await getDocs(
+        query(this.collection, where('orderCode', '==', Number(cleanCode)), limit(1))
+      );
+    }
+    if (snap.empty) {
+      snap = await getDocs(
+        query(
+          this.collection,
+          where('previousOrderCodes', 'array-contains', cleanCode),
+          limit(1)
+        )
+      );
+    }
+
+    if (!snap.empty) {
+      const d = snap.docs[0];
+      return { id: d.id, ...d.data() } as Order;
+    }
+    return null;
+  }
+
+  /**
+   * Idempotently marks an order as 'paid', unlocks all courses in `users/{order.userId}.enrolledCourses`,
+   * and syncs the revenue transaction into the active sales batch.
+   */
+  async completePaidOrder(order: Order): Promise<void> {
+    const courseIds: string[] = [];
+    if (order.courseId) courseIds.push(order.courseId);
+    if (Array.isArray(order.items)) {
+      order.items.forEach((item) => {
+        if (item.courseId) courseIds.push(item.courseId);
+      });
+    }
+
+    if (order.status !== 'paid') {
+      await updateDoc(doc(db, 'orders', order.id), {
+        status: 'paid',
+        paymentMethod: 'bank_transfer',
+        paidAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    }
+
+    // Unlock courses for the actual buyer (order.userId), even if triggered by Admin browser
+    if (order.userId && courseIds.length > 0) {
+      await updateDoc(doc(db, 'users', order.userId), {
+        enrolledCourses: arrayUnion(...Array.from(new Set(courseIds))),
+      }).catch((err) => {
+        console.warn('Could not update enrolledCourses on user doc:', err);
+      });
+    }
+
+    // Sync into financial_transactions & active sales batch
+    if (!isFreeNonVoucherOrder(order) && Number(order.amount || 0) > 0) {
+      const paidOrder: Order = { ...order, status: 'paid', paymentMethod: 'bank_transfer' };
+      await financeService.syncPaidOrdersToTransactions([paidOrder]).catch((err) => {
+        console.warn('Could not sync paid order to finance transactions:', err);
+      });
+    }
+  }
+
+  /**
+   * Queries PayOS API directly via `/api/create-payment-link` (`action: 'check-status'`)
+   * for `order.orderCode` and `order.previousOrderCodes`.
+   * If PayOS confirms payment (`PAID` or `amountPaid >= amount`), automatically completes the order!
+   */
+  async verifyOrderWithPayOS(order: Order): Promise<boolean> {
+    if (!order || order.status === 'paid') return true;
+
+    const candidateCodes = Array.from(
+      new Set(
+        [String(order.orderCode || ''), ...(order.previousOrderCodes || []).map(String)]
+          .map((c) => c.trim())
+          .filter((c) => c && !isNaN(Number(c)) && Number(c) > 0)
+      )
+    );
+
+    if (candidateCodes.length === 0) return false;
+
+    try {
+      const res = await fetch('/api/create-payment-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'check-status',
+          orderCodes: candidateCodes,
+        }),
+      });
+
+      if (!res.ok) return false;
+
+      const data = await res.json();
+      if (data && data.anyPaid) {
+        await this.completePaidOrder(order);
+        return true;
+      }
+    } catch (err) {
+      console.warn('verifyOrderWithPayOS error:', err);
+    }
+
+    return false;
   }
 
   async getOrders(): Promise<Order[]> {

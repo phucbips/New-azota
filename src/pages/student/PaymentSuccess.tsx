@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { CheckCircle, BookOpen, ChevronRight, Loader2, AlertCircle } from 'lucide-react';
-import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
-import { db } from '../../config/firebase';
 import { Order, orderService } from '../../services/order.service';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../hooks/useAuth';
@@ -32,11 +30,6 @@ export const PaymentSuccess: React.FC = () => {
     let isMounted = true;
 
     const verifyAndUnlockCourse = async () => {
-      if (!user?.uid) {
-        if (isMounted) setLoading(false);
-        return;
-      }
-
       try {
         let matchedOrder: Order | null = null;
 
@@ -45,48 +38,29 @@ export const PaymentSuccess: React.FC = () => {
           matchedOrder = await orderService.getOrder(orderIdParam);
         }
 
-        // 2. Otherwise find among this user's orders by orderCode
+        // 2. Otherwise find globally in `orders` collection by orderCode (works for both Admin & Student)
         if (!matchedOrder && orderCode) {
+          matchedOrder = await orderService.findOrderByOrderCode(orderCode);
+        }
+
+        // 3. Fallback: if still not found and user is logged in, check user's pending orders
+        if (!matchedOrder && user?.uid) {
           const userOrders = await new Promise<Order[]>((resolve) => {
             const unsub = orderService.subscribeToUserOrders(user.uid, (list) => {
               unsub();
               resolve(list);
             });
           });
-          matchedOrder =
-            userOrders.find(
-              (o) =>
-                String(o.orderCode) === String(orderCode) ||
-                (Array.isArray(o.previousOrderCodes) &&
-                  o.previousOrderCodes.includes(String(orderCode)))
-            ) ||
-            userOrders.find((o) => o.status === 'pending') ||
-            null;
+          matchedOrder = userOrders.find((o) => o.status === 'pending') || null;
         }
 
         if (matchedOrder && isMounted) {
           setOrder(matchedOrder);
         }
 
-        // 3. If PayOS returned PAID (code=00, status=PAID, cancel!=true), ensure order is marked paid & courses are unlocked immediately!
+        // 4. Complete the order for matchedOrder.userId (marks paid, unlocks courses, records finance transaction)
         if (isSuccess && matchedOrder) {
-          const courseIds: string[] = [];
-          if (matchedOrder.courseId) courseIds.push(matchedOrder.courseId);
-          if (Array.isArray(matchedOrder.items)) {
-            matchedOrder.items.forEach((item) => {
-              if (item.courseId) courseIds.push(item.courseId);
-            });
-          }
-
-          if (matchedOrder.status !== 'paid') {
-            await orderService.updateOrderStatus(matchedOrder.id, 'paid');
-          }
-
-          if (courseIds.length > 0) {
-            await updateDoc(doc(db, 'users', user.uid), {
-              enrolledCourses: arrayUnion(...Array.from(new Set(courseIds))),
-            });
-          }
+          await orderService.completePaidOrder(matchedOrder);
         }
       } catch (e) {
         console.error('Error verifying order on return:', e);
@@ -113,6 +87,10 @@ export const PaymentSuccess: React.FC = () => {
     );
   }
 
+  const returnPath = user?.role === 'admin' ? '/admin/orders' : '/student/courses';
+  const successActionPath = user?.role === 'admin' ? '/admin/orders' : '/student/assignments';
+  const successActionLabel = user?.role === 'admin' ? 'Quay lại Quản lý Đơn hàng' : 'Vào học ngay';
+
   if (!isSuccess) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
@@ -123,13 +101,13 @@ export const PaymentSuccess: React.FC = () => {
           Giao dịch chưa hoàn tất
         </h1>
         <p className="text-muted-foreground max-w-md mb-8 text-sm">
-          Quá trình thanh toán đã bị hủy hoặc chưa hoàn tất. Bạn có thể quay lại mục Khóa học hoặc Giỏ hàng để tiếp tục thanh toán.
+          Quá trình thanh toán đã bị hủy hoặc chưa hoàn tất. Bạn có thể quay lại mục Khóa học hoặc Đơn hàng để tiếp tục thanh toán.
         </p>
         <Link
-          to="/student/courses"
+          to={returnPath}
           className="px-6 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors"
         >
-          Quay lại Khóa học
+          Quay lại
         </Link>
       </div>
     );
@@ -148,7 +126,8 @@ export const PaymentSuccess: React.FC = () => {
           Thanh toán thành công!
         </h1>
         <p className="text-sm text-muted-foreground mb-6">
-          Cảm ơn bạn đã đăng ký. Quyền truy cập khóa học đã được kích hoạt tự động cho tài khoản của bạn.
+          Cảm ơn bạn đã đăng ký. Quyền truy cập khóa học đã được kích hoạt tự động cho tài khoản{' '}
+          {order?.userEmail ? <strong>{order.userEmail}</strong> : 'của bạn'}.
         </p>
 
         {order && (
@@ -184,10 +163,10 @@ export const PaymentSuccess: React.FC = () => {
         )}
 
         <Link
-          to="/student/assignments"
+          to={successActionPath}
           className="w-full py-3 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
         >
-          Vào học ngay
+          {successActionLabel}
           <ChevronRight className="w-4 h-4" />
         </Link>
       </div>

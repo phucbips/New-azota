@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Order, orderService, OrderStatus, isFreeNonVoucherOrder } from '../../services/order.service';
 import { User as UserType } from '../../types';
@@ -24,6 +24,8 @@ import {
   Eye,
   EyeOff,
   Tag,
+  RefreshCw,
+  QrCode,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Loading } from '../../components/shared/Loading';
@@ -35,6 +37,8 @@ export const AdminOrders: React.FC = () => {
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showFreeOrders, setShowFreeOrders] = useState(false);
+  const [syncingPayOS, setSyncingPayOS] = useState(false);
+  const autoCheckedIdsRef = useRef<Set<string>>(new Set());
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [users, setUsers] = useState<UserType[]>([]);
@@ -42,7 +46,7 @@ export const AdminOrders: React.FC = () => {
   const [newOrder, setNewOrder] = useState({
     userId: '',
     courseIds: [] as string[],
-    status: 'paid' as OrderStatus,
+    status: 'pay_later' as OrderStatus,
     voucherCode: '',
   });
   const [isCreating, setIsCreating] = useState(false);
@@ -65,6 +69,82 @@ export const AdminOrders: React.FC = () => {
     });
     return () => unsub();
   }, []);
+
+  // Tự động kiểm tra với cổng PayOS cho các đơn đang chờ thanh toán / trả sau
+  useEffect(() => {
+    if (orders.length === 0) return;
+
+    const unpaidOrders = orders.filter(
+      (o) =>
+        (o.status === 'pending' || o.status === 'pay_later') &&
+        !autoCheckedIdsRef.current.has(o.id) &&
+        Number(o.amount || 0) > 0
+    );
+
+    if (unpaidOrders.length === 0) return;
+
+    unpaidOrders.forEach((o) => autoCheckedIdsRef.current.add(o.id));
+
+    (async () => {
+      for (const ord of unpaidOrders) {
+        const paid = await orderService.verifyOrderWithPayOS(ord);
+        if (paid) {
+          toast.success(
+            `Đã tự động xác nhận chuyển khoản thành công cho đơn ${ord.userEmail} (${ord.displayCode || ord.orderCode})!`
+          );
+        }
+      }
+    })();
+  }, [orders]);
+
+  // Khi Admin đang mở chi tiết 1 đơn chưa thanh toán (đặc biệt sau khi bấm Tạo mã QR), tự động poll PayOS mỗi 5 giây
+  useEffect(() => {
+    if (!expandedId) return;
+    const targetOrder = orders.find((o) => o.id === expandedId);
+    if (!targetOrder || targetOrder.status === 'paid' || targetOrder.status === 'cancelled') {
+      return;
+    }
+
+    const timer = setInterval(async () => {
+      const paid = await orderService.verifyOrderWithPayOS(targetOrder);
+      if (paid) {
+        clearInterval(timer);
+        toast.success(
+          `Đã nhận thanh toán chuyển khoản từ ${targetOrder.userEmail}! Khóa học đã được kích hoạt.`
+        );
+      }
+    }, 5000);
+
+    return () => clearInterval(timer);
+  }, [expandedId, orders]);
+
+  const handleSyncAllPayOS = useCallback(async () => {
+    const unpaid = orders.filter(
+      (o) => (o.status === 'pending' || o.status === 'pay_later') && Number(o.amount || 0) > 0
+    );
+    if (unpaid.length === 0) {
+      toast.info('Không có đơn hàng nào đang chờ thanh toán để kiểm tra.');
+      return;
+    }
+
+    setSyncingPayOS(true);
+    let updatedCount = 0;
+    try {
+      for (const ord of unpaid) {
+        const paid = await orderService.verifyOrderWithPayOS(ord);
+        if (paid) updatedCount++;
+      }
+      if (updatedCount > 0) {
+        toast.success(`Đã xác nhận thanh toán thành công cho ${updatedCount} đơn hàng!`);
+      } else {
+        toast.info('Đã kiểm tra với cổng PayOS: chưa có giao dịch mới nào hoàn tất.');
+      }
+    } catch (e) {
+      toast.error('Lỗi khi đồng bộ trạng thái với PayOS.');
+    } finally {
+      setSyncingPayOS(false);
+    }
+  }, [orders]);
 
   const handleValidateVoucher = async () => {
     if (!newOrder.voucherCode.trim()) {
@@ -149,7 +229,9 @@ export const AdminOrders: React.FC = () => {
         finalAmount = Math.max(0, amount - discountAmount);
       }
 
-      await orderService.createOrder({
+      const initialStatus: OrderStatus = newOrder.status || 'pay_later';
+
+      const createdOrderId = await orderService.createOrder({
         userId: selectedUser.uid,
         userEmail: selectedUser.email,
         userName: selectedUser.displayName || 'Unknown',
@@ -157,8 +239,8 @@ export const AdminOrders: React.FC = () => {
         amount: finalAmount,
         originalAmount: amount,
         discount: discountAmount,
-        status: 'pay_later',
-        paymentMethod: 'cash',
+        status: initialStatus,
+        paymentMethod: initialStatus === 'pending' ? 'bank_transfer' : 'cash',
         voucherCode: validatedVoucher ? validatedVoucher.code : null,
       });
 
@@ -166,23 +248,43 @@ export const AdminOrders: React.FC = () => {
         await voucherService.incrementUsage(validatedVoucher.id);
       }
 
-      const newEnrolled = new Set([
-        ...(selectedUser.enrolledCourses || []),
-        ...newOrder.courseIds,
-      ]);
-      await userService.updateUser(selectedUser.uid, {
-        enrolledCourses: Array.from(newEnrolled),
-      });
+      // Cấp khóa học ngay nếu trạng thái là trả sau (pay_later) hoặc đã thanh toán (paid)
+      if (initialStatus === 'pay_later' || initialStatus === 'paid') {
+        const newEnrolled = new Set([
+          ...(selectedUser.enrolledCourses || []),
+          ...newOrder.courseIds,
+        ]);
+        await userService.updateUser(selectedUser.uid, {
+          enrolledCourses: Array.from(newEnrolled),
+        });
 
-      for (const c of selectedCourses) {
-        await courseService.updateCourse(c.id, {
-          enrollmentCount: (c.enrollmentCount || 0) + 1,
+        for (const c of selectedCourses) {
+          await courseService.updateCourse(c.id, {
+            enrollmentCount: (c.enrollmentCount || 0) + 1,
+          });
+        }
+      }
+
+      // Nếu tạo đơn ở trạng thái đã thu tiền ('paid'), ghi nhận luôn vào sổ thu chi & đợt bán hàng
+      if (initialStatus === 'paid' && finalAmount > 0) {
+        const titlesStr = selectedCourses.map((c) => c.title).join(', ');
+        const desc = `${selectedUser.email} - ${titlesStr}${
+          validatedVoucher ? ` - ${validatedVoucher.code}` : ''
+        }`.trim();
+        await financeService.addTransaction({
+          orderId: createdOrderId,
+          type: 'income',
+          category: 'Bán khóa học',
+          amount: finalAmount,
+          description: desc,
+          createdBy: 'admin',
         });
       }
 
       toast.success('Tạo đơn hàng thành công');
       setShowCreateModal(false);
-      setNewOrder({ userId: '', courseIds: [], status: 'paid', voucherCode: '' });
+      setExpandedId(createdOrderId);
+      setNewOrder({ userId: '', courseIds: [], status: 'pay_later', voucherCode: '' });
     } catch (e: any) {
       toast.error(`Lỗi: ${e.message}`);
     } finally {
@@ -205,41 +307,76 @@ export const AdminOrders: React.FC = () => {
     }
   };
 
-  const handleCreateQR = async (order: Order) => {
+  const handleCreateQR = async (order: Order, forceNewQR = false) => {
     try {
-      if (order.checkoutUrl) {
+      // Trước tiên kiểm tra xem đơn này đã được thanh toán trên PayOS chưa
+      const alreadyPaid = await orderService.verifyOrderWithPayOS(order);
+      if (alreadyPaid) {
+        toast.success(
+          `Đơn hàng của ${order.userEmail} đã được thanh toán trên PayOS! Đã tự động duyệt.`
+        );
+        return;
+      }
+
+      if (order.checkoutUrl && !forceNewQR) {
         window.open(order.checkoutUrl, '_blank');
         return;
       }
 
-      const baseUrl = window.location.origin;
+      let activeOrderCode = order.orderCode;
+      let activeDisplayCode = order.displayCode;
 
-      const response = await fetch('/api/create-payment-link', {
+      if (forceNewQR) {
+        const rotated = await orderService.rotateOrderCode(order);
+        activeOrderCode = rotated.orderCode;
+        activeDisplayCode = rotated.displayCode;
+      }
+
+      const baseUrl = window.location.origin;
+      const emailStr = order.userEmail || '';
+      let prefix = emailStr.split('@')[0].replace(/[^a-zA-Z0-9 ]/g, '');
+      if (!prefix) prefix = activeDisplayCode || `${activeOrderCode}`;
+
+      let response = await fetch('/api/create-payment-link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          orderCode: order.orderCode,
+          orderCode: activeOrderCode,
           amount: order.amount,
-          description: (() => {
-            const emailStr = order.userEmail || '';
-            let prefix = emailStr.split('@')[0];
-            prefix = prefix.replace(/[^a-zA-Z0-9 ]/g, '');
-            if (!prefix) prefix = order.displayCode || `${order.orderCode}`;
-            return prefix.substring(0, 25);
-          })(),
-          returnUrl: `${baseUrl}/student/payment/success`,
-          cancelUrl: `${baseUrl}/student/payment/success`,
+          description: prefix.substring(0, 25),
+          returnUrl: `${baseUrl}/student/payment/success?orderId=${order.id}`,
+          cancelUrl: `${baseUrl}/student/payment/success?orderId=${order.id}&cancel=true`,
         }),
       });
 
+      // Nếu mã orderCode cũ bị trùng trên PayOS, tự động xoay mã mới và tạo lại ngay!
+      if (!response.ok && !forceNewQR) {
+        const rotated = await orderService.rotateOrderCode(order);
+        activeOrderCode = rotated.orderCode;
+        activeDisplayCode = rotated.displayCode;
+        if (!prefix) prefix = activeDisplayCode || `${activeOrderCode}`;
+
+        response = await fetch('/api/create-payment-link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderCode: activeOrderCode,
+            amount: order.amount,
+            description: prefix.substring(0, 25),
+            returnUrl: `${baseUrl}/student/payment/success?orderId=${order.id}`,
+            cancelUrl: `${baseUrl}/student/payment/success?orderId=${order.id}&cancel=true`,
+          }),
+        });
+      }
+
       if (!response.ok) {
-        const errData = await response.json();
+        const errData = await response.json().catch(() => ({}));
         throw new Error(errData.message || 'Lỗi server khi tạo link');
       }
 
       const result = await response.json();
       await orderService.updateCheckoutUrl(order.id, result.checkoutUrl);
-      toast.success('Đã tạo mã QR thành công!');
+      toast.success('Đã tạo mã QR thành công! Hệ thống sẽ tự động duyệt ngay khi khách chuyển khoản.');
       window.open(result.checkoutUrl, '_blank');
     } catch (err: any) {
       console.error('Lỗi tạo PayOS link:', err);
@@ -249,67 +386,18 @@ export const AdminOrders: React.FC = () => {
 
   const handleUpdateStatus = async (order: Order, newStatus: OrderStatus) => {
     try {
-      await orderService.updateOrderStatus(order.id, newStatus);
-
-      if (newStatus === 'paid' && order.status !== 'paid') {
-        const items = order.items ? [...order.items] : [];
-        if (items.length === 0 && order.courseId) {
-          items.push({
-            courseId: order.courseId,
-            courseTitle: order.courseTitle || '',
-            price: order.amount,
-          });
-        }
-
-        const courseIds: string[] = [];
-        const courseTitles: string[] = [];
-        for (const item of items) {
-          courseIds.push(item.courseId);
-          courseTitles.push(item.courseTitle);
-          const cInfo = await courseService.getCourses();
-          const target = cInfo.find((c) => c.id === item.courseId);
-          if (target) {
-            await courseService.updateCourse(target.id, {
-              enrollmentCount: (target.enrollmentCount || 0) + 1,
-            });
-          }
-        }
-
-        if (order.userId && courseIds.length > 0) {
-          userService.getUser(order.userId).then((u) => {
-            if (u) {
-              const newEnrolled = new Set([...(u.enrolledCourses || []), ...courseIds]);
-              userService.updateUser(u.uid, {
-                enrolledCourses: Array.from(newEnrolled),
-              });
-            }
-          });
-        }
-
-        // Only record finance transaction if it is NOT a 0đ free non-voucher order and amount > 0
-        if (!isFreeNonVoucherOrder(order) && Number(order.amount || 0) > 0) {
-          const titlesStr = courseTitles.join(', ');
-          const desc = `${order.userEmail} - ${titlesStr} ${
-            order.voucherCode ? `- ${order.voucherCode}` : ''
-          }`.trim();
-          await financeService.addTransaction({
-            orderId: order.id,
-            type: 'income',
-            category: 'Bán khóa học',
-            amount: order.amount,
-            description: desc,
-            createdBy: 'admin',
-          });
-        }
+      if (newStatus === 'paid') {
+        await orderService.completePaidOrder(order);
+        toast.success('Đã cập nhật trạng thái thành Đã Thanh toán và kích hoạt khóa học!');
+        setExpandedId(null);
+        return;
       }
+
+      await orderService.updateOrderStatus(order.id, newStatus);
 
       toast.success(
         `Đã cập nhật trạng thái thành ${
-          newStatus === 'paid'
-            ? 'Đã Thanh toán'
-            : newStatus === 'cancelled'
-              ? 'Đã Hủy'
-              : 'Ghi nợ'
+          newStatus === 'cancelled' ? 'Đã Hủy' : 'Ghi nợ (Trả sau)'
         }`
       );
       setExpandedId(null);
@@ -334,6 +422,7 @@ export const AdminOrders: React.FC = () => {
       visibleOrders.filter(
         (o) =>
           (o.orderCode || '').toLowerCase().includes(search.toLowerCase()) ||
+          (o.displayCode || '').toLowerCase().includes(search.toLowerCase()) ||
           (o.userEmail || '').toLowerCase().includes(search.toLowerCase()) ||
           (o.userName || '').toLowerCase().includes(search.toLowerCase())
       ),
@@ -346,7 +435,7 @@ export const AdminOrders: React.FC = () => {
     <div className="flex flex-col gap-6 max-w-5xl mx-auto pb-10">
       <PageHeader
         title="Quản lý Đơn hàng"
-        subtitle="Theo dõi và duyệt đăng ký khóa học có phí hoặc áp dụng mã giảm giá (đơn 0đ miễn phí không dùng voucher đã được ẩn tự động)."
+        subtitle="Theo dõi và tự động duyệt đơn chuyển khoản QR qua cổng PayOS."
       />
 
       <div className="bg-card rounded-xl border border-border p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -364,6 +453,17 @@ export const AdminOrders: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            type="button"
+            onClick={handleSyncAllPayOS}
+            disabled={syncingPayOS}
+            className="px-3.5 py-2.5 rounded-lg text-xs font-semibold border border-border bg-background hover:bg-muted text-foreground transition-colors flex items-center gap-1.5 disabled:opacity-50"
+            title="Kiểm tra toàn bộ đơn chờ thanh toán với cổng PayOS"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-primary ${syncingPayOS ? 'animate-spin' : ''}`} />
+            {syncingPayOS ? 'Đang kiểm tra PayOS...' : 'Đồng bộ giao dịch QR'}
+          </button>
+
           {freeNonVoucherCount > 0 && (
             <button
               type="button"
@@ -435,11 +535,11 @@ export const AdminOrders: React.FC = () => {
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold text-foreground text-sm">
-                        {order.userEmail} - {order.orderCode}
+                        {order.userEmail} - {order.displayCode || order.orderCode}
                       </h3>
                       {order.status === 'pay_later' ? (
                         <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-warning/10 text-warning">
-                          Trả sau
+                          Trả sau / Chờ QR
                         </span>
                       ) : (
                         <StatusBadge
@@ -478,8 +578,8 @@ export const AdminOrders: React.FC = () => {
                       }).format(order.amount)}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {order.paymentMethod === 'bank_transfer'
-                        ? 'Chuyển khoản'
+                      {order.paymentMethod === 'bank_transfer' || order.checkoutUrl
+                        ? 'Chuyển khoản QR'
                         : 'Tiền mặt (trả sau)'}
                     </p>
                   </div>
@@ -541,33 +641,70 @@ export const AdminOrders: React.FC = () => {
                             <div className="flex justify-between items-center text-sm">
                               <span className="text-muted-foreground">Phương thức:</span>
                               <span className="font-semibold flex items-center gap-1">
-                                {order.paymentMethod === 'bank_transfer' ? (
+                                {order.paymentMethod === 'bank_transfer' || order.checkoutUrl ? (
                                   <CreditCard className="w-4 h-4 text-primary" />
                                 ) : (
                                   <Banknote className="w-4 h-4 text-primary" />
                                 )}
-                                {order.paymentMethod === 'bank_transfer'
-                                  ? order.status === 'paid'
-                                    ? 'Đã chuyển khoản'
-                                    : 'Chưa chuyển khoản'
-                                  : 'Tiền mặt (trả sau)'}
+                                {order.status === 'paid'
+                                  ? 'Đã thanh toán'
+                                  : order.checkoutUrl
+                                    ? 'Đang chờ quét mã QR (Tự động duyệt)'
+                                    : 'Chưa thanh toán'}
                               </span>
                             </div>
 
                             {(isPending || order.status === 'pay_later') && (
                               <div className="flex flex-col gap-2 pt-4 border-t border-border">
                                 <button
+                                  onClick={() => handleCreateQR(order, false)}
+                                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                                >
+                                  <QrCode className="w-4 h-4" />
+                                  {order.checkoutUrl
+                                    ? 'Mở mã QR Chuyển khoản'
+                                    : 'Tạo mã QR Chuyển khoản'}
+                                </button>
+
+                                {order.checkoutUrl && (
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        const paid = await orderService.verifyOrderWithPayOS(order);
+                                        if (paid) {
+                                          toast.success(
+                                            `Đã xác nhận thanh toán thành công cho ${order.userEmail}!`
+                                          );
+                                        } else {
+                                          toast.info(
+                                            'PayOS báo đơn này chưa hoàn tất thanh toán.'
+                                          );
+                                        }
+                                      }}
+                                      className="py-2 px-3 bg-muted hover:bg-muted/80 text-foreground rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
+                                    >
+                                      <RefreshCw className="w-3.5 h-3.5 text-primary" />
+                                      Kiểm tra giao dịch
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCreateQR(order, true)}
+                                      className="py-2 px-3 bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
+                                    >
+                                      <QrCode className="w-3.5 h-3.5" />
+                                      Đổi mã QR mới
+                                    </button>
+                                  </div>
+                                )}
+
+                                <button
                                   onClick={() => handleUpdateStatus(order, 'paid')}
                                   className="w-full bg-success hover:bg-success/90 text-success-foreground py-2.5 rounded-lg text-sm font-semibold transition-colors"
                                 >
-                                  Đã nhận tiền mặt
+                                  Xác nhận Đã nhận tiền (Duyệt ngay)
                                 </button>
-                                <button
-                                  onClick={() => handleCreateQR(order)}
-                                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-2.5 rounded-lg text-sm font-semibold transition-colors"
-                                >
-                                  Tạo mã QR Chuyển khoản
-                                </button>
+
                                 {isPending && order.paymentMethod === 'cash' && (
                                   <button
                                     onClick={() =>
@@ -597,7 +734,7 @@ export const AdminOrders: React.FC = () => {
                             </div>
                             {!isPending && order.status !== 'pay_later' && (
                               <div className="pt-2 text-center text-sm font-medium text-muted-foreground">
-                                Đơn hàng này đã đóng ({order.status}).
+                                Đơn hàng này đã đóng ({order.status === 'paid' ? 'Đã thanh toán' : 'Đã hủy'}).
                               </div>
                             )}
                           </div>
@@ -703,6 +840,32 @@ export const AdminOrders: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-2">
+                      Hình thức / Trạng thái ban đầu
+                    </label>
+                    <select
+                      value={newOrder.status}
+                      onChange={(e) =>
+                        setNewOrder({
+                          ...newOrder,
+                          status: e.target.value as OrderStatus,
+                        })
+                      }
+                      className="w-full p-3 rounded-xl border border-input bg-card text-foreground text-sm"
+                    >
+                      <option value="pay_later">
+                        Cấp khóa trước & Chờ tạo QR / Trả sau
+                      </option>
+                      <option value="pending">
+                        Chờ khách quét QR (Tự mở khóa khi thanh toán)
+                      </option>
+                      <option value="paid">
+                        Đã thu tiền (Mở khóa & Cộng doanh thu ngay)
+                      </option>
+                    </select>
+                  </div>
+
                   <div>
                     <label className="block text-sm font-semibold text-foreground mb-2">
                       Mã giảm giá (Tùy chọn)
