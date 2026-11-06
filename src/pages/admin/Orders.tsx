@@ -258,10 +258,14 @@ export const AdminOrders: React.FC = () => {
           enrolledCourses: Array.from(newEnrolled),
         });
 
-        for (const c of selectedCourses) {
-          await courseService.updateCourse(c.id, {
-            enrollmentCount: (c.enrollmentCount || 0) + 1,
-          });
+        // Chỉ tăng lượt mua hàng nếu đơn không phải là miễn phí 0đ không voucher
+        const isFree = finalAmount === 0 && !validatedVoucher;
+        if (!isFree) {
+          for (const c of selectedCourses) {
+            await courseService.updateCourse(c.id, {
+              enrollmentCount: (c.enrollmentCount || 0) + 1,
+            });
+          }
         }
       }
 

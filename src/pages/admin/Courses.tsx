@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Course, courseService } from '../../services/course.service';
 import { Assignment, assignmentService } from '../../services/assignment.service';
@@ -8,11 +8,13 @@ import { SaaSButton } from '../../components/ui/SaaSButton';
 import { Plus, Edit2, Trash2, Tag, BookOpen, ToggleLeft, ToggleRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { Loading } from '../../components/shared/Loading';
+import { orderService, Order, isFreeNonVoucherOrder } from '../../services/order.service';
 
 export const AdminCourses: React.FC = () => {
   const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
@@ -35,11 +37,38 @@ export const AdminCourses: React.FC = () => {
         setAssignments(data);
     });
 
+    const unsubOrders = orderService.subscribeToOrders((data) => {
+        setOrders(data);
+    });
+
     return () => {
         unsubCourses();
         unsubAssignments();
+        unsubOrders();
     };
   }, []);
+
+  // Tính số lượt mua thực tế của từng khóa học: chỉ tính từ các đơn paid/pay_later có phí hoặc có áp voucher (loại bỏ đơn 0đ miễn phí thuần)
+  const paidPurchaseCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    const paidOrders = orders.filter(
+      (o) => (o.status === 'paid' || o.status === 'pay_later') && !isFreeNonVoucherOrder(o)
+    );
+
+    paidOrders.forEach((o) => {
+      if (Array.isArray(o.items) && o.items.length > 0) {
+        o.items.forEach((item) => {
+          if (item.courseId) {
+            map.set(item.courseId, (map.get(item.courseId) || 0) + 1);
+          }
+        });
+      } else if (o.courseId) {
+        map.set(o.courseId, (map.get(o.courseId) || 0) + 1);
+      }
+    });
+
+    return map;
+  }, [orders]);
 
   // Auto-heal: Check for ghost assignments when both courses and assignments are loaded
   useEffect(() => {
@@ -162,7 +191,9 @@ export const AdminCourses: React.FC = () => {
                     </div>
 
                     <div className="mt-auto pt-5 flex items-center justify-between border-t border-border">
-                        <span className="text-xs text-muted-foreground">{course.enrollmentCount} Lượt mua</span>
+                        <span className="text-xs text-muted-foreground">
+                          {paidPurchaseCounts.get(course.id) ?? 0} Lượt mua
+                        </span>
                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button onClick={() => handleOpenModal(course)} className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors">
                                 <Edit2 className="w-4 h-4" />

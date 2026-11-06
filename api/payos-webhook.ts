@@ -169,18 +169,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 if (orderData.courseTitle) courseTitles.push(orderData.courseTitle);
             }
 
-            // Increment enrollmentCount for each course
-            for (const cid of courseIds) {
-                try {
-                    const cRef = db.collection('courses').doc(cid);
-                    await db.runTransaction(async (t) => {
-                        const cDoc = await t.get(cRef);
-                        if (cDoc.exists) {
-                            t.update(cRef, { enrollmentCount: admin.firestore.FieldValue.increment(1) });
-                        }
-                    });
-                } catch (cErr) {
-                    console.warn('Could not increment course enrollmentCount:', cErr);
+            // Increment enrollmentCount for each course (only if order is not free 0đ non-voucher)
+            const isFree = Number(orderData.amount ?? data.amount ?? 0) === 0 && !orderData.voucherCode;
+            if (!isFree) {
+                for (const cid of courseIds) {
+                    try {
+                        const cRef = db.collection('courses').doc(cid);
+                        await db.runTransaction(async (t) => {
+                            const cDoc = await t.get(cRef);
+                            if (cDoc.exists) {
+                                t.update(cRef, { enrollmentCount: admin.firestore.FieldValue.increment(1) });
+                            }
+                        });
+                    } catch (cErr) {
+                        console.warn('Could not increment course enrollmentCount:', cErr);
+                    }
                 }
             }
 
