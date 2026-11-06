@@ -16,8 +16,6 @@ import {
   Search,
   Filter,
   GraduationCap,
-  CheckCircle2,
-  Circle,
   X,
   ArrowUpDown,
 } from 'lucide-react';
@@ -45,41 +43,7 @@ export const StudentAssignments: React.FC = () => {
   const [selectedCourseId, setSelectedCourseId] = useState<string>(urlCourseId);
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [selectedGrade, setSelectedGrade] = useState<'all' | '10' | '11' | '12'>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'todo' | 'completed'>('all');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'title'>('newest');
-
-  // Completed assignments tracking (persisted per student UID)
-  const storageKey = user?.uid ? `azota_completed_assignments_${user.uid}` : '';
-  const [completedIds, setCompletedIds] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (!storageKey) return;
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) setCompletedIds(parsed);
-      }
-    } catch {
-      // ignore localStorage read errors
-    }
-  }, [storageKey]);
-
-  const toggleCompleted = (assignmentId: string, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    if (!assignmentId || !storageKey) return;
-    setCompletedIds((prev) => {
-      const next = prev.includes(assignmentId)
-        ? prev.filter((id) => id !== assignmentId)
-        : [...prev, assignmentId];
-      try {
-        localStorage.setItem(storageKey, JSON.stringify(next));
-      } catch {
-        // ignore localStorage write errors
-      }
-      return next;
-    });
-  };
 
   // Sync URL query params if changed externally
   useEffect(() => {
@@ -207,21 +171,6 @@ export const StudentAssignments: React.FC = () => {
     return counts;
   }, [courseScopedAssignments]);
 
-  const completedSet = useMemo(() => new Set(completedIds), [completedIds]);
-
-  // Thống kê trạng thái học tập
-  const statusCounts = useMemo(() => {
-    let completed = 0;
-    courseScopedAssignments.forEach((a) => {
-      if (a.id && completedSet.has(a.id)) completed++;
-    });
-    return {
-      all: courseScopedAssignments.length,
-      completed,
-      todo: Math.max(0, courseScopedAssignments.length - completed),
-    };
-  }, [courseScopedAssignments, completedSet]);
-
   // Kết quả bài tập sau khi áp dụng toàn bộ bộ lọc & sắp xếp
   const filteredAndSortedAssignments = useMemo(() => {
     const q = localSearch.toLowerCase().trim();
@@ -238,14 +187,7 @@ export const StudentAssignments: React.FC = () => {
         if (String(assignment.gradeLevel || '').trim() !== selectedGrade) return false;
       }
 
-      // 3. Lọc theo Trạng thái hoàn thành
-      if (statusFilter !== 'all') {
-        const isDone = Boolean(assignment.id && completedSet.has(assignment.id));
-        if (statusFilter === 'completed' && !isDone) return false;
-        if (statusFilter === 'todo' && isDone) return false;
-      }
-
-      // 4. Lọc theo từ khóa tìm kiếm
+      // 3. Lọc theo từ khóa tìm kiếm
       if (q) {
         const haystack = [
           assignment.title,
@@ -275,25 +217,21 @@ export const StudentAssignments: React.FC = () => {
     courseScopedAssignments,
     selectedSubject,
     selectedGrade,
-    statusFilter,
     localSearch,
     sortOrder,
-    completedSet,
   ]);
 
   const hasActiveFilters =
     localSearch.trim() !== '' ||
     selectedCourseId !== 'all' ||
     selectedSubject !== 'all' ||
-    selectedGrade !== 'all' ||
-    statusFilter !== 'all';
+    selectedGrade !== 'all';
 
   const resetFilters = () => {
     setLocalSearch('');
     setSelectedCourseId('all');
     setSelectedSubject('all');
     setSelectedGrade('all');
-    setStatusFilter('all');
     if (searchParams.has('q') || searchParams.has('courseId') || searchParams.has('assignmentId')) {
       setSearchParams({});
     }
@@ -373,7 +311,6 @@ ${embed}
     const description = safeString(selectedAssignment.description || selectedAssignment.topic);
     const targetGrade = String(selectedAssignment.gradeLevel);
     const subjectTitle = safeString(selectedAssignment.subject || 'Chung');
-    const isCompleted = Boolean(selectedAssignment.id && completedSet.has(selectedAssignment.id));
 
     const handleEnterFullscreen = () => {
       setIsFullscreen(true);
@@ -438,30 +375,6 @@ ${embed}
             <ArrowLeft className="w-4 h-4" />
             Quay lại danh sách • {subjectTitle} (Khối {targetGrade}) {topic ? `• ${topic}` : ''}
           </button>
-
-          {selectedAssignment.id && (
-            <button
-              type="button"
-              onClick={() => toggleCompleted(selectedAssignment.id!)}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                isCompleted
-                  ? 'bg-success/10 text-success border-success/30 hover:bg-success/15'
-                  : 'bg-card text-muted-foreground border-border hover:text-foreground hover:bg-muted'
-              }`}
-            >
-              {isCompleted ? (
-                <>
-                  <CheckCircle2 className="w-4 h-4 text-success" />
-                  Đã hoàn thành
-                </>
-              ) : (
-                <>
-                  <Circle className="w-4 h-4" />
-                  Đánh dấu đã hoàn thành
-                </>
-              )}
-            </button>
-          )}
         </div>
 
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
@@ -577,18 +490,6 @@ ${embed}
             Theo dõi tiến độ và luyện tập các bài học thuộc khóa học bạn đã đăng ký.
           </p>
         </div>
-
-        {assignments.length > 0 && (
-          <div className="flex items-center gap-3 text-xs font-medium bg-card border border-border px-3.5 py-2 rounded-xl">
-            <span className="text-muted-foreground">
-              Tiến độ hoàn thành:{' '}
-              <strong className="text-success">
-                {statusCounts.completed}/{statusCounts.all}
-              </strong>{' '}
-              bài tập
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Multi-dimensional Student Filter Panel */}
@@ -719,84 +620,44 @@ ${embed}
             })}
           </div>
 
-          {/* Row 3: Grade Filter & Completion Status Filter */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-border/70">
-            {/* Grade Filter */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-xs font-semibold text-muted-foreground mr-1 flex items-center gap-1">
-                <GraduationCap className="w-3.5 h-3.5" /> Khối lớp:
-              </span>
-              {(
-                [
-                  { id: 'all', label: 'Tất cả khối', count: gradeCounts.all },
-                  { id: '10', label: 'Khối 10', count: gradeCounts['10'] },
-                  { id: '11', label: 'Khối 11', count: gradeCounts['11'] },
-                  { id: '12', label: 'Khối 12', count: gradeCounts['12'] },
-                ] as const
-              ).map((g) => {
-                const active = selectedGrade === g.id;
-                return (
-                  <button
-                    key={g.id}
-                    type="button"
-                    onClick={() => setSelectedGrade(g.id)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+          {/* Row 3: Grade Filter */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-3 border-t border-border/70">
+            <span className="text-xs font-semibold text-muted-foreground mr-1 flex items-center gap-1">
+              <GraduationCap className="w-3.5 h-3.5" /> Khối lớp:
+            </span>
+            {(
+              [
+                { id: 'all', label: 'Tất cả khối', count: gradeCounts.all },
+                { id: '10', label: 'Khối 10', count: gradeCounts['10'] },
+                { id: '11', label: 'Khối 11', count: gradeCounts['11'] },
+                { id: '12', label: 'Khối 12', count: gradeCounts['12'] },
+              ] as const
+            ).map((g) => {
+              const active = selectedGrade === g.id;
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  onClick={() => setSelectedGrade(g.id)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    active
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
+                >
+                  <span>{g.label}</span>
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[11px] ${
                       active
-                        ? 'bg-primary text-primary-foreground shadow-sm'
-                        : 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted'
+                        ? 'bg-primary-foreground/20 text-primary-foreground'
+                        : 'bg-background text-muted-foreground'
                     }`}
                   >
-                    <span>{g.label}</span>
-                    <span
-                      className={`px-1.5 py-0.2 rounded-full text-[11px] ${
-                        active
-                          ? 'bg-primary-foreground/20 text-primary-foreground'
-                          : 'bg-background text-muted-foreground'
-                      }`}
-                    >
-                      {g.count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Completion Status Filter */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-xs font-semibold text-muted-foreground mr-1">Trạng thái:</span>
-              {(
-                [
-                  { id: 'all', label: 'Tất cả', count: statusCounts.all },
-                  { id: 'todo', label: 'Chưa làm', count: statusCounts.todo },
-                  { id: 'completed', label: 'Đã hoàn thành', count: statusCounts.completed },
-                ] as const
-              ).map((st) => {
-                const active = statusFilter === st.id;
-                return (
-                  <button
-                    key={st.id}
-                    type="button"
-                    onClick={() => setStatusFilter(st.id)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                      active
-                        ? 'bg-primary text-primary-foreground shadow-sm'
-                        : 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted'
-                    }`}
-                  >
-                    <span>{st.label}</span>
-                    <span
-                      className={`px-1.5 py-0.2 rounded-full text-[11px] ${
-                        active
-                          ? 'bg-primary-foreground/20 text-primary-foreground'
-                          : 'bg-background text-muted-foreground'
-                      }`}
-                    >
-                      {st.count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+                    {g.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -809,88 +670,68 @@ ${embed}
         </div>
       ) : filteredAndSortedAssignments.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-          {filteredAndSortedAssignments.map((assignment, index) => {
-            const isDone = Boolean(assignment.id && completedSet.has(assignment.id));
-            return (
-              <div
-                key={assignment.id}
-                onClick={() => setSelectedAssignment(assignment)}
-                className="group flex flex-col rounded-xl bg-card shadow-sm border border-border overflow-hidden hover:shadow-md hover:border-primary/30 transition-all duration-300 cursor-pointer"
-              >
-                <div className="h-44 bg-muted relative overflow-hidden">
-                  <img
-                    src={
-                      assignment.coverImageUrl ||
-                      `https://source.unsplash.com/random/800x600?education,book,${index}`
-                    }
-                    alt="Course cover"
-                    loading="lazy"
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 from-black/60 to-transparent"></div>
-                  <div className="absolute top-3 right-3 flex items-center gap-1.5">
-                    {assignment.id && (
-                      <button
-                        type="button"
-                        onClick={(e) => toggleCompleted(assignment.id!, e)}
-                        title={
-                          isDone ? 'Bỏ đánh dấu hoàn thành' : 'Đánh dấu đã hoàn thành bài này'
-                        }
-                        className={`px-2.5 py-1 rounded-md text-xs font-semibold shadow-sm backdrop-blur-sm flex items-center gap-1 transition-colors ${
-                          isDone
-                            ? 'bg-success text-success-foreground'
-                            : 'bg-background/95 text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        {isDone ? 'Đã xong' : 'Đánh dấu xong'}
-                      </button>
-                    )}
-                    <span className="px-2.5 py-1 rounded-md bg-background/95 text-foreground text-xs font-semibold shadow-sm backdrop-blur-sm flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-warning" />
-                      {formatDate(assignment.createdAt)}
-                    </span>
-                  </div>
-                  <div className="absolute bottom-3 left-3">
-                    <p className="text-white text-xs font-medium bg-black/40 px-2.5 py-1 rounded backdrop-blur-md">
-                      Khối {assignment.gradeLevel}
-                    </p>
-                  </div>
+          {filteredAndSortedAssignments.map((assignment, index) => (
+            <div
+              key={assignment.id}
+              onClick={() => setSelectedAssignment(assignment)}
+              className="group flex flex-col rounded-xl bg-card shadow-sm border border-border overflow-hidden hover:shadow-md hover:border-primary/30 transition-all duration-300 cursor-pointer"
+            >
+              <div className="h-44 bg-muted relative overflow-hidden">
+                <img
+                  src={
+                    assignment.coverImageUrl ||
+                    `https://source.unsplash.com/random/800x600?education,book,${index}`
+                  }
+                  alt="Course cover"
+                  loading="lazy"
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 from-black/60 to-transparent"></div>
+                <div className="absolute top-3 right-3">
+                  <span className="px-2.5 py-1 rounded-md bg-background/95 text-foreground text-xs font-semibold shadow-sm backdrop-blur-sm flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5 text-warning" />
+                    {formatDate(assignment.createdAt)}
+                  </span>
                 </div>
-
-                <div className="p-5 flex flex-col gap-3 flex-1">
-                  <div>
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded bg-primary/10 text-primary uppercase tracking-wide">
-                        {assignment.subject || 'Chung'}
-                      </span>
-                      {assignment.type === 'smart_exam' && (
-                        <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-muted text-muted-foreground">
-                          Đề thi thông minh
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="text-lg font-semibold text-foreground leading-tight group-hover:text-primary transition-colors line-clamp-2">
-                      {safeString(assignment.title)}
-                    </h3>
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2 font-medium">
-                      {safeString(assignment.topic)}
-                    </p>
-                    {assignment.description && (
-                      <p className="text-xs text-muted-foreground/70 mt-1 line-clamp-1">
-                        {safeString(assignment.description)}
-                      </p>
-                    )}
-                  </div>
-
-                  <button className="w-full mt-auto pt-0 h-10 flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors group-hover:shadow-md">
-                    {isDone ? 'Ôn tập lại' : 'Vào làm bài'}
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
+                <div className="absolute bottom-3 left-3">
+                  <p className="text-white text-xs font-medium bg-black/40 px-2.5 py-1 rounded backdrop-blur-md">
+                    Khối {assignment.gradeLevel}
+                  </p>
                 </div>
               </div>
-            );
-          })}
+
+              <div className="p-5 flex flex-col gap-3 flex-1">
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded bg-primary/10 text-primary uppercase tracking-wide">
+                      {assignment.subject || 'Chung'}
+                    </span>
+                    {assignment.type === 'smart_exam' && (
+                      <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                        Đề thi thông minh
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground leading-tight group-hover:text-primary transition-colors line-clamp-2">
+                    {safeString(assignment.title)}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2 font-medium">
+                    {safeString(assignment.topic)}
+                  </p>
+                  {assignment.description && (
+                    <p className="text-xs text-muted-foreground/70 mt-1 line-clamp-1">
+                      {safeString(assignment.description)}
+                    </p>
+                  )}
+                </div>
+
+                <button className="w-full mt-auto pt-0 h-10 flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors group-hover:shadow-md">
+                  Vào làm bài
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       ) : assignments.length > 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center bg-card rounded-xl border border-border shadow-sm p-6">
