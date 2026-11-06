@@ -2,16 +2,45 @@ import { useState, useEffect } from "react";
 import { BookOpen, Users, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Course, courseService } from "../../services/course.service";
+import { orderService, isFreeNonVoucherOrder } from "../../services/order.service";
 import { Button } from "../ui/button";
 
 export const MenuSection = () => {
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [courses, setCourses] = useState<(Course & { paidCount: number })[]>([]);
 
   useEffect(() => {
-    courseService.getActiveCourses().then((data) => {
-      const sorted = data.sort((a, b) => (b.enrollmentCount || 0) - (a.enrollmentCount || 0));
-      const coursesWithSales = sorted.filter((c) => (c.enrollmentCount || 0) > 0);
+    Promise.all([
+      courseService.getActiveCourses(),
+      orderService.getOrders(),
+    ]).then(([activeCourses, orders]) => {
+      // Tính lượt mua thực tế từ các đơn có phí / voucher (loại bỏ cấp free hoặc đơn 0đ không voucher)
+      const purchaseCountMap = new Map<string, number>();
+      const paidOrders = orders.filter(
+        (o) => (o.status === 'paid' || o.status === 'pay_later') && !isFreeNonVoucherOrder(o)
+      );
+
+      paidOrders.forEach((o) => {
+        if (Array.isArray(o.items) && o.items.length > 0) {
+          o.items.forEach((item) => {
+            if (item.courseId) {
+              purchaseCountMap.set(item.courseId, (purchaseCountMap.get(item.courseId) || 0) + 1);
+            }
+          });
+        } else if (o.courseId) {
+          purchaseCountMap.set(o.courseId, (purchaseCountMap.get(o.courseId) || 0) + 1);
+        }
+      });
+
+      const coursesWithCount = activeCourses.map((c) => ({
+        ...c,
+        paidCount: purchaseCountMap.get(c.id) || 0,
+      }));
+
+      const sorted = coursesWithCount.sort((a, b) => b.paidCount - a.paidCount);
+      const coursesWithSales = sorted.filter((c) => c.paidCount > 0);
       if (coursesWithSales.length >= 4) {
+        setCourses(sorted.slice(0, 4));
+      } else {
         setCourses(sorted.slice(0, 4));
       }
     });
@@ -66,7 +95,7 @@ export const MenuSection = () => {
                   <div className="flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1.5">
                       <Users className="h-3.5 w-3.5" />
-                      {course.enrollmentCount || 0} học viên
+                      {course.paidCount || 0} học viên
                     </span>
                     <span className="flex items-center gap-1.5">
                       <BookOpen className="h-3.5 w-3.5" />
