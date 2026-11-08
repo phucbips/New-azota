@@ -6,7 +6,6 @@ import { Course, courseService } from '../../services/course.service';
 import { userService } from '../../services/user.service';
 import { financeService } from '../../services/finance.service';
 import { voucherService } from '../../services/voucher.service';
-import { StatusBadge } from '../../components/ui/StatusBadge';
 import {
   Search,
   ChevronDown,
@@ -541,20 +540,22 @@ export const AdminOrders: React.FC = () => {
                       <h3 className="font-semibold text-foreground text-sm">
                         {order.userEmail} - {order.displayCode || order.orderCode}
                       </h3>
-                      {order.status === 'pay_later' ? (
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-warning/10 text-warning">
+                      {order.status === 'paid' ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-success/10 text-success border border-success/20">
+                          Đã thanh toán
+                        </span>
+                      ) : order.status === 'cancelled' ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-destructive/10 text-destructive border border-destructive/20">
+                          Đã hủy
+                        </span>
+                      ) : order.status === 'pay_later' ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-warning/10 text-warning border border-warning/20">
                           Trả sau / Chờ QR
                         </span>
                       ) : (
-                        <StatusBadge
-                          status={
-                            order.status === 'paid'
-                              ? 'Active'
-                              : order.status === 'cancelled'
-                                ? 'Inactive'
-                                : 'Pending'
-                          }
-                        />
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-warning/10 text-warning border border-warning/20">
+                          Chờ thanh toán QR
+                        </span>
                       )}
                       {order.voucherCode && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-primary/10 text-primary">
