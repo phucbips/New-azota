@@ -187,6 +187,34 @@ class OrderService {
   }
 
   /**
+   * Marks a pending order as 'pay_later' (Ghi nợ / Trả sau) and immediately unlocks
+   * all courses in `users/{order.userId}.enrolledCourses` so the student can study right away
+   * while still being able to pay via QR or cash later.
+   */
+  async approveOrderPayLater(order: Order): Promise<void> {
+    const courseIds: string[] = [];
+    if (order.courseId) courseIds.push(order.courseId);
+    if (Array.isArray(order.items)) {
+      order.items.forEach((item) => {
+        if (item.courseId) courseIds.push(item.courseId);
+      });
+    }
+
+    await updateDoc(doc(db, 'orders', order.id), {
+      status: 'pay_later',
+      updatedAt: serverTimestamp(),
+    });
+
+    if (order.userId && courseIds.length > 0) {
+      await updateDoc(doc(db, 'users', order.userId), {
+        enrolledCourses: arrayUnion(...Array.from(new Set(courseIds))),
+      }).catch((err) => {
+        console.warn('Could not update enrolledCourses on user doc:', err);
+      });
+    }
+  }
+
+  /**
    * Idempotently marks an order as 'paid', unlocks all courses in `users/{order.userId}.enrolledCourses`,
    * and syncs the revenue transaction into the active sales batch.
    */

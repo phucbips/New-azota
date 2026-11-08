@@ -396,11 +396,18 @@ export const AdminOrders: React.FC = () => {
         return;
       }
 
+      if (newStatus === 'pay_later') {
+        await orderService.approveOrderPayLater(order);
+        toast.success('Đã duyệt Trả sau và cấp khóa học ngay cho học viên!');
+        setExpandedId(null);
+        return;
+      }
+
       await orderService.updateOrderStatus(order.id, newStatus);
 
       toast.success(
         `Đã cập nhật trạng thái thành ${
-          newStatus === 'cancelled' ? 'Đã Hủy' : 'Ghi nợ (Trả sau)'
+          newStatus === 'cancelled' ? 'Đã Hủy' : 'Trả sau / Chờ QR'
         }`
       );
       setExpandedId(null);
@@ -548,14 +555,21 @@ export const AdminOrders: React.FC = () => {
                         <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-destructive/10 text-destructive border border-destructive/20">
                           Đã hủy
                         </span>
-                      ) : order.status === 'pay_later' ? (
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-warning/10 text-warning border border-warning/20">
-                          Trả sau / Chờ QR
-                        </span>
                       ) : (
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-warning/10 text-warning border border-warning/20">
-                          Chờ thanh toán QR
-                        </span>
+                        <>
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-warning/10 text-warning border border-warning/20">
+                            Trả sau / Chờ QR
+                          </span>
+                          {order.status === 'pay_later' ? (
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-success/10 text-success border border-success/20">
+                              Đã cấp khóa
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-muted text-muted-foreground border border-border">
+                              Chưa cấp khóa
+                            </span>
+                          )}
+                        </>
                       )}
                       {order.voucherCode && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-primary/10 text-primary">
@@ -583,9 +597,13 @@ export const AdminOrders: React.FC = () => {
                       }).format(order.amount)}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {order.paymentMethod === 'bank_transfer' || order.checkoutUrl
-                        ? 'Chuyển khoản QR'
-                        : 'Tiền mặt (trả sau)'}
+                      {order.status === 'paid'
+                        ? 'Đã thanh toán'
+                        : order.status === 'cancelled'
+                          ? 'Đã hủy'
+                          : order.status === 'pay_later'
+                            ? 'Đã duyệt khóa học (Chờ thanh toán)'
+                            : 'Chờ duyệt / Chờ thanh toán'}
                     </p>
                   </div>
                   {isExpanded ? (
@@ -644,18 +662,20 @@ export const AdminOrders: React.FC = () => {
                           </h4>
                           <div className="bg-card p-4 rounded-xl border border-border space-y-4">
                             <div className="flex justify-between items-center text-sm">
-                              <span className="text-muted-foreground">Phương thức:</span>
+                              <span className="text-muted-foreground">Trạng thái:</span>
                               <span className="font-semibold flex items-center gap-1">
-                                {order.paymentMethod === 'bank_transfer' || order.checkoutUrl ? (
+                                {order.checkoutUrl ? (
                                   <CreditCard className="w-4 h-4 text-primary" />
                                 ) : (
                                   <Banknote className="w-4 h-4 text-primary" />
                                 )}
                                 {order.status === 'paid'
                                   ? 'Đã thanh toán'
-                                  : order.checkoutUrl
-                                    ? 'Đang chờ quét mã QR (Tự động duyệt)'
-                                    : 'Chưa thanh toán'}
+                                  : order.status === 'pay_later'
+                                    ? 'Đã cấp khóa học (Chờ thanh toán QR / Tiền mặt)'
+                                    : order.checkoutUrl
+                                      ? 'Chờ quét QR hoặc Duyệt trả sau'
+                                      : 'Chờ thanh toán'}
                               </span>
                             </div>
 
@@ -710,7 +730,7 @@ export const AdminOrders: React.FC = () => {
                                   Xác nhận Đã nhận tiền (Duyệt ngay)
                                 </button>
 
-                                {isPending && order.paymentMethod === 'cash' && (
+                                {isPending ? (
                                   <button
                                     onClick={() =>
                                       handleUpdateStatus(order, 'pay_later')
@@ -719,6 +739,10 @@ export const AdminOrders: React.FC = () => {
                                   >
                                     Duyệt (Cấp khóa học - Trả sau)
                                   </button>
+                                ) : (
+                                  <div className="w-full px-3 py-2 rounded-lg text-xs font-medium bg-success/10 text-success border border-success/20 text-center">
+                                    Đã duyệt cấp khóa học (Học viên có thể thanh toán QR hoặc tiền mặt sau)
+                                  </div>
                                 )}
                                 <button
                                   onClick={() => handleUpdateStatus(order, 'cancelled')}
