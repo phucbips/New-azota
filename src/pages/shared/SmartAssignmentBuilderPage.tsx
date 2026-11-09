@@ -1,229 +1,226 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { ChevronLeft, Save, FileQuestion, BookOpen, Clock, AlertCircle } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ChevronLeft, Save, Clock, Shuffle } from 'lucide-react';
 import { SmartExamBuilder } from '../../components/assignments/SmartExamBuilder';
 import { Question, Assignment } from '../../types';
 import { assignmentService } from '../../services/assignment.service';
 import { useAuth } from '../../hooks/useAuth';
 import { toast } from 'sonner';
 import { Loading } from '../../components/shared/Loading';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Switch } from '../../components/ui/switch';
 
 export const SmartAssignmentBuilderPage: React.FC = () => {
-    const navigate = useNavigate();
-    const { user } = useAuth();
-    const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const location = useLocation();
 
-    // Check if we are editing an existing assignment
-    const searchParams = new URLSearchParams(location.search);
-    const existingId = searchParams.get('id');
-    const courseId = searchParams.get('courseId');
+  const searchParams = new URLSearchParams(location.search);
+  const existingId = searchParams.get('id');
+  const courseId = searchParams.get('courseId') || 'general';
 
-    const [isSaving, setIsSaving] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [durationMin, setDurationMin] = useState(60);
-    const [questions, setQuestions] = useState<Question[]>([]);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [durationMin, setDurationMin] = useState(45);
+  const [shuffleQuestions, setShuffleQuestions] = useState(false);
+  const [shuffleOptions, setShuffleOptions] = useState(false);
+  const [questions, setQuestions] = useState<Question[]>([]);
 
-    useEffect(() => {
-        if (existingId) {
-            const loadExisting = async () => {
-                setIsLoading(true);
-                try {
-                    const id = existingId;
-                    const courseIdFromUrl = courseId;
-                    // Note: We might need a direct fetch by ID in lessonsService, or we can just fetch all assignments for the course.
-                    if (courseIdFromUrl) {
-                        const assignments = await assignmentService.getAssignments();
-                        const existing = assignments.find(a => a.id === id);
-                        if (existing) {
-                            setTitle(existing.title);
-                            // @ts-expect-error mammoth undocumented feature
-                            setDescription(existing.description || '');
-                            setQuestions(existing.questions || []);
-                            // @ts-expect-error mammoth undocumented feature
-                            if (existing.duration) setDurationMin(existing.duration);
-                        } else {
-                            toast.error('Không tìm thấy bài tập!');
-                        }
-                    } else {
-                        toast.error('Thiếu ID khóa học để tải bài tập!');
-                    }
-                } catch (error) {
-                    console.error('Lỗi tải bài tập:', error);
-                    toast.error('Có lỗi xảy ra khi tải dữ liệu.');
-                } finally {
-                    setIsLoading(false);
-                }
-            };
-            loadExisting();
+  useEffect(() => {
+    if (!existingId) return;
+    const loadExisting = async () => {
+      setIsLoading(true);
+      try {
+        const assignments = await assignmentService.getAssignments();
+        const existing = assignments.find((a) => a.id === existingId);
+        if (existing) {
+          setTitle(existing.title);
+          setDescription(existing.description || '');
+          setQuestions(existing.questions || []);
+          if (existing.duration || existing.timeLimit) {
+            setDurationMin(Number(existing.duration || existing.timeLimit));
+          }
+          setShuffleQuestions(Boolean(existing.shuffleQuestions));
+          setShuffleOptions(Boolean(existing.shuffleOptions));
+        } else {
+          toast.error('Không tìm thấy bài tập!');
         }
-    }, [existingId, courseId]);
-
-    const handleSave = async () => {
-        if (!title.trim()) {
-            toast.error('Vui lòng nhập tên đề thi');
-            return;
-        }
-
-        if (questions.length === 0) {
-            toast.error('Đề thi chưa có câu hỏi nào');
-            return;
-        }
-
-        // Validate questions
-        const invalidQuestion = questions.find(q =>
-            !q.text.trim() ||
-            (q.type === 'multiple_choice' && (!q.options || q.options.length === 0 || q.correctAnswers.length === 0))
-        );
-
-        if (invalidQuestion) {
-            toast.error('Có câu hỏi chưa nhập đủ nội dung, đáp án hoặc chưa chọn đáp án đúng.');
-            return;
-        }
-
-        if (!user || !courseId) {
-            toast.error('Thiếu thông tin người dùng hoặc khóa học (courseId). Vui lòng thử lại từ màn hình quản lý bài tập.');
-            return;
-        }
-
-        setIsSaving(true);
-        try {
-            const assignmentData: Partial<Assignment> = {
-                title,
-                description,
-                courseId: courseId,
-                type: 'smart_exam',
-                questions,
-                // @ts-expect-error mammoth undocumented feature
-                duration: durationMin,
-                teacherId: user.uid,
-                isPublished: true,
-                order: 99 // Put at end for now
-            };
-
-            if (existingId) {
-                await assignmentService.updateAssignment(existingId, assignmentData);
-                toast.success('Cập nhật đề thi thành công!');
-            } else {
-                await assignmentService.createAssignment(assignmentData as Omit<Assignment, 'id' | 'createdAt' | 'updatedAt'>);
-                toast.success('Tạo đề thi thành công!');
-            }
-
-            // Go back to the previous page (likely the assignment management page)
-            navigate(-1);
-        } catch (error) {
-            console.error('Lỗi lưu bài tập:', error);
-            toast.error('Có lỗi xảy ra khi lưu đề thi.');
-        } finally {
-            setIsSaving(false);
-        }
+      } catch (error) {
+        console.error('Lỗi tải bài tập:', error);
+        toast.error('Có lỗi xảy ra khi tải dữ liệu.');
+      } finally {
+        setIsLoading(false);
+      }
     };
+    loadExisting();
+  }, [existingId]);
 
-    if (isLoading) {
-        return (
-            <div className="flex h-screen items-center justify-center">
-                <Loading />
-            </div>
-        );
+  const handleSave = async () => {
+    if (!title.trim()) {
+      toast.error('Vui lòng nhập tên đề thi.');
+      return;
     }
 
-    return (
-        <div className="flex flex-col h-screen bg-slate-100 overflow-hidden">
-            {/* TOP HEADER BAR */}
-            <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200 shadow-sm z-10 shrink-0">
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
-                    >
-                        <ChevronLeft className="w-6 h-6" />
-                    </button>
-                    <div>
-                        <h1 className="text-xl font-extrabold text-slate-800">
-                            {existingId ? 'Chỉnh sửa Đề thi Thông minh' : 'Tạo Đề thi Thông minh'}
-                        </h1>
-                        <p className="text-sm text-slate-500">Phân tích bằng AI hoặc Regex từ file DOCX</p>
-                    </div>
-                </div>
+    if (questions.length === 0) {
+      toast.error('Đề thi chưa có câu hỏi nào.');
+      return;
+    }
 
-                <div className="flex items-center gap-3">
-                    <div className="px-4 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg text-sm font-medium flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4" />
-                        Đang ở chế độ nháp
-                    </div>
-                    <button
-                        onClick={handleSave}
-                        disabled={isSaving}
-                        className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 hover:shadow-md transition-all disabled:opacity-50"
-                    >
-                        {isSaving ? (
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        ) : (
-                            <Save className="w-5 h-5" />
-                        )}
-                        Lưu Đề thi
-                    </button>
-                </div>
-            </div>
+    const invalidQuestion = questions.find((q) => {
+      if (!q.text.trim()) return true;
+      if (q.type === 'multiple_choice' || q.type === 'checkbox') {
+        return !q.options || q.options.length < 2 || q.correctAnswers.length === 0;
+      }
+      if (q.type === 'true_false') {
+        return !q.subQuestions || q.subQuestions.length === 0;
+      }
+      if (q.type === 'short_answer') {
+        return !q.correctAnswers || q.correctAnswers.length === 0;
+      }
+      return false;
+    });
 
-            {/* MAIN CONTENT WORKSPACE */}
-            <div className="flex-1 overflow-hidden flex flex-col p-6 gap-6">
+    if (invalidQuestion) {
+      toast.error('Có câu hỏi chưa nhập đủ nội dung hoặc chưa thiết lập đáp án đúng.');
+      return;
+    }
 
-                {/* SETTINGS BAR */}
-                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm shrink-0 flex flex-col md:flex-row gap-6">
-                    <div className="flex-1">
-                        <label className="block text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                            <FileQuestion className="w-4 h-4 text-slate-400" />
-                            Tên Đề thi <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                            type="text"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none text-slate-800 font-medium bg-slate-50 focus:bg-white transition-colors"
-                            placeholder="VD: Đề thi Giữa kỳ Tiếng Anh 10..."
-                        />
-                    </div>
+    if (!user) {
+      toast.error('Bạn cần đăng nhập để lưu đề thi.');
+      return;
+    }
 
-                    <div className="flex-1">
-                        <label className="block text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                            <BookOpen className="w-4 h-4 text-slate-400" />
-                            Mô tả (Tùy chọn)
-                        </label>
-                        <input
-                            type="text"
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none text-slate-800 bg-slate-50 focus:bg-white transition-colors"
-                            placeholder="Mô tả ngắn gọn về đề thi..."
-                        />
-                    </div>
+    setIsSaving(true);
+    try {
+      const totalPoints = questions.reduce((acc, q) => acc + (Number(q.points) || 0), 0);
+      const assignmentData: Partial<Assignment> = {
+        title,
+        description,
+        courseId,
+        type: 'smart_exam',
+        questions,
+        totalPoints: Math.round(totalPoints * 100) / 100,
+        duration: durationMin,
+        timeLimit: durationMin,
+        shuffleQuestions,
+        shuffleOptions,
+        teacherId: user.uid,
+      };
 
-                    <div className="w-full md:w-48">
-                        <label className="block text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                            <Clock className="w-4 h-4 text-slate-400" />
-                            Thời gian (phút)
-                        </label>
-                        <input
-                            type="number"
-                            min="1"
-                            value={durationMin}
-                            onChange={(e) => setDurationMin(parseInt(e.target.value) || 0)}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none text-slate-800 font-bold bg-slate-50 focus:bg-white transition-colors"
-                        />
-                    </div>
-                </div>
+      if (existingId) {
+        await assignmentService.updateAssignment(existingId, assignmentData);
+        toast.success('Đã lưu đề thi thành công!');
+      } else {
+        await assignmentService.createAssignment(
+          assignmentData as Omit<Assignment, 'id' | 'createdAt' | 'updatedAt'>
+        );
+        toast.success('Đã tạo đề thi mới thành công!');
+      }
 
-                {/* BUILDER WORKSPACE */}
-                <div className="flex-1 overflow-hidden">
-                    <SmartExamBuilder
-                        questions={questions}
-                        onChange={setQuestions}
-                    />
-                </div>
-            </div>
+      navigate(-1);
+    } catch (error) {
+      console.error('Lỗi lưu bài tập:', error);
+      toast.error('Có lỗi xảy ra khi lưu đề thi.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return <Loading fullScreen />;
+  }
+
+  return (
+    <div className="flex min-h-[calc(100dvh-7rem)] flex-col gap-5">
+      {/* TOP BAR */}
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-lg font-semibold text-foreground sm:text-xl">
+              {existingId ? 'Biên tập Đề thi Chuẩn Azota' : 'Tạo Đề thi Chuẩn Azota'}
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              Hỗ trợ file Word (.docx) gạch chân, dấu *, bảng đáp án, câu Đúng/Sai a-b-c-d và Trả lời ngắn
+            </p>
+          </div>
         </div>
-    );
+
+        <Button onClick={handleSave} disabled={isSaving}>
+          <Save />
+          {isSaving ? 'Đang lưu...' : 'Lưu đề thi'}
+        </Button>
+      </div>
+
+      {/* EXAM CONFIG BAR */}
+      <div className="grid grid-cols-1 gap-4 rounded-xl border border-border bg-card p-4 md:grid-cols-12">
+        <div className="space-y-1 md:col-span-4">
+          <label className="text-xs font-medium text-foreground">
+            Tên đề thi <span className="text-destructive">*</span>
+          </label>
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="VD: Đề kiểm tra giữa kỳ 1 Toán 12..."
+          />
+        </div>
+
+        <div className="space-y-1 md:col-span-3">
+          <label className="text-xs font-medium text-foreground">Ghi chú / Mô tả</label>
+          <Input
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Hướng dẫn làm bài..."
+          />
+        </div>
+
+        <div className="space-y-1 md:col-span-2">
+          <label className="flex items-center gap-1 text-xs font-medium text-foreground">
+            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+            Thời gian (phút)
+          </label>
+          <Input
+            type="number"
+            min={1}
+            value={durationMin}
+            onChange={(e) => setDurationMin(parseInt(e.target.value, 10) || 45)}
+          />
+        </div>
+
+        <div className="flex flex-col justify-center gap-2 md:col-span-3">
+          <label className="flex items-center justify-between gap-2 text-xs text-foreground">
+            <span className="flex items-center gap-1.5">
+              <Shuffle className="h-3.5 w-3.5 text-muted-foreground" />
+              Đảo thứ tự câu hỏi
+            </span>
+            <Switch checked={shuffleQuestions} onCheckedChange={setShuffleQuestions} />
+          </label>
+          <label className="flex items-center justify-between gap-2 text-xs text-foreground">
+            <span className="flex items-center gap-1.5">
+              <Shuffle className="h-3.5 w-3.5 text-muted-foreground" />
+              Đảo phương án A, B, C, D
+            </span>
+            <Switch checked={shuffleOptions} onCheckedChange={setShuffleOptions} />
+          </label>
+        </div>
+      </div>
+
+      {/* BUILDER */}
+      <div className="flex-1">
+        <SmartExamBuilder
+          questions={questions}
+          onChange={setQuestions}
+          durationMin={durationMin}
+          shuffleQuestions={shuffleQuestions}
+          shuffleOptions={shuffleOptions}
+        />
+      </div>
+    </div>
+  );
 };

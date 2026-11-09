@@ -2,92 +2,104 @@ import React, { useState, useEffect } from 'react';
 import { Course, courseService } from '../../services/course.service';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
-import { BookOpen, Tag, ShoppingCart, Loader2 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { BookOpen, ShoppingCart, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../contexts/CartContext';
 import { toast } from 'sonner';
+import { Button } from '../../components/ui/button';
 
 export const PublicCourses: React.FC = () => {
-const [courses, setCourses] = useState<Course[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { addToCart } = useCart();
   const navigate = useNavigate();
 
   useEffect(() => {
-      courseService.getActiveCourses().then(data => {
-          setCourses(data);
-          setLoading(false);
-      });
+    courseService.getActiveCourses().then((data) => {
+      setCourses(data);
+      setLoading(false);
+    });
   }, []);
 
   const handlePurchaseClick = (course: Course) => {
-      if (course.price === 0 && user) {
-          navigate('/student/courses');
+    if (course.price === 0 && user) {
+      navigate('/student/courses');
+    } else {
+      addToCart(course);
+      toast.success('Đã thêm vào giỏ hàng');
+      if (user) {
+        navigate('/student/cart');
       } else {
-          addToCart(course);
-          toast.success("Đã thêm vào giỏ hàng");
-          if (user) {
-              navigate('/student/cart');
-          } else {
-              navigate('/login');
-          }
+        navigate('/login');
       }
+    }
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="flex min-h-screen flex-col bg-background">
       <Navbar />
-      <main className="flex-1 pt-32 pb-20">
-          <div className="container mx-auto px-4 max-w-7xl">
-              <div className="text-center mb-16">
-                  <h1 className="font-display text-4xl font-extrabold text-foreground md:text-5xl mb-4">Khóa Học Của Chúng Tôi</h1>
-                  <p className="text-lg text-muted-foreground max-w-2xl mx-auto">Chọn từ hàng ngàn khóa học trực tuyến được cập nhật liên tục mỗi tháng với chất lượng tốt nhất.</p>
-              </div>
-
-              {loading ? (
-                  <div className="flex justify-center h-64 items-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
-              ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {courses.map(course => (
-                        <div key={course.id} className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden hover:shadow-xl transition-all group flex flex-col hover:-translate-y-2">
-                            <div className="aspect-[4/3] w-full bg-muted relative overflow-hidden">
-                                {course.imageUrl ? (
-                                    <img src={course.imageUrl} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-muted-foreground"><BookOpen className="w-12 h-12 opacity-20" /></div>
-                                )}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-                            </div>
-                            <div className="p-6 flex-1 flex flex-col">
-                                <h3 className="font-display font-bold text-xl text-card-foreground line-clamp-2 group-hover:text-primary transition-colors">{course.title}</h3>
-                                <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{course.description}</p>
-
-                                <div className="mt-4 flex items-center justify-between text-sm font-medium text-muted-foreground bg-muted/30 p-3 rounded-xl">
-                                    <div className="flex items-center gap-1.5">
-                                        <BookOpen className="w-4 h-4 text-primary" /> {course.assignmentIds.length} Bài học
-                                    </div>
-                                    <div className="flex items-center gap-1.5 font-bold text-emerald-600">
-                                        {course.price > 0 ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(course.price) : 'Miễn phí'}
-                                    </div>
-                                </div>
-
-                                <div className="mt-6">
-                                    <button
-                                        onClick={() => handlePurchaseClick(course)}
-                                        className="w-full py-3.5 bg-background border-2 border-primary text-primary hover:bg-primary hover:text-white rounded-xl font-bold transition-all shadow-sm flex items-center justify-center gap-2"
-                                    >
-                                        <ShoppingCart className="w-5 h-5" />
-                                        {course.price === 0 ? 'Vào học ngay' : 'Thêm vào giỏ'}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                  </div>
-              )}
+      <main className="flex-1 py-12 md:py-16">
+        <div className="container mx-auto max-w-6xl px-4">
+          <div className="mb-10 border-b border-border pb-6">
+            <p className="eyebrow mb-1.5">Danh mục</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+              Tất cả khóa học
+            </h1>
+            <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">
+              Chọn khóa học phù hợp với mục tiêu học tập của bạn.
+            </p>
           </div>
+
+          {loading ? (
+            <div className="flex h-64 items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {courses.map((course) => (
+                <div
+                  key={course.id}
+                  className="flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-foreground/20"
+                >
+                  <div className="relative aspect-[16/10] w-full overflow-hidden border-b border-border bg-muted">
+                    {course.imageUrl ? (
+                      <img src={course.imageUrl} alt={course.title} className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                        <BookOpen className="h-10 w-10 opacity-30" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-1 flex-col p-5">
+                    <h3 className="line-clamp-2 text-base font-semibold text-foreground">{course.title}</h3>
+                    <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground">{course.description}</p>
+
+                    <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1.5">
+                        <BookOpen className="h-3.5 w-3.5" /> {course.assignmentIds.length} bài học
+                      </span>
+                      <span className="text-sm font-semibold text-foreground tabular-nums">
+                        {course.price > 0
+                          ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(course.price)
+                          : 'Miễn phí'}
+                      </span>
+                    </div>
+
+                    <div className="mt-4">
+                      <Button onClick={() => handlePurchaseClick(course)} className="w-full">
+                        <ShoppingCart />
+                        {course.price === 0 ? 'Vào học ngay' : 'Thêm vào giỏ'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </main>
       <Footer />
     </div>

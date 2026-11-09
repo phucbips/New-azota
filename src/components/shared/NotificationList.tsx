@@ -39,9 +39,9 @@ export const NotificationList: React.FC = () => {
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'warning': return <AlertTriangle className="w-4 h-4 text-orange-500" />;
-      case 'success': return <CheckCircle className="w-4 h-4 text-green-500" />;
-      default: return <Info className="w-4 h-4 text-blue-500" />;
+      case 'warning': return <AlertTriangle className="w-4 h-4 text-warning" />;
+      case 'success': return <CheckCircle className="w-4 h-4 text-success" />;
+      default: return <Info className="w-4 h-4 text-primary" />;
     }
   };
 
@@ -49,51 +49,51 @@ export const NotificationList: React.FC = () => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors"
+        className="relative rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
       >
-        <Bell className="w-6 h-6" />
+        <Bell className="h-[18px] w-[18px]" />
         {unreadCount > 0 && (
-          <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full border-2 border-background flex items-center justify-center">
             {/* Optional: Show number if needed, but dot is cleaner for small size */}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 md:w-96 bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
-          <div className="p-4 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
-            <h3 className="font-bold text-slate-800">Thông báo</h3>
-            <span className="text-xs text-slate-500">{unreadCount} chưa đọc</span>
+        <div className="absolute right-0 mt-2 w-80 md:w-96 bg-card rounded-xl shadow-md border border-border overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
+          <div className="p-4 border-b border-border bg-muted/50 flex justify-between items-center">
+            <h3 className="font-semibold text-foreground">Thông báo</h3>
+            <span className="text-xs text-muted-foreground">{unreadCount} chưa đọc</span>
           </div>
 
           <div className="max-h-[400px] overflow-y-auto">
             {notifications.length === 0 ? (
-              <div className="p-8 text-center text-slate-500 text-sm">
+              <div className="p-8 text-center text-muted-foreground text-sm">
                 Không có thông báo nào.
               </div>
             ) : (
-              <div className="divide-y divide-slate-50">
+              <div className="divide-y divide-border">
                 {notifications.map((notification) => {
                     const isRead = notification.readBy.includes(user?.uid || '');
                     return (
                         <div
                             key={notification.id}
-                            className={`p-4 hover:bg-slate-50 transition-colors cursor-pointer ${!isRead ? 'bg-blue-50/30' : ''}`}
+                            className={`p-4 hover:bg-muted transition-colors cursor-pointer ${!isRead ? 'bg-primary/5' : ''}`}
                             onClick={() => handleMarkAsRead(notification)}
                         >
                             <div className="flex gap-3 items-start">
-                                <div className={`mt-0.5 p-1.5 rounded-full ${!isRead ? 'bg-white shadow-sm' : 'bg-slate-100'}`}>
+                                <div className={`mt-0.5 p-1.5 rounded-full ${!isRead ? 'bg-card shadow-sm' : 'bg-muted'}`}>
                                     {getIcon(notification.type)}
                                 </div>
                                 <div className="flex-1 space-y-1">
                                     <div className="flex justify-between items-start">
-                                        <p className={`text-sm ${!isRead ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}`}>
+                                        <p className={`text-sm ${!isRead ? 'font-semibold text-foreground' : 'font-medium text-foreground'}`}>
                                             {notification.title}
                                         </p>
-                                        {!isRead && <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1.5" />}
+                                        {!isRead && <span className="w-2 h-2 bg-primary rounded-full flex-shrink-0 mt-1.5" />}
                                     </div>
-                                    <p className="text-xs text-slate-500 line-clamp-2">{notification.message}</p>
-                                    <p className="text-[10px] text-slate-400">
+                                    <p className="text-xs text-muted-foreground line-clamp-2">{notification.message}</p>
+                                    <p className="text-[10px] text-muted-foreground/70">
                                         {notification.createdAt?.toMillis ? format(notification.createdAt.toDate(), 'dd/MM/yyyy HH:mm') : 'Just now'}
                                     </p>
                                 </div>

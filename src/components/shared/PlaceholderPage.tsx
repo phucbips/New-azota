@@ -12,7 +12,7 @@ export const PlaceholderPage: React.FC<PlaceholderPageProps> = ({
   description,
 }) => {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8">
+    <div className="bg-card rounded-xl border border-border shadow-sm p-8">
       <EmptyState
         title={title}
         description={description || 'Tính năng này đang được phát triển.'}

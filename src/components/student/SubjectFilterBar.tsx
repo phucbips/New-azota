@@ -25,8 +25,8 @@ export const SubjectFilterBar: React.FC<SubjectFilterBarProps> = ({
                 className={`
                    px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 cursor-pointer select-none border
                    ${isActive
-                     ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20'
-                     : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                     ? 'bg-primary text-primary-foreground border-primary shadow-md'
+                     : 'bg-card text-muted-foreground border-border hover:bg-muted hover:border-input'
                    }
                 `}
               >

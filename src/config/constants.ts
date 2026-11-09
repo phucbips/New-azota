@@ -15,3 +15,7 @@ export const ROUTES = {
   TEACHER: '/teacher',
   STUDENT: '/student',
 } as const;
+
+// Branding
+export const BRAND_NAME = 'EduPlatform';
+

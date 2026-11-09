@@ -1,155 +1,202 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Minimal Design System — New Azota
+ * Neutral zinc surfaces + a single indigo accent.
+ * All colors are HSL triplets consumed by tailwind.config.js.
+ */
 @layer base {
   :root {
-    --background: 60 30% 96%;
-    --foreground: 150 30% 15%;
+    --background: 0 0% 100%;
+    --foreground: 240 10% 9%;
 
-    --card: 60 25% 98%;
-    --card-foreground: 150 30% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 9%;
 
-    --popover: 60 25% 98%;
-    --popover-foreground: 150 30% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 9%;
 
-    --primary: 221.2 83.2% 53.3%; /* Default blue maintained for theme */
-    --primary-foreground: 60 30% 96%;
+    /* Default accent: Indigo */
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 42 80% 60%;
-    --secondary-foreground: 150 30% 15%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 10%;
 
-    --muted: 90 20% 90%;
-    --muted-foreground: 150 10% 45%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
 
-    --accent: 42 80% 60%;
-    --accent-foreground: 150 30% 15%;
+    --accent: 240 5% 96%;
+    --accent-foreground: 240 6% 10%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 90 15% 85%;
-    --input: 90 15% 85%;
-    --ring: 221.2 83.2% 53.3%;
+    --success: 152 60% 36%;
+    --success-foreground: 0 0% 100%;
 
-    --radius: 0.75rem;
+    --warning: 35 92% 45%;
+    --warning-foreground: 0 0% 100%;
+
+    --info: 211 80% 50%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 240 6% 90%;
+    --input: 240 6% 88%;
+    --ring: 243 75% 59%;
+
+    --radius: 0.625rem;
   }
 
   .dark {
-    --background: 150 20% 8%;
-    --foreground: 60 20% 92%;
+    --background: 240 10% 4%;
+    --foreground: 0 0% 96%;
 
-    --card: 150 20% 10%;
-    --card-foreground: 60 20% 92%;
+    --card: 240 8% 7%;
+    --card-foreground: 0 0% 96%;
 
-    --popover: 150 20% 10%;
-    --popover-foreground: 60 20% 92%;
+    --popover: 240 8% 8%;
+    --popover-foreground: 0 0% 96%;
 
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 150 20% 8%;
+    --primary: 239 84% 70%;
+    --primary-foreground: 240 10% 6%;
 
-    --secondary: 42 60% 50%;
-    --secondary-foreground: 60 20% 92%;
+    --secondary: 240 5% 14%;
+    --secondary-foreground: 0 0% 96%;
 
-    --muted: 150 15% 18%;
-    --muted-foreground: 90 10% 60%;
+    --muted: 240 5% 13%;
+    --muted-foreground: 240 5% 62%;
 
-    --accent: 42 60% 50%;
-    --accent-foreground: 60 20% 92%;
+    --accent: 240 5% 14%;
+    --accent-foreground: 0 0% 96%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 70% 58%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 150 15% 18%;
-    --input: 150 15% 18%;
-    --ring: 217.2 91.2% 59.8%;
+    --success: 152 55% 48%;
+    --success-foreground: 240 10% 6%;
+
+    --warning: 38 92% 56%;
+    --warning-foreground: 240 10% 6%;
+
+    --info: 211 85% 62%;
+    --info-foreground: 240 10% 6%;
+
+    --border: 240 5% 16%;
+    --input: 240 5% 20%;
+    --ring: 239 84% 70%;
   }
 }
 
-/* Color Themes Classes */
-/* Blue is default, so no extra class needed unless explicit override */
-.theme-blue {
-    --primary: 221.2 83.2% 53.3%;
-    --ring: 221.2 83.2% 53.3%;
-}
-.dark .theme-blue {
-    --primary: 217.2 91.2% 59.8%;
-    --ring: 224.3 76.3% 48%;
-}
+/* Accent themes (selected in Settings). Indigo is the default. */
+.theme-indigo { --primary: 243 75% 59%; --ring: 243 75% 59%; }
+.dark .theme-indigo, .dark.theme-indigo { --primary: 239 84% 70%; --ring: 239 84% 70%; }
 
-.theme-purple {
-    --primary: 262.1 83.3% 57.8%;
-    --ring: 262.1 83.3% 57.8%;
-}
-.dark .theme-purple {
-    --primary: 263.4 70% 50.4%;
-    --ring: 263.4 70% 50.4%;
-}
+.theme-blue { --primary: 221 83% 53%; --ring: 221 83% 53%; }
+.dark .theme-blue, .dark.theme-blue { --primary: 213 94% 68%; --ring: 213 94% 68%; }
 
-.theme-green {
-    --primary: 142.1 76.2% 36.3%;
-    --ring: 142.1 76.2% 36.3%;
-}
-.dark .theme-green {
-    --primary: 142.1 70.6% 45.3%;
-    --ring: 142.1 70.6% 45.3%;
-}
+.theme-purple { --primary: 262 83% 58%; --ring: 262 83% 58%; }
+.dark .theme-purple, .dark.theme-purple { --primary: 263 90% 74%; --ring: 263 90% 74%; }
 
-.theme-orange {
-    --primary: 24.6 95% 53.1%;
-    --ring: 24.6 95% 53.1%;
-}
-.dark .theme-orange {
-    --primary: 20.5 90.2% 48.2%;
-    --ring: 20.5 90.2% 48.2%;
-}
+.theme-green { --primary: 152 60% 36%; --ring: 152 60% 36%; }
+.dark .theme-green, .dark.theme-green { --primary: 152 55% 48%; --ring: 152 55% 48%; }
+
+.theme-orange { --primary: 24 90% 50%; --ring: 24 90% 50%; }
+.dark .theme-orange, .dark.theme-orange { --primary: 27 96% 61%; --ring: 27 96% 61%; }
 
 @layer base {
   * {
     @apply border-border;
   }
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
   body {
-    @apply bg-background text-foreground font-body antialiased;
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "cv11", "ss01";
+    text-rendering: optimizeLegibility;
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display;
+    @apply font-sans tracking-tight text-foreground;
+  }
+  ::selection {
+    background: hsl(var(--primary) / 0.18);
+  }
+  :focus-visible {
+    outline: none;
+  }
+}
+
+@layer components {
+  /* Neutral surface used by legacy markup (kept for backwards compatibility) */
+  .glass {
+    @apply bg-card border border-border shadow-sm;
+  }
+  /* Legacy gradient text → plain foreground in the minimal theme */
+  .gradient-text {
+    @apply text-foreground;
+  }
+  .surface {
+    @apply bg-card border border-border rounded-xl;
+  }
+  .eyebrow {
+    @apply text-xs font-medium uppercase tracking-wider text-muted-foreground;
   }
 }
 
 /* Custom Utilities */
 .scrollbar-hide::-webkit-scrollbar {
-    display: none;
+  display: none;
 }
 .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Subtle scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
 }
 
 /* Loader Styles */
 .loader {
-    width: 48px;
-    height: 48px;
-    border: 5px solid #FFF;
-    border-bottom-color: hsl(var(--primary));
-    border-radius: 50%;
-    display: inline-block;
-    box-sizing: border-box;
-    animation: rotation 1s linear infinite;
+  width: 32px;
+  height: 32px;
+  border: 2.5px solid hsl(var(--border));
+  border-bottom-color: hsl(var(--primary));
+  border-radius: 50%;
+  display: inline-block;
+  box-sizing: border-box;
+  animation: rotation 0.8s linear infinite;
 }
 
 @keyframes rotation {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
-    }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .loader-sm {
-    width: 20px;
-    height: 20px;
-    border-width: 2px;
+  width: 18px;
+  height: 18px;
+  border-width: 2px;
+}
+
+#root {
+  margin: 0 auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

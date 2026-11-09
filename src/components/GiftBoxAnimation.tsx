@@ -42,7 +42,7 @@ const GiftBoxAnimation = ({ voucher, onClose, open }: GiftBoxAnimationProps) => 
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.8, opacity: 0 }}
-          className="w-full max-w-sm rounded-3xl border border-border bg-card p-8 text-center shadow-xl"
+          className="w-full max-w-sm rounded-xl border border-border bg-card p-8 text-center shadow-md"
           onClick={(e) => e.stopPropagation()}
         >
           {!opened ? (
@@ -50,12 +50,12 @@ const GiftBoxAnimation = ({ voucher, onClose, open }: GiftBoxAnimationProps) => 
               <motion.div
                 animate={{ y: [0, -10, 0] }}
                 transition={{ repeat: Infinity, duration: 1.5 }}
-                className="mx-auto flex h-28 w-28 items-center justify-center rounded-3xl bg-secondary/20"
+                className="mx-auto flex h-28 w-28 items-center justify-center rounded-xl bg-secondary/20"
               >
                 <Gift className="h-16 w-16 text-secondary" />
               </motion.div>
               <div>
-                <h3 className="font-display text-xl font-extrabold text-foreground">
+                <h3 className="text-xl font-semibold text-foreground">
                   🎁 Bạn nhận được quà!
                 </h3>
                 <p className="mt-2 text-sm text-muted-foreground">
@@ -64,7 +64,7 @@ const GiftBoxAnimation = ({ voucher, onClose, open }: GiftBoxAnimationProps) => 
               </div>
               <button
                 onClick={handleOpen}
-                className="w-full rounded-full bg-primary px-8 py-3 font-bold text-primary-foreground transition-transform hover:scale-105"
+                className="w-full rounded-full bg-primary px-8 py-3 font-semibold text-primary-foreground transition-transform"
               >
                 Mở hòm quà ✨
               </button>
@@ -79,12 +79,12 @@ const GiftBoxAnimation = ({ voucher, onClose, open }: GiftBoxAnimationProps) => 
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
                 <Sparkles className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="font-display text-xl font-extrabold text-foreground">
+              <h3 className="text-xl font-semibold text-foreground">
                 🎉 Chúc mừng!
               </h3>
-              <div className="rounded-2xl border-2 border-dashed border-primary bg-primary/5 p-5">
+              <div className="rounded-xl border-2 border-dashed border-primary bg-primary/5 p-5">
                 <Ticket className="mx-auto mb-2 h-8 w-8 text-primary" />
-                <p className="text-lg font-extrabold text-primary">
+                <p className="text-lg font-semibold text-primary">
                   {voucher.type === "percent"
                     ? `Giảm ${voucher.value}%`
                     : `Giảm ${new Intl.NumberFormat("vi-VN").format(voucher.value)}đ`}
@@ -97,7 +97,7 @@ const GiftBoxAnimation = ({ voucher, onClose, open }: GiftBoxAnimationProps) => 
                 )}
                 <div className="mt-3 rounded-xl bg-card p-3">
                   <p className="text-xs text-muted-foreground">Mã voucher</p>
-                  <p className="font-mono text-lg font-extrabold text-foreground tracking-wider select-all">
+                  <p className="font-mono text-lg font-semibold text-foreground tracking-wider select-all">
                     {voucher.code}
                   </p>
                 </div>
@@ -109,7 +109,7 @@ const GiftBoxAnimation = ({ voucher, onClose, open }: GiftBoxAnimationProps) => 
               </div>
               <button
                 onClick={handleClose}
-                className="w-full rounded-full bg-primary px-8 py-3 font-bold text-primary-foreground transition-transform hover:scale-105"
+                className="w-full rounded-full bg-primary px-8 py-3 font-semibold text-primary-foreground transition-transform"
               >
                 Tuyệt vời! 🎊
               </button>
@@ -123,7 +123,7 @@ const GiftBoxAnimation = ({ voucher, onClose, open }: GiftBoxAnimationProps) => 
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted">
                 <Gift className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="font-display text-xl font-extrabold text-foreground">
+              <h3 className="text-xl font-semibold text-foreground">
                 Hết voucher rồi!
               </h3>
               <p className="text-muted-foreground">

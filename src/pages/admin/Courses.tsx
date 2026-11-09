@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Course, courseService } from '../../services/course.service';
 import { Assignment, assignmentService } from '../../services/assignment.service';
@@ -8,11 +8,13 @@ import { SaaSButton } from '../../components/ui/SaaSButton';
 import { Plus, Edit2, Trash2, Tag, BookOpen, ToggleLeft, ToggleRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { Loading } from '../../components/shared/Loading';
+import { orderService, Order, isFreeNonVoucherOrder } from '../../services/order.service';
 
 export const AdminCourses: React.FC = () => {
   const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
@@ -35,11 +37,38 @@ export const AdminCourses: React.FC = () => {
         setAssignments(data);
     });
 
+    const unsubOrders = orderService.subscribeToOrders((data) => {
+        setOrders(data);
+    });
+
     return () => {
         unsubCourses();
         unsubAssignments();
+        unsubOrders();
     };
   }, []);
+
+  // Tính số lượt mua thực tế của từng khóa học: chỉ tính từ các đơn paid/pay_later có phí hoặc có áp voucher (loại bỏ đơn 0đ miễn phí thuần)
+  const paidPurchaseCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    const paidOrders = orders.filter(
+      (o) => (o.status === 'paid' || o.status === 'pay_later') && !isFreeNonVoucherOrder(o)
+    );
+
+    paidOrders.forEach((o) => {
+      if (Array.isArray(o.items) && o.items.length > 0) {
+        o.items.forEach((item) => {
+          if (item.courseId) {
+            map.set(item.courseId, (map.get(item.courseId) || 0) + 1);
+          }
+        });
+      } else if (o.courseId) {
+        map.set(o.courseId, (map.get(o.courseId) || 0) + 1);
+      }
+    });
+
+    return map;
+  }, [orders]);
 
   // Auto-heal: Check for ghost assignments when both courses and assignments are loaded
   useEffect(() => {
@@ -134,7 +163,7 @@ export const AdminCourses: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {courses.map(course => (
-            <div key={course.id} className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden hover:shadow-md transition-shadow group flex flex-col">
+            <div key={course.id} className="bg-card rounded-xl border border-border shadow-sm overflow-hidden hover:shadow-md transition-shadow group flex flex-col">
                 <div className="aspect-video w-full bg-muted relative">
                     {course.imageUrl ? (
                         <img src={course.imageUrl} alt={course.title} className="w-full h-full object-cover" />
@@ -143,26 +172,28 @@ export const AdminCourses: React.FC = () => {
                     )}
                     {!course.isActive && (
                         <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center">
-                            <span className="bg-foreground text-background px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Đã ẩn</span>
+                            <span className="bg-foreground text-background px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider">Đã ẩn</span>
                         </div>
                     )}
                 </div>
                 <div className="p-5 flex-1 flex flex-col">
-                    <h3 className="font-display font-bold text-lg text-card-foreground line-clamp-1">{course.title}</h3>
+                    <h3 className="font-semibold text-lg text-card-foreground line-clamp-1">{course.title}</h3>
                     <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{course.description}</p>
 
                     <div className="mt-4 flex items-center gap-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1.5">
                             <BookOpen className="w-4 h-4" /> {course.assignmentIds.length} Bài học
                         </div>
-                        <div className="flex items-center gap-1.5 font-bold text-emerald-600 dark:text-emerald-400">
+                        <div className="flex items-center gap-1.5 font-semibold text-success">
                             <Tag className="w-4 h-4" />
                             {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(course.price)}
                         </div>
                     </div>
 
                     <div className="mt-auto pt-5 flex items-center justify-between border-t border-border">
-                        <span className="text-xs text-muted-foreground">{course.enrollmentCount} Lượt mua</span>
+                        <span className="text-xs text-muted-foreground">
+                          {paidPurchaseCounts.get(course.id) ?? 0} Lượt mua
+                        </span>
                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button onClick={() => handleOpenModal(course)} className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors">
                                 <Edit2 className="w-4 h-4" />
@@ -176,7 +207,7 @@ export const AdminCourses: React.FC = () => {
             </div>
         ))}
         {courses.length === 0 && (
-            <div className="col-span-full py-12 text-center bg-card rounded-2xl border border-border border-dashed">
+            <div className="col-span-full py-12 text-center bg-card rounded-xl border border-border border-dashed">
                 <p className="text-muted-foreground">Chưa có khóa học nào. Hãy tạo khóa học đầu tiên!</p>
             </div>
         )}
@@ -184,9 +215,9 @@ export const AdminCourses: React.FC = () => {
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-            <div className="bg-card rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl border border-border animate-in zoom-in-95">
+            <div className="bg-card rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-md border border-border animate-in zoom-in-95">
                 <div className="p-6 border-b border-border flex items-center justify-between">
-                    <h2 className="text-xl font-display font-bold text-foreground">
+                    <h2 className="text-xl font-semibold text-foreground">
                         {editingCourse ? 'Chỉnh sửa Khóa học' : 'Tạo Khóa học mới'}
                     </h2>
                     <button onClick={() => setShowModal(false)} className="text-muted-foreground hover:text-foreground">X</button>
@@ -232,7 +263,7 @@ export const AdminCourses: React.FC = () => {
                             <button
                                 type="button"
                                 onClick={() => setIsActive(!isActive)}
-                                className={`w-full p-3 rounded-xl border flex items-center justify-between font-bold transition-all shadow-sm ${isActive ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600' : 'bg-muted border-input text-muted-foreground'}`}
+                                className={`w-full p-3 rounded-xl border flex items-center justify-between font-semibold transition-all shadow-sm ${isActive ? 'bg-success/10 border-success/50 text-success' : 'bg-muted border-input text-muted-foreground'}`}
                             >
                                 {isActive ? 'Đang Mở bán' : 'Đang Ẩn'}
                                 {isActive ? <ToggleRight className="w-6 h-6" /> : <ToggleLeft className="w-6 h-6" />}
@@ -264,7 +295,7 @@ export const AdminCourses: React.FC = () => {
                                         className="w-4 h-4 text-primary rounded"
                                     />
                                     <div className="flex-1">
-                                        <p className="text-sm font-bold text-foreground line-clamp-1">{ass.title}</p>
+                                        <p className="text-sm font-semibold text-foreground line-clamp-1">{ass.title}</p>
                                         <p className="text-xs text-muted-foreground mt-0.5">Môn: {ass.subject} • Cấp: {ass.gradeLevel}</p>
                                     </div>
                                 </label>
@@ -273,7 +304,7 @@ export const AdminCourses: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="p-6 border-t border-border bg-muted/30 rounded-b-2xl flex justify-end gap-3">
+                <div className="p-6 border-t border-border bg-muted/30 rounded-b-xl flex justify-end gap-3">
                     <button onClick={() => setShowModal(false)} className="px-5 py-2.5 rounded-xl font-semibold hover:bg-muted transition-colors">
                         Hủy
                     </button>

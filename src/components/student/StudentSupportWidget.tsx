@@ -20,12 +20,12 @@ export const StudentSupportWidget: React.FC = () => {
     <div ref={containerRef} className="fixed bottom-6 right-6 z-[999] flex flex-col items-end gap-4">
       {/* Popover */}
       {isOpen && (
-        <div className="w-72 bg-card rounded-xl shadow-2xl border border-border overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
-          <div className="bg-gradient-to-r from-primary to-blue-700 px-4 py-3 flex justify-between items-center text-primary-foreground">
-            <h3 className="font-bold text-sm">Hỗ trợ học viên</h3>
+        <div className="w-72 bg-card rounded-xl shadow-md border border-border overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div className="from-primary px-4 py-3 flex justify-between items-center text-primary-foreground">
+            <h3 className="font-semibold text-sm">Hỗ trợ học viên</h3>
             <button
               onClick={() => setIsOpen(false)}
-              className="p-1 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
+              className="p-1 hover:bg-background/20 rounded-full transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -42,7 +42,7 @@ export const StudentSupportWidget: React.FC = () => {
                 <Facebook className="w-5 h-5 text-primary group-hover:text-primary-foreground transition-colors" />
               </div>
               <div className="flex flex-col">
-                <span className="font-bold text-foreground text-sm group-hover:text-primary">Facebook</span>
+                <span className="font-semibold text-foreground text-sm group-hover:text-primary">Facebook</span>
                 <span className="text-xs text-muted-foreground">Nhắn tin Fanpage</span>
               </div>
             </a>
@@ -57,7 +57,7 @@ export const StudentSupportWidget: React.FC = () => {
                 <Phone className="w-5 h-5 text-primary group-hover:text-primary-foreground transition-colors" />
               </div>
               <div className="flex flex-col">
-                <span className="font-bold text-foreground text-sm group-hover:text-primary">Zalo</span>
+                <span className="font-semibold text-foreground text-sm group-hover:text-primary">Zalo</span>
                 <span className="text-xs text-muted-foreground">Chat hỗ trợ ngay</span>
               </div>
             </a>
@@ -72,7 +72,7 @@ export const StudentSupportWidget: React.FC = () => {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 cursor-pointer relative z-[1000] hover:scale-105 active:scale-95 ${
+        className={`w-14 h-14 rounded-full shadow-md flex items-center justify-center transition-colors duration-200 cursor-pointer relative z-[1000] ${
           isOpen ? 'bg-foreground text-background rotate-90' : 'bg-primary text-primary-foreground hover:bg-primary/90'
         }`}
       >

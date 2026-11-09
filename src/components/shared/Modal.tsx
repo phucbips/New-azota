@@ -1,5 +1,6 @@
 import React from 'react';
 import { Info } from 'lucide-react';
+import { Button } from '../ui/button';
 
 interface ModalProps {
   isOpen: boolean;
@@ -17,24 +18,19 @@ export const Modal: React.FC<ModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="modal fixed w-full h-full top-0 left-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
-      <div className="modal-content glass p-8 rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-start mb-6">
-          <div className="flex-shrink-0 bg-blue-100 rounded-full p-3 mr-4">
-            <Info className="w-6 h-6 text-blue-600" />
+    <div className="modal fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 p-4 backdrop-blur-[2px] animate-fade-in">
+      <div className="modal-content w-full max-w-md rounded-xl border border-border bg-popover p-6 shadow-lg animate-zoom-in">
+        <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Info className="h-4 w-4" />
           </div>
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-slate-800 mb-2">{title}</h3>
-            <p className="text-slate-600">{message}</p>
+            <h3 className="text-base font-semibold text-foreground">{title}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{message}</p>
           </div>
         </div>
-        <div className="flex justify-end">
-          <button
-            onClick={onClose}
-            className="btn-primary px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all"
-          >
-            Đã hiểu
-          </button>
+        <div className="mt-6 flex justify-end">
+          <Button onClick={onClose}>Đã hiểu</Button>
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -13,42 +13,58 @@ import { PageTracker } from './components/shared/PageTracker';
 import { RouteMiddleware } from './middleware/RouteMiddleware';
 import './styles/globals.css';
 import { Toaster } from 'sonner';
-// Lazy load Layouts
-const AdminLayout = React.lazy(() => import('./layouts/AdminLayout').then(module => ({ default: module.AdminLayout })));
-const TeacherLayout = React.lazy(() => import('./layouts/TeacherLayout').then(module => ({ default: module.TeacherLayout })));
-const StudentLayout = React.lazy(() => import('./layouts/StudentLayout').then(module => ({ default: module.StudentLayout })));
 
-// Lazy load Admin Pages
-const SmartAssignmentBuilderPage = React.lazy(() => import('./pages/shared/SmartAssignmentBuilderPage').then(module => ({ default: module.SmartAssignmentBuilderPage })));
-const AdminOverview = React.lazy(() => import('./pages/admin/Overview').then(module => ({ default: module.AdminOverview })));
-const AdminUsers = React.lazy(() => import('./pages/admin/Users').then(module => ({ default: module.AdminUsers })));
-const AdminAssignments = React.lazy(() => import('./pages/admin/Assignments').then(module => ({ default: module.AdminAssignments })));
-const AdminCourses = React.lazy(() => import('./pages/admin/Courses').then(module => ({ default: module.AdminCourses })));
-const AdminOrders = React.lazy(() => import('./pages/admin/Orders').then(module => ({ default: module.AdminOrders })));
-const AdminVouchers = React.lazy(() => import('./pages/admin/Vouchers').then(module => ({ default: module.AdminVouchers })));
-const AdminCommunication = React.lazy(() => import('./pages/admin/Communication').then(module => ({ default: module.AdminCommunication })));
-const AdminAuditLogs = React.lazy(() => import('./pages/admin/AuditLogs').then(module => ({ default: module.AuditLogs })));
-const AdminSettings = React.lazy(() => import('./pages/admin/Settings').then(module => ({ default: module.AdminSettings })));
-const AdminProfile = React.lazy(() => import('./pages/admin/Profile').then(module => ({ default: module.AdminProfile })));
+// Static imports for Layouts & Pages to prevent stale dynamic chunk errors across deployments or idle sessions
+import { AdminLayout } from './layouts/AdminLayout';
+import { TeacherLayout } from './layouts/TeacherLayout';
+import { StudentLayout } from './layouts/StudentLayout';
 
-// Lazy load Teacher Pages
-const TeacherOverview = React.lazy(() => import('./pages/teacher/Overview').then(module => ({ default: module.TeacherOverview })));
-const TeacherAssignments = React.lazy(() => import('./pages/teacher/Assignments').then(module => ({ default: module.TeacherAssignments })));
-const TeacherCourses = React.lazy(() => import('./pages/teacher/Courses').then(module => ({ default: module.TeacherCourses })));
-const TeacherSettings = React.lazy(() => import('./pages/teacher/Settings').then(module => ({ default: module.TeacherSettings })));
-const TeacherProfile = React.lazy(() => import('./pages/teacher/Profile').then(module => ({ default: module.TeacherProfile })));
+import { SmartAssignmentBuilderPage } from './pages/shared/SmartAssignmentBuilderPage';
+import { AdminOverview } from './pages/admin/Overview';
+import { AdminUsers } from './pages/admin/Users';
+import { AdminAssignments } from './pages/admin/Assignments';
+import { AdminCourses } from './pages/admin/Courses';
+import { AdminOrders } from './pages/admin/Orders';
+import { AdminVouchers } from './pages/admin/Vouchers';
+import { AdminCommunication } from './pages/admin/Communication';
+import { AuditLogs as AdminAuditLogs } from './pages/admin/AuditLogs';
+import { AdminSettings } from './pages/admin/Settings';
+import { AdminProfile } from './pages/admin/Profile';
 
-// Lazy load Student Pages
-const StudentHome = React.lazy(() => import('./pages/student/Home').then(module => ({ default: module.StudentHome })));
-const StudentAssignments = React.lazy(() => import('./pages/student/Assignments').then(module => ({ default: module.StudentAssignments })));
-const StudentCourses = React.lazy(() => import('./pages/student/Courses').then(module => ({ default: module.StudentCourses })));
-const StudentSettings = React.lazy(() => import('./pages/student/Settings').then(module => ({ default: module.StudentSettings })));
-const StudentProfile = React.lazy(() => import('./pages/student/Profile').then(module => ({ default: module.StudentProfile })));
-const PaymentQR = React.lazy(() => import('./pages/student/PaymentQR').then(module => ({ default: module.PaymentQR })));
-const PaymentSuccess = React.lazy(() => import('./pages/student/PaymentSuccess').then(module => ({ default: module.PaymentSuccess })));
-const CartOrders = React.lazy(() => import('./pages/student/CartOrders').then(module => ({ default: module.CartOrders })));
-const LandingPage = React.lazy(() => import('./pages/public/Landing').then(module => ({ default: module.LandingPage })));
-const PublicCourses = React.lazy(() => import('./pages/public/PublicCourses').then(module => ({ default: module.PublicCourses })));
+import { TeacherOverview } from './pages/teacher/Overview';
+import { TeacherAssignments } from './pages/teacher/Assignments';
+import { TeacherCourses } from './pages/teacher/Courses';
+import { TeacherSettings } from './pages/teacher/Settings';
+import { TeacherProfile } from './pages/teacher/Profile';
+
+import { StudentHome } from './pages/student/Home';
+import { StudentAssignments } from './pages/student/Assignments';
+import { StudentCourses } from './pages/student/Courses';
+import { StudentSettings } from './pages/student/Settings';
+import { StudentProfile } from './pages/student/Profile';
+import { PaymentQR } from './pages/student/PaymentQR';
+import { PaymentSuccess } from './pages/student/PaymentSuccess';
+import { CartOrders } from './pages/student/CartOrders';
+import { LandingPage } from './pages/public/Landing';
+import { PublicCourses } from './pages/public/PublicCourses';
+
+const CHUNK_RELOAD_KEY = 'azota_chunk_reload_ts';
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('vite:preloadError', (event) => {
+    event.preventDefault();
+    try {
+      const lastReload = Number(sessionStorage.getItem(CHUNK_RELOAD_KEY) || '0');
+      const now = Date.now();
+      if (now - lastReload > 15000) {
+        sessionStorage.setItem(CHUNK_RELOAD_KEY, String(now));
+        window.location.reload();
+      }
+    } catch {
+      window.location.reload();
+    }
+  });
+}
 
 // Specialized Login Wrapper to redirect if already logged in
 const LoginWrapper: React.FC = () => {
@@ -73,7 +89,6 @@ function App() {
           <CartProvider>
           <PageTracker />
           <Toaster richColors position="top-right" />
-          <Suspense fallback={<Loading fullScreen />}>
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/courses" element={<PublicCourses />} />
@@ -132,7 +147,7 @@ function App() {
               <Route path="assignments" element={<StudentAssignments />} />
               <Route path="courses" element={<StudentCourses />} />
               <Route path="payment" element={<PaymentQR />} />
-            <Route path="payment/success" element={<PaymentSuccess />} />
+              <Route path="payment/success" element={<PaymentSuccess />} />
               <Route path="cart" element={<CartOrders />} />
               <Route path="settings" element={<StudentSettings />} />
               <Route path="profile" element={<StudentProfile />} />
@@ -141,7 +156,6 @@ function App() {
             {/* Catch-all */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </Suspense>
           </CartProvider>
          </DashboardConfigProvider>
          </AppSettingsProvider>
