@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Course, courseService } from '../../services/course.service';
-import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
-import { db } from '../../config/firebase';
 import { Order, orderService, hasPayOSAttempt } from '../../services/order.service';
 import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../contexts/CartContext';
@@ -42,35 +40,10 @@ export const StudentCourses: React.FC = () => {
     };
   }, [user?.uid]);
 
-  // Auto-heal: if user has any paid/pay_later order whose courses are not yet in user.enrolledCourses, sync them
+  // Tự động đối chiếu với cổng PayOS (chỉ đơn đã từng tạo QR, mỗi đơn 1 lần / phiên)
   useEffect(() => {
     if (!user?.uid || orders.length === 0) return;
-    const currentEnrolled = new Set(user.enrolledCourses || []);
-    const missingCourseIds: string[] = [];
 
-    orders
-      .filter((o) => o.status === 'paid' || o.status === 'pay_later')
-      .forEach((o) => {
-        if (o.courseId && !currentEnrolled.has(o.courseId)) {
-          missingCourseIds.push(o.courseId);
-        }
-        if (Array.isArray(o.items)) {
-          o.items.forEach((item) => {
-            if (item.courseId && !currentEnrolled.has(item.courseId)) {
-              missingCourseIds.push(item.courseId);
-            }
-          });
-        }
-      });
-
-    if (missingCourseIds.length > 0) {
-      const uniqueMissing = Array.from(new Set(missingCourseIds));
-      updateDoc(doc(db, 'users', user.uid), {
-        enrolledCourses: arrayUnion(...uniqueMissing),
-      }).catch((err) => console.warn('Could not auto-sync enrolledCourses:', err));
-    }
-
-    // Tự động đối chiếu với cổng PayOS (chỉ đơn đã từng tạo QR, mỗi đơn 1 lần / phiên)
     orders
       .filter(
         (o) =>
@@ -83,7 +56,7 @@ export const StudentCourses: React.FC = () => {
         verifiedRef.current.add(ord.id);
         orderService.verifyOrderWithPayOS(ord).catch(() => {});
       });
-  }, [user?.uid, user?.enrolledCourses, orders]);
+  }, [user?.uid, orders]);
 
   const { addToCart, cartItems } = useCart();
 
@@ -118,13 +91,6 @@ export const StudentCourses: React.FC = () => {
         status: initialStatus,
         paymentMethod: method,
       });
-
-      if (initialStatus === 'paid') {
-        const userRef = doc(db, 'users', user.uid);
-        await updateDoc(userRef, {
-          enrolledCourses: arrayUnion(course.id),
-        });
-      }
 
       if (initialStatus === 'paid') {
         toast.success('Đăng ký khóa học thành công!');

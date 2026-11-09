@@ -148,6 +148,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(200).json({ success: true });
         }
 
+        const expectedAmount = Number(orderData.amount ?? 0);
+        const webhookAmount = Number(data.amount ?? 0);
+        if (expectedAmount > 0 && webhookAmount > 0 && webhookAmount < expectedAmount) {
+            console.error(`Webhook amount (${webhookAmount}) < order amount (${expectedAmount}) for order ${orderDoc.id}`);
+            return res.status(200).json({ success: false, message: 'Amount mismatch' });
+        }
+
         if (paymentStatus === 'paid') {
             await orderDoc.ref.update({
                 status: 'paid',

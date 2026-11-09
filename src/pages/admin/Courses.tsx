@@ -70,22 +70,30 @@ export const AdminCourses: React.FC = () => {
     return map;
   }, [orders]);
 
-  // Auto-heal: Check for ghost assignments when both courses and assignments are loaded
+  // Auto-heal: Check for ghost assignments & sync accurate commercial enrollmentCount
   useEffect(() => {
       if (courses.length > 0 && assignments.length > 0) {
           const assignmentIdsSet = new Set(assignments.map(a => a.id));
           courses.forEach(course => {
+              const updates: Partial<Course> = {};
               if (course.assignmentIds && course.assignmentIds.length > 0) {
                   const validAssignmentIds = course.assignmentIds.filter(id => assignmentIdsSet.has(id));
                   if (validAssignmentIds.length !== course.assignmentIds.length) {
-                      console.log(`Auto-healing course ${course.id}: removing ghost assignments`);
-                      // Update the course in the background
-                      courseService.updateCourse(course.id, { assignmentIds: validAssignmentIds }).catch(console.error);
+                      updates.assignmentIds = validAssignmentIds;
                   }
+              }
+              if (orders.length > 0) {
+                  const exactPaidCount = paidPurchaseCounts.get(course.id) || 0;
+                  if ((course.enrollmentCount || 0) !== exactPaidCount) {
+                      updates.enrollmentCount = exactPaidCount;
+                  }
+              }
+              if (Object.keys(updates).length > 0) {
+                  courseService.updateCourse(course.id, updates).catch(console.error);
               }
           });
       }
-  }, [courses, assignments]);
+  }, [courses, assignments, orders, paidPurchaseCounts]);
 
   const handleOpenModal = (course?: Course) => {
     if (course) {

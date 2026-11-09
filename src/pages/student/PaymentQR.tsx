@@ -43,6 +43,7 @@ export const PaymentQR: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          orderId: targetOrder.id,
           orderCode: activeOrderCode,
           amount: targetOrder.amount,
           description: prefix.substring(0, 25),
@@ -135,7 +136,6 @@ export const PaymentQR: React.FC = () => {
 
       if (currentOrder.status === 'paid') {
         clearInterval(pollTimer);
-        await orderService.completePaidOrder(currentOrder);
         navigate('/student/courses');
         return;
       }

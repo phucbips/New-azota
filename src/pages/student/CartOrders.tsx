@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
-import { db } from '../../config/firebase';
 import { useCart } from '../../contexts/CartContext';
 import { orderService, Order, getOrderCourseIds, hasPayOSAttempt } from '../../services/order.service';
 import { useAuth } from '../../hooks/useAuth';
@@ -39,34 +37,10 @@ export const CartOrders: React.FC = () => {
         return () => unsub();
     }, [user]);
 
-    // Tự động đồng bộ (Auto-heal) enrolledCourses từ các đơn hàng đã thanh toán / trả sau
+    // Tự động đối chiếu với cổng PayOS (chỉ đơn đã từng tạo QR, mỗi đơn 1 lần / phiên)
     useEffect(() => {
         if (!user?.uid || orders.length === 0) return;
-        const currentEnrolled = new Set<string>(user.enrolledCourses || []);
-        const missingIds: string[] = [];
 
-        orders.forEach(o => {
-            if (o.status === 'paid' || o.status === 'pay_later') {
-                if (Array.isArray(o.items)) {
-                    o.items.forEach(item => {
-                        if (item.courseId && !currentEnrolled.has(item.courseId)) {
-                            missingIds.push(item.courseId);
-                        }
-                    });
-                } else if ((o as any).courseId && !currentEnrolled.has((o as any).courseId)) {
-                    missingIds.push((o as any).courseId);
-                }
-            }
-        });
-
-        if (missingIds.length > 0) {
-            const uniqueMissing = Array.from(new Set(missingIds));
-            updateDoc(doc(db, 'users', user.uid), {
-                enrolledCourses: arrayUnion(...uniqueMissing)
-            }).catch(() => {});
-        }
-
-        // Tự động đối chiếu với cổng PayOS (chỉ đơn đã từng tạo QR, mỗi đơn 1 lần / phiên)
         const unpaid = orders.filter(o =>
             (o.status === 'pending' || o.status === 'pay_later') &&
             Number(o.amount || 0) > 0 &&
@@ -77,7 +51,7 @@ export const CartOrders: React.FC = () => {
             verifiedRef.current.add(ord.id);
             orderService.verifyOrderWithPayOS(ord).catch(() => {});
         });
-    }, [user?.uid, user?.enrolledCourses, orders]);
+    }, [user?.uid, orders]);
 
     // Tự động bỏ khỏi giỏ các khóa học đã sở hữu
     useEffect(() => {
@@ -154,34 +128,46 @@ export const CartOrders: React.FC = () => {
 
         setIsCheckingOut(true);
         try {
-            const items = freshItems.map(c => ({ courseId: c.id, courseTitle: c.title, price: c.price }));
-            const freshTotal = items.reduce((sum, i) => sum + (i.price || 0), 0);
+            const freeCourses = freshItems.filter(c => Number(c.price || 0) === 0);
+            const paidCourses = freshItems.filter(c => Number(c.price || 0) > 0);
+
+            // Tạo đơn 0đ riêng cho từng khóa miễn phí (để Firestore Rules xác thực giá khóa học == 0)
+            for (const fc of freeCourses) {
+                await orderService.createOrder({
+                    userId: user.uid,
+                    userEmail: user.email,
+                    userName: user.displayName || 'Student',
+                    items: [{ courseId: fc.id, courseTitle: fc.title, price: 0 }],
+                    originalAmount: 0,
+                    amount: 0,
+                    status: 'paid',
+                    paymentMethod: paymentMethod,
+                });
+                removeFromCart(fc.id);
+            }
+
+            if (paidCourses.length === 0) {
+                toast.success("Nhận khóa học miễn phí thành công!");
+                setActiveTab('paid');
+                return;
+            }
+
+            const items = paidCourses.map(c => ({ courseId: c.id, courseTitle: c.title, price: c.price }));
+            const paidTotal = items.reduce((sum, i) => sum + (i.price || 0), 0);
 
             const orderId = await orderService.createOrder({
                 userId: user.uid,
                 userEmail: user.email,
                 userName: user.displayName || 'Student',
                 items: items,
-                originalAmount: freshTotal,
-                amount: freshTotal,
-                status: freshTotal === 0 ? 'paid' : 'pending',
+                originalAmount: paidTotal,
+                amount: paidTotal,
+                status: 'pending',
                 paymentMethod: paymentMethod,
             });
 
             // Remove checked out items from cart
-            freshItems.forEach(item => removeFromCart(item.id));
-
-            if (freshTotal === 0) {
-                const courseIds = items.map(i => i.courseId).filter(Boolean);
-                if (courseIds.length > 0) {
-                    await updateDoc(doc(db, 'users', user.uid), {
-                        enrolledCourses: arrayUnion(...courseIds)
-                    }).catch(() => {});
-                }
-                toast.success("Nhận khóa học miễn phí thành công!");
-                setActiveTab('paid');
-                return;
-            }
+            paidCourses.forEach(item => removeFromCart(item.id));
 
             if (paymentMethod === 'bank_transfer') {
                 navigate(`/student/payment?orderId=${orderId}`);

@@ -11,9 +11,9 @@ export const MenuSection = () => {
   useEffect(() => {
     Promise.all([
       courseService.getActiveCourses(),
-      orderService.getOrders(),
+      orderService.getOrders().catch(() => []),
     ]).then(([activeCourses, orders]) => {
-      // Tính lượt mua thực tế từ các đơn có phí / voucher (loại bỏ cấp free hoặc đơn 0đ không voucher)
+      // Tính lượt mua thực tế từ các đơn có phí / voucher (nếu là Admin), hoặc lấy từ enrollmentCount đã đồng bộ
       const purchaseCountMap = new Map<string, number>();
       const paidOrders = orders.filter(
         (o) => (o.status === 'paid' || o.status === 'pay_later') && !isFreeNonVoucherOrder(o)
@@ -33,7 +33,10 @@ export const MenuSection = () => {
 
       const coursesWithCount = activeCourses.map((c) => ({
         ...c,
-        paidCount: purchaseCountMap.get(c.id) || 0,
+        paidCount:
+          orders.length > 0
+            ? purchaseCountMap.get(c.id) || 0
+            : c.enrollmentCount || 0,
       }));
 
       const sorted = coursesWithCount.sort((a, b) => b.paidCount - a.paidCount);

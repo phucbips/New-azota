@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { PageHeader } from '../../components/ui/PageHeader';
-import { Order, orderService, OrderStatus, isFreeNonVoucherOrder, getOrderCourseIds } from '../../services/order.service';
+import { Order, orderService, OrderStatus, isFreeNonVoucherOrder, getOrderCourseIds, hasPayOSAttempt } from '../../services/order.service';
 import { User as UserType } from '../../types';
 import { Course, courseService } from '../../services/course.service';
 import { userService } from '../../services/user.service';
@@ -76,6 +76,7 @@ export const AdminOrders: React.FC = () => {
     const unpaidOrders = orders.filter(
       (o) =>
         (o.status === 'pending' || o.status === 'pay_later') &&
+        hasPayOSAttempt(o) &&
         !autoCheckedIdsRef.current.has(o.id) &&
         Number(o.amount || 0) > 0
     );
@@ -344,6 +345,7 @@ export const AdminOrders: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          orderId: order.id,
           orderCode: activeOrderCode,
           amount: order.amount,
           description: prefix.substring(0, 25),
@@ -363,6 +365,7 @@ export const AdminOrders: React.FC = () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            orderId: order.id,
             orderCode: activeOrderCode,
             amount: order.amount,
             description: prefix.substring(0, 25),

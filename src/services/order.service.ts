@@ -318,6 +318,7 @@ class OrderService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'check-status',
+          orderId: order.id,
           orderCodes: candidateCodes,
         }),
       });
@@ -326,7 +327,9 @@ class OrderService {
 
       const data = await res.json();
       if (data && data.anyPaid) {
-        await this.completePaidOrder(order, 'bank_transfer');
+        if (!data.serverCompleted) {
+          await this.completePaidOrder(order, 'bank_transfer').catch(() => {});
+        }
         return true;
       }
     } catch (err) {
