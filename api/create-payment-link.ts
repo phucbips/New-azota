@@ -257,11 +257,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Action 1: Check real-time payment status directly from PayOS API & complete order on server
     if (action === 'check-status') {
+      let prefetchedOrderDoc: admin.firestore.DocumentSnapshot | null = null;
       const codesToCheck: string[] = Array.isArray(orderCodes)
         ? orderCodes.map(String)
         : orderCode
           ? [String(orderCode)]
           : [];
+
+      if (db && orderId) {
+        try {
+          const snap = await db.collection('orders').doc(String(orderId)).get();
+          if (snap.exists) {
+            prefetchedOrderDoc = snap;
+            const d = snap.data() || {};
+            if (d.orderCode) codesToCheck.push(String(d.orderCode));
+            if (Array.isArray(d.previousOrderCodes)) {
+              d.previousOrderCodes.forEach((c: any) => c && codesToCheck.push(String(c)));
+            }
+          }
+        } catch (err) {
+          console.warn('Could not prefetch order by orderId:', err);
+        }
+      }
 
       const validCodes = Array.from(
         new Set(
@@ -310,43 +327,54 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       );
 
       let serverCompleted = false;
-      if (anyPaid && db && paidOrderCode) {
+      let orderSummary: Record<string, any> | null = null;
+
+      if (db) {
         try {
-          let orderDoc: admin.firestore.DocumentSnapshot | null = null;
-          if (orderId) {
-            const snap = await db.collection('orders').doc(String(orderId)).get();
-            if (snap.exists) orderDoc = snap;
-          }
-          if (!orderDoc) {
+          let orderDoc: admin.firestore.DocumentSnapshot | null = prefetchedOrderDoc;
+          const lookupCode = paidOrderCode || validCodes[0];
+          if (!orderDoc && lookupCode) {
             let qSnap = await db
               .collection('orders')
-              .where('orderCode', '==', String(paidOrderCode))
+              .where('orderCode', '==', String(lookupCode))
               .limit(1)
               .get();
             if (qSnap.empty) {
               qSnap = await db
                 .collection('orders')
-                .where('orderCode', '==', Number(paidOrderCode))
+                .where('orderCode', '==', Number(lookupCode))
                 .limit(1)
                 .get();
             }
             if (qSnap.empty) {
               qSnap = await db
                 .collection('orders')
-                .where('previousOrderCodes', 'array-contains', String(paidOrderCode))
+                .where('previousOrderCodes', 'array-contains', String(lookupCode))
                 .limit(1)
                 .get();
             }
             if (!qSnap.empty) orderDoc = qSnap.docs[0];
           }
 
-          if (orderDoc) {
-            serverCompleted = await completeOrderServerSide(
-              db,
-              orderDoc,
-              paidOrderCode,
-              paidAmountOnPayOS
-            );
+          if (orderDoc && orderDoc.exists) {
+            const od = orderDoc.data() || {};
+            if (anyPaid && paidOrderCode) {
+              serverCompleted = await completeOrderServerSide(
+                db,
+                orderDoc,
+                paidOrderCode,
+                paidAmountOnPayOS
+              );
+            }
+            orderSummary = {
+              id: orderDoc.id,
+              orderCode: od.orderCode,
+              displayCode: od.displayCode,
+              userEmail: od.userEmail,
+              amount: od.amount,
+              items: od.items || [],
+              status: serverCompleted ? 'paid' : od.status,
+            };
           }
         } catch (completeErr) {
           console.error('Server-side order completion error:', completeErr);
@@ -357,6 +385,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         anyPaid,
         paidOrderCode,
         serverCompleted,
+        orderSummary,
         results,
       });
     }

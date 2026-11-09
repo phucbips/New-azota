@@ -174,9 +174,22 @@ class OrderService {
    * Finds an order by its current `orderCode` or any historical code in `previousOrderCodes`.
    * Works regardless of which user (student or admin) is currently logged in.
    */
-  async findOrderByOrderCode(orderCode: string): Promise<Order | null> {
+  async findOrderByOrderCode(orderCode: string, userId?: string): Promise<Order | null> {
     const cleanCode = String(orderCode || '').trim();
     if (!cleanCode) return null;
+
+    if (userId) {
+      const userSnap = await getDocs(query(this.collection, where('userId', '==', userId)));
+      const found = userSnap.docs
+        .map((d) => ({ id: d.id, ...d.data() } as Order))
+        .find(
+          (o) =>
+            String(o.orderCode) === cleanCode ||
+            (Array.isArray(o.previousOrderCodes) &&
+              o.previousOrderCodes.map(String).includes(cleanCode))
+        );
+      if (found) return found;
+    }
 
     let snap = await getDocs(
       query(this.collection, where('orderCode', '==', cleanCode), limit(1))

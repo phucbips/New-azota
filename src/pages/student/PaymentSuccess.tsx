@@ -31,23 +31,43 @@ export const PaymentSuccess: React.FC = () => {
 
         // 1. Try direct lookup by orderId query param if present
         if (orderIdParam) {
-          matchedOrder = await orderService.getOrder(orderIdParam);
+          matchedOrder = await orderService.getOrder(orderIdParam).catch(() => null);
         }
 
-        // 2. Otherwise find globally in `orders` collection by orderCode (works for both Admin & Student)
+        // 2. Otherwise find in `orders` collection by orderCode
         if (!matchedOrder && orderCode) {
-          matchedOrder = await orderService.findOrderByOrderCode(orderCode);
+          matchedOrder = await orderService
+            .findOrderByOrderCode(orderCode, user?.role === 'admin' ? undefined : user?.uid)
+            .catch(() => null);
         }
 
         if (matchedOrder && isMounted) {
           setOrder(matchedOrder);
         }
 
-        // 3. Không tin tham số URL: luôn xác minh trực tiếp với PayOS trước khi duyệt đơn & mở khóa học
+        // 3. Không tin tham số URL: luôn xác minh trực tiếp với PayOS trên Server trước khi duyệt đơn & mở khóa học
         if (isSuccess && matchedOrder) {
           const paid = await orderService.verifyOrderWithPayOS(matchedOrder);
           if (paid) {
             getOrderCourseIds(matchedOrder).forEach((id) => removeFromCart(id));
+          }
+        } else if (isSuccess && (orderIdParam || orderCode)) {
+          // Trường hợp mở link trên trình duyệt điện thoại chưa đăng nhập (không đọc được Firestore từ client):
+          // Gọi trực tiếp lên Server để Server tự đối chiếu PayOS và mở khóa học cho tài khoản đã đặt đơn
+          const res = await fetch('/api/create-payment-link', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'check-status',
+              orderId: orderIdParam,
+              orderCode,
+            }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.orderSummary && isMounted) {
+              setOrder(data.orderSummary as Order);
+            }
           }
         }
       } catch (e) {
