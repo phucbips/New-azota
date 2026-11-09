@@ -73,6 +73,23 @@ export function isFreeNonVoucherOrder(order: Partial<Order>): boolean {
   return true;
 }
 
+/** Returns the unique list of courseIds contained in an order (supports legacy single-course orders). */
+export function getOrderCourseIds(order: Partial<Order>): string[] {
+  const ids: string[] = [];
+  if (order.courseId) ids.push(order.courseId);
+  if (Array.isArray(order.items)) {
+    order.items.forEach((item) => {
+      if (item.courseId) ids.push(item.courseId);
+    });
+  }
+  return Array.from(new Set(ids));
+}
+
+/** True if the order has ever had a PayOS QR generated (only those can be paid via PayOS). */
+export function hasPayOSAttempt(order: Partial<Order>): boolean {
+  return Boolean(order.checkoutUrl) || (order.previousOrderCodes?.length || 0) > 1;
+}
+
 class OrderService {
   private collection = collection(db, 'orders');
 
@@ -192,13 +209,7 @@ class OrderService {
    * while still being able to pay via QR or cash later.
    */
   async approveOrderPayLater(order: Order): Promise<void> {
-    const courseIds: string[] = [];
-    if (order.courseId) courseIds.push(order.courseId);
-    if (Array.isArray(order.items)) {
-      order.items.forEach((item) => {
-        if (item.courseId) courseIds.push(item.courseId);
-      });
-    }
+    const courseIds = getOrderCourseIds(order);
 
     await updateDoc(doc(db, 'orders', order.id), {
       status: 'pay_later',
@@ -218,19 +229,14 @@ class OrderService {
    * Idempotently marks an order as 'paid', unlocks all courses in `users/{order.userId}.enrolledCourses`,
    * and syncs the revenue transaction into the active sales batch.
    */
-  async completePaidOrder(order: Order): Promise<void> {
-    const courseIds: string[] = [];
-    if (order.courseId) courseIds.push(order.courseId);
-    if (Array.isArray(order.items)) {
-      order.items.forEach((item) => {
-        if (item.courseId) courseIds.push(item.courseId);
-      });
-    }
+  async completePaidOrder(order: Order, paymentMethod?: PaymentMethod): Promise<void> {
+    const courseIds = getOrderCourseIds(order);
+    const finalMethod: PaymentMethod = paymentMethod || order.paymentMethod || 'bank_transfer';
 
     if (order.status !== 'paid') {
       await updateDoc(doc(db, 'orders', order.id), {
         status: 'paid',
-        paymentMethod: 'bank_transfer',
+        paymentMethod: finalMethod,
         paidAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
@@ -239,7 +245,7 @@ class OrderService {
     // Unlock courses for the actual buyer (order.userId), even if triggered by Admin browser
     if (order.userId && courseIds.length > 0) {
       await updateDoc(doc(db, 'users', order.userId), {
-        enrolledCourses: arrayUnion(...Array.from(new Set(courseIds))),
+        enrolledCourses: arrayUnion(...courseIds),
       }).catch((err) => {
         console.warn('Could not update enrolledCourses on user doc:', err);
       });
@@ -247,11 +253,45 @@ class OrderService {
 
     // Sync into financial_transactions & active sales batch
     if (!isFreeNonVoucherOrder(order) && Number(order.amount || 0) > 0) {
-      const paidOrder: Order = { ...order, status: 'paid', paymentMethod: 'bank_transfer' };
+      const paidOrder: Order = { ...order, status: 'paid', paymentMethod: finalMethod };
       await financeService.syncPaidOrdersToTransactions([paidOrder]).catch((err) => {
         console.warn('Could not sync paid order to finance transactions:', err);
       });
     }
+
+    // Tự động hủy các đơn chưa thanh toán bị trùng khóa học với đơn vừa thanh toán
+    await this.cancelDuplicateUnpaidOrders(order).catch((err) => {
+      console.warn('Could not cancel duplicate unpaid orders:', err);
+    });
+  }
+
+  /**
+   * Cancels other unpaid orders (`pending` / `pay_later`) of the same user whose courses
+   * are fully covered by `paidOrder`. Prevents the same course from lingering in a second
+   * "Chờ thanh toán" order after the student already paid.
+   */
+  async cancelDuplicateUnpaidOrders(paidOrder: Order): Promise<number> {
+    if (!paidOrder.userId) return 0;
+    const paidIds = new Set(getOrderCourseIds(paidOrder));
+    if (paidIds.size === 0) return 0;
+
+    const snap = await getDocs(query(this.collection, where('userId', '==', paidOrder.userId)));
+    let cancelled = 0;
+    for (const d of snap.docs) {
+      if (d.id === paidOrder.id) continue;
+      const other = { id: d.id, ...d.data() } as Order;
+      if (other.status !== 'pending' && other.status !== 'pay_later') continue;
+      const otherIds = getOrderCourseIds(other);
+      if (otherIds.length === 0 || !otherIds.every((id) => paidIds.has(id))) continue;
+
+      await updateDoc(d.ref, {
+        status: 'cancelled',
+        notes: `Tự động hủy: trùng khóa học với đơn ${paidOrder.displayCode || paidOrder.orderCode} đã thanh toán`,
+        updatedAt: serverTimestamp(),
+      });
+      cancelled++;
+    }
+    return cancelled;
   }
 
   /**
@@ -286,7 +326,7 @@ class OrderService {
 
       const data = await res.json();
       if (data && data.anyPaid) {
-        await this.completePaidOrder(order);
+        await this.completePaidOrder(order, 'bank_transfer');
         return true;
       }
     } catch (err) {

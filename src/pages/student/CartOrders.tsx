@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useCart } from '../../contexts/CartContext';
-import { orderService, Order } from '../../services/order.service';
+import { orderService, Order, getOrderCourseIds, hasPayOSAttempt } from '../../services/order.service';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen, ShoppingCart, Clock, CheckCircle, Loader2, CreditCard, Banknote } from 'lucide-react';
@@ -21,6 +21,7 @@ export const CartOrders: React.FC = () => {
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
     const [paymentMethod, setPaymentMethod] = useState<'bank_transfer' | 'cash'>('bank_transfer');
     const [isCheckingOut, setIsCheckingOut] = useState(false);
+    const verifiedRef = useRef<Set<string>>(new Set());
 
     useEffect(() => {
         // By default, select all items in cart
@@ -65,12 +66,28 @@ export const CartOrders: React.FC = () => {
             }).catch(() => {});
         }
 
-        // Tự động đối chiếu với cổng PayOS cho các đơn đang chờ thanh toán
-        const unpaid = orders.filter(o => (o.status === 'pending' || o.status === 'pay_later') && Number(o.amount || 0) > 0);
+        // Tự động đối chiếu với cổng PayOS (chỉ đơn đã từng tạo QR, mỗi đơn 1 lần / phiên)
+        const unpaid = orders.filter(o =>
+            (o.status === 'pending' || o.status === 'pay_later') &&
+            Number(o.amount || 0) > 0 &&
+            hasPayOSAttempt(o) &&
+            !verifiedRef.current.has(o.id)
+        );
         unpaid.forEach(ord => {
+            verifiedRef.current.add(ord.id);
             orderService.verifyOrderWithPayOS(ord).catch(() => {});
         });
     }, [user?.uid, user?.enrolledCourses, orders]);
+
+    // Tự động bỏ khỏi giỏ các khóa học đã sở hữu
+    useEffect(() => {
+        if (!user || cartItems.length === 0) return;
+        const owned = new Set<string>(user.enrolledCourses || []);
+        orders.forEach(o => {
+            if (o.status === 'paid' || o.status === 'pay_later') getOrderCourseIds(o).forEach(id => owned.add(id));
+        });
+        cartItems.filter(c => owned.has(c.id)).forEach(c => removeFromCart(c.id));
+    }, [user?.enrolledCourses, orders, cartItems]);
 
     const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.checked) {
@@ -92,25 +109,69 @@ export const CartOrders: React.FC = () => {
 
     const handleCheckout = async () => {
         if (!user || itemsToCheckout.length === 0) return;
+
+        // Chống tạo đơn trùng: tách các khóa đã sở hữu / đã nằm trong đơn chờ thanh toán
+        const ownedIds = new Set<string>(user.enrolledCourses || []);
+        orders.forEach(o => {
+            if (o.status === 'paid' || o.status === 'pay_later') {
+                getOrderCourseIds(o).forEach(id => ownedIds.add(id));
+            }
+        });
+        const pendingOrderByCourse = new Map<string, Order>();
+        orders.forEach(o => {
+            if (o.status === 'pending') {
+                getOrderCourseIds(o).forEach(id => {
+                    if (!pendingOrderByCourse.has(id)) pendingOrderByCourse.set(id, o);
+                });
+            }
+        });
+
+        const alreadyOwned = itemsToCheckout.filter(c => ownedIds.has(c.id));
+        const alreadyPending = itemsToCheckout.filter(c => !ownedIds.has(c.id) && pendingOrderByCourse.has(c.id));
+        const freshItems = itemsToCheckout.filter(c => !ownedIds.has(c.id) && !pendingOrderByCourse.has(c.id));
+
+        [...alreadyOwned, ...alreadyPending].forEach(c => removeFromCart(c.id));
+        if (alreadyOwned.length > 0) {
+            toast.info(`Bạn đã sở hữu: ${alreadyOwned.map(c => c.title).join(', ')}`);
+        }
+
+        if (freshItems.length === 0) {
+            if (alreadyPending.length > 0) {
+                const existing = pendingOrderByCourse.get(alreadyPending[0].id)!;
+                toast.info(`Khóa học đã nằm trong đơn ${existing.displayCode || existing.orderCode} đang chờ thanh toán. Tiếp tục thanh toán đơn cũ.`);
+                if (paymentMethod === 'bank_transfer') {
+                    navigate(`/student/payment?orderId=${existing.id}`);
+                } else {
+                    setActiveTab('pending');
+                }
+            }
+            return;
+        }
+
+        if (alreadyPending.length > 0) {
+            toast.info(`Đã bỏ qua khóa đang có trong đơn chờ thanh toán: ${alreadyPending.map(c => c.title).join(', ')}`);
+        }
+
         setIsCheckingOut(true);
         try {
-            const items = itemsToCheckout.map(c => ({ courseId: c.id, courseTitle: c.title, price: c.price }));
+            const items = freshItems.map(c => ({ courseId: c.id, courseTitle: c.title, price: c.price }));
+            const freshTotal = items.reduce((sum, i) => sum + (i.price || 0), 0);
 
             const orderId = await orderService.createOrder({
                 userId: user.uid,
                 userEmail: user.email,
                 userName: user.displayName || 'Student',
                 items: items,
-                originalAmount: totalPrice,
-                amount: totalPrice,
-                status: totalPrice === 0 ? 'paid' : 'pending',
+                originalAmount: freshTotal,
+                amount: freshTotal,
+                status: freshTotal === 0 ? 'paid' : 'pending',
                 paymentMethod: paymentMethod,
             });
 
             // Remove checked out items from cart
-            itemsToCheckout.forEach(item => removeFromCart(item.id));
+            freshItems.forEach(item => removeFromCart(item.id));
 
-            if (totalPrice === 0) {
+            if (freshTotal === 0) {
                 const courseIds = items.map(i => i.courseId).filter(Boolean);
                 if (courseIds.length > 0) {
                     await updateDoc(doc(db, 'users', user.uid), {

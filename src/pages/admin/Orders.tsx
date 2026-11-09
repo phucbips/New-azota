@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { PageHeader } from '../../components/ui/PageHeader';
-import { Order, orderService, OrderStatus, isFreeNonVoucherOrder } from '../../services/order.service';
+import { Order, orderService, OrderStatus, isFreeNonVoucherOrder, getOrderCourseIds } from '../../services/order.service';
 import { User as UserType } from '../../types';
 import { Course, courseService } from '../../services/course.service';
 import { userService } from '../../services/user.service';
@@ -416,6 +416,38 @@ export const AdminOrders: React.FC = () => {
     }
   };
 
+  // Đơn chưa thanh toán bị trùng: toàn bộ khóa học đã nằm trong 1 đơn 'paid' khác của cùng học viên
+  const duplicateUnpaidIds = useMemo(() => {
+    const paidByUser = new Map<string, Set<string>>();
+    orders.forEach((o) => {
+      if (o.status !== 'paid' || !o.userId) return;
+      const set = paidByUser.get(o.userId) || new Set<string>();
+      getOrderCourseIds(o).forEach((id) => set.add(id));
+      paidByUser.set(o.userId, set);
+    });
+    const ids = new Set<string>();
+    orders.forEach((o) => {
+      if (o.status !== 'pending' && o.status !== 'pay_later') return;
+      const paid = paidByUser.get(o.userId);
+      const cids = getOrderCourseIds(o);
+      if (paid && cids.length > 0 && cids.every((id) => paid.has(id))) ids.add(o.id);
+    });
+    return ids;
+  }, [orders]);
+
+  const handleCancelDuplicates = async () => {
+    if (duplicateUnpaidIds.size === 0) return;
+    if (!window.confirm(`Hủy ${duplicateUnpaidIds.size} đơn chưa thanh toán bị trùng với đơn đã thanh toán?`)) return;
+    try {
+      for (const id of duplicateUnpaidIds) {
+        await orderService.updateOrderStatus(id, 'cancelled');
+      }
+      toast.success(`Đã hủy ${duplicateUnpaidIds.size} đơn trùng`);
+    } catch (e: any) {
+      toast.error('Lỗi khi hủy đơn trùng: ' + e.message);
+    }
+  };
+
   // Separate commercial/voucher orders from pure 0đ free orders (without voucher)
   const freeNonVoucherCount = useMemo(
     () => orders.filter((o) => isFreeNonVoucherOrder(o)).length,
@@ -473,6 +505,18 @@ export const AdminOrders: React.FC = () => {
             <RefreshCw className={`w-3.5 h-3.5 text-primary ${syncingPayOS ? 'animate-spin' : ''}`} />
             {syncingPayOS ? 'Đang kiểm tra PayOS...' : 'Đồng bộ giao dịch QR'}
           </button>
+
+          {duplicateUnpaidIds.size > 0 && (
+            <button
+              type="button"
+              onClick={handleCancelDuplicates}
+              className="px-3.5 py-2.5 rounded-lg text-xs font-semibold border border-destructive/30 bg-destructive/5 text-destructive hover:bg-destructive/10 transition-colors flex items-center gap-1.5"
+              title="Hủy các đơn chờ thanh toán mà khóa học đã được thanh toán ở đơn khác"
+            >
+              <XCircle className="w-3.5 h-3.5" />
+              Dọn đơn trùng ({duplicateUnpaidIds.size})
+            </button>
+          )}
 
           {freeNonVoucherCount > 0 && (
             <button
@@ -567,6 +611,11 @@ export const AdminOrders: React.FC = () => {
                           ) : (
                             <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-muted text-muted-foreground border border-border">
                               Chưa cấp khóa
+                            </span>
+                          )}
+                          {duplicateUnpaidIds.has(order.id) && (
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-destructive/10 text-destructive border border-destructive/20">
+                              Trùng đơn đã thanh toán
                             </span>
                           )}
                         </>

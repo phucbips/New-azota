@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { CheckCircle, BookOpen, ChevronRight, Loader2, AlertCircle } from 'lucide-react';
-import { Order, orderService } from '../../services/order.service';
+import { Order, orderService, getOrderCourseIds } from '../../services/order.service';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -16,17 +16,13 @@ export const PaymentSuccess: React.FC = () => {
   const { user } = useAuth();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
-  const { clearCart } = useCart();
+  const { removeFromCart } = useCart();
 
   const isSuccess =
     cancel !== 'true' &&
     (code === '00' || status === 'PAID' || status === 'success');
 
   useEffect(() => {
-    if (isSuccess) {
-      clearCart();
-    }
-
     let isMounted = true;
 
     const verifyAndUnlockCourse = async () => {
@@ -43,24 +39,16 @@ export const PaymentSuccess: React.FC = () => {
           matchedOrder = await orderService.findOrderByOrderCode(orderCode);
         }
 
-        // 3. Fallback: if still not found and user is logged in, check user's pending orders
-        if (!matchedOrder && user?.uid) {
-          const userOrders = await new Promise<Order[]>((resolve) => {
-            const unsub = orderService.subscribeToUserOrders(user.uid, (list) => {
-              unsub();
-              resolve(list);
-            });
-          });
-          matchedOrder = userOrders.find((o) => o.status === 'pending') || null;
-        }
-
         if (matchedOrder && isMounted) {
           setOrder(matchedOrder);
         }
 
-        // 4. Complete the order for matchedOrder.userId (marks paid, unlocks courses, records finance transaction)
+        // 3. Không tin tham số URL: luôn xác minh trực tiếp với PayOS trước khi duyệt đơn & mở khóa học
         if (isSuccess && matchedOrder) {
-          await orderService.completePaidOrder(matchedOrder);
+          const paid = await orderService.verifyOrderWithPayOS(matchedOrder);
+          if (paid) {
+            getOrderCourseIds(matchedOrder).forEach((id) => removeFromCart(id));
+          }
         }
       } catch (e) {
         console.error('Error verifying order on return:', e);
@@ -74,7 +62,7 @@ export const PaymentSuccess: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [orderIdParam, orderCode, isSuccess, user?.uid, clearCart]);
+  }, [orderIdParam, orderCode, isSuccess, user?.uid]);
 
   if (loading) {
     return (

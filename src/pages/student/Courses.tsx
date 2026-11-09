@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Course, courseService } from '../../services/course.service';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../../config/firebase';
-import { Order, orderService } from '../../services/order.service';
+import { Order, orderService, hasPayOSAttempt } from '../../services/order.service';
 import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../contexts/CartContext';
 import { BookOpen, Tag, ShoppingCart, Loader2, CheckCircle, Search, Filter, X } from 'lucide-react';
@@ -17,6 +17,7 @@ export const StudentCourses: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
+  const verifiedRef = useRef<Set<string>>(new Set());
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState('');
@@ -69,10 +70,17 @@ export const StudentCourses: React.FC = () => {
       }).catch((err) => console.warn('Could not auto-sync enrolledCourses:', err));
     }
 
-    // Tự động đối chiếu với cổng PayOS cho các đơn đang chờ thanh toán
+    // Tự động đối chiếu với cổng PayOS (chỉ đơn đã từng tạo QR, mỗi đơn 1 lần / phiên)
     orders
-      .filter((o) => (o.status === 'pending' || o.status === 'pay_later') && Number(o.amount || 0) > 0)
+      .filter(
+        (o) =>
+          (o.status === 'pending' || o.status === 'pay_later') &&
+          Number(o.amount || 0) > 0 &&
+          hasPayOSAttempt(o) &&
+          !verifiedRef.current.has(o.id)
+      )
       .forEach((ord) => {
+        verifiedRef.current.add(ord.id);
         orderService.verifyOrderWithPayOS(ord).catch(() => {});
       });
   }, [user?.uid, user?.enrolledCourses, orders]);

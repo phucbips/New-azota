@@ -199,6 +199,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 }
             }
 
+            // Tự động hủy các đơn chưa thanh toán khác của cùng học viên bị trùng khóa học
+            if (orderData.userId && courseIds.length > 0) {
+                try {
+                    const paidSet = new Set(courseIds);
+                    const userOrders = await db.collection('orders').where('userId', '==', orderData.userId).get();
+                    for (const d of userOrders.docs) {
+                        if (d.id === orderDoc.id) continue;
+                        const o = d.data();
+                        if (o.status !== 'pending' && o.status !== 'pay_later') continue;
+                        const ids: string[] = [];
+                        if (Array.isArray(o.items)) o.items.forEach((it: any) => it?.courseId && ids.push(it.courseId));
+                        else if (o.courseId) ids.push(o.courseId);
+                        if (ids.length === 0 || !ids.every((id) => paidSet.has(id))) continue;
+                        await d.ref.update({
+                            status: 'cancelled',
+                            notes: `Tự động hủy: trùng khóa học với đơn ${orderData.displayCode || orderCode} đã thanh toán`,
+                            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                        });
+                    }
+                } catch (dupErr) {
+                    console.warn('Could not cancel duplicate unpaid orders:', dupErr);
+                }
+            }
+
             // Increment voucher usage safely by querying code
             if (orderData.voucherCode) {
                 try {
