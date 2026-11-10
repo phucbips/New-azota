@@ -267,7 +267,8 @@ class OrderService {
     // Sync into financial_transactions & active sales batch
     if (!isFreeNonVoucherOrder(order) && Number(order.amount || 0) > 0) {
       const paidOrder: Order = { ...order, status: 'paid', paymentMethod: finalMethod };
-      await financeService.syncPaidOrdersToTransactions([paidOrder]).catch((err) => {
+      const batches = await financeService.getBatches().catch(() => []);
+      await financeService.syncPaidOrdersToTransactions([paidOrder], [], batches).catch((err) => {
         console.warn('Could not sync paid order to finance transactions:', err);
       });
     }

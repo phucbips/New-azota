@@ -13,6 +13,8 @@ import {
   ArrowLeft,
   Maximize,
   Minimize,
+  RectangleHorizontal,
+  Square,
   Search,
   Filter,
   GraduationCap,
@@ -58,6 +60,38 @@ export const StudentAssignments: React.FC = () => {
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const fullscreenContainerRef = React.useRef<HTMLDivElement>(null);
+
+  // Chế độ rạp (Theater mode) trên PC: khung bài tập phủ kín vùng nội dung giống YouTube.
+  // Ghi nhớ lựa chọn của học viên; mặc định BẬT.
+  const [theaterMode, setTheaterMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('assignment_theater_mode') !== '0';
+    } catch {
+      return true;
+    }
+  });
+  const [isDesktop, setIsDesktop] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 768px)').matches : false
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    const onChange = () => setIsDesktop(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  const toggleTheaterMode = () => {
+    setTheaterMode((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('assignment_theater_mode', next ? '1' : '0');
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
 
   // Sync state if user presses ESC to exit fullscreen
   useEffect(() => {
@@ -260,6 +294,7 @@ export const StudentAssignments: React.FC = () => {
         body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.5; padding: 1rem; margin: 0; color: #1e293b; }
         img { max-width: 100%; height: auto; }
         @media (max-width: 640px) { body { font-size: 16px; padding: 0.75rem; } }
+        @media (min-width: 1024px) { body { font-size: 17px; padding: 1.5rem 2rem; } }
     </style>
 </head>
 <body>
@@ -312,15 +347,29 @@ ${embed}
     const targetGrade = String(selectedAssignment.gradeLevel);
     const subjectTitle = safeString(selectedAssignment.subject || 'Chung');
 
+    const isSmartExam = selectedAssignment.type === 'smart_exam';
+    const theaterActive = theaterMode && isDesktop && !isSmartExam;
+
+    const handleBackToList = () => {
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+      setSelectedAssignment(null);
+      if (searchParams.has('assignmentId')) {
+        const next = new URLSearchParams(searchParams);
+        next.delete('assignmentId');
+        setSearchParams(next);
+      }
+    };
+
     const handleEnterFullscreen = () => {
+      const el = fullscreenContainerRef.current;
+      if (!el || !el.requestFullscreen) return;
       setIsFullscreen(true);
-      setTimeout(() => {
-        if (fullscreenContainerRef.current) {
-          fullscreenContainerRef.current.requestFullscreen().catch((err) => {
-            console.log('Error attempting to enable fullscreen:', err.message);
-          });
-        }
-      }, 50);
+      el.requestFullscreen().catch((err) => {
+        console.log('Error attempting to enable fullscreen:', err.message);
+        setIsFullscreen(false);
+      });
     };
 
     const handleExitFullscreen = () => {
@@ -330,79 +379,107 @@ ${embed}
       setIsFullscreen(false);
     };
 
-    if (isFullscreen && selectedAssignment.type === 'native_code') {
-      return (
-        <div
-          ref={fullscreenContainerRef}
-          className="fixed inset-0 z-[9999] h-[100dvh] w-screen bg-background flex flex-col overflow-hidden animate-in fade-in duration-200"
-        >
-          <div className="absolute top-4 right-4 z-10">
-            <button
-              onClick={handleExitFullscreen}
-              className="bg-foreground/80 hover:bg-foreground/90 text-white p-3 rounded-full shadow-md backdrop-blur-sm transition-all flex items-center gap-2 font-medium"
-            >
-              <Minimize className="w-5 h-5" />
-              Thu nhỏ
-            </button>
-          </div>
-          <div className="flex-1 w-full relative bg-card">
-            <iframe
-              key={`fullscreen-${selectedAssignment.id}`}
-              srcDoc={embed}
-              className="w-full h-full border-none absolute inset-0"
-              title={title}
-              sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin"
-            />
-          </div>
-        </div>
-      );
-    }
+    const toolbarBtn =
+      'inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors';
 
+    // Lưu ý: giữ nguyên cấu trúc cây phần tử khi bật/tắt chế độ rạp (chỉ đổi className)
+    // để iframe KHÔNG bị tải lại -> học viên không bị mất bài đang làm.
     return (
       <>
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <button
-            onClick={() => {
-              setSelectedAssignment(null);
-              if (searchParams.has('assignmentId')) {
-                const next = new URLSearchParams(searchParams);
-                next.delete('assignmentId');
-                setSearchParams(next);
-              }
-            }}
-            className="flex items-center gap-2 text-muted-foreground hover:text-primary font-medium transition-colors text-sm"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Quay lại danh sách • {subjectTitle} (Khối {targetGrade}) {topic ? `• ${topic}` : ''}
-          </button>
-        </div>
+        {!theaterActive && (
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <button
+              onClick={handleBackToList}
+              className="flex items-center gap-2 text-muted-foreground hover:text-primary font-medium transition-colors text-sm"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Quay lại danh sách • {subjectTitle} (Khối {targetGrade}) {topic ? `• ${topic}` : ''}
+            </button>
+          </div>
+        )}
 
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
-          <div>
+        {!theaterActive && (
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-4 md:mb-5">
             <h1 className="text-2xl md:text-3xl font-semibold text-foreground tracking-tight">
               {title}
             </h1>
           </div>
-        </div>
+        )}
 
-        <div className="bg-card rounded-xl shadow-sm border border-border p-6 min-h-[600px] flex flex-col relative group">
-          {description && description !== topic && (
-            <div className="mb-6 pr-12">
+        <div
+          className={
+            theaterActive
+              ? 'fixed inset-x-0 bottom-0 top-14 lg:left-60 z-10 flex flex-col bg-background animate-in fade-in duration-200'
+              : isSmartExam
+                ? 'bg-card rounded-xl shadow-sm border border-border p-6 min-h-[600px] flex flex-col relative'
+                : 'bg-card rounded-xl shadow-sm border border-border p-4 md:p-5 min-h-[600px] md:min-h-[560px] md:h-[calc(100dvh-13rem)] flex flex-col relative'
+          }
+        >
+          {!isSmartExam && (
+            <div
+              className={
+                theaterActive
+                  ? 'flex items-center gap-3 h-12 shrink-0 px-4 border-b border-border bg-background'
+                  : 'flex items-center justify-end gap-2 mb-3'
+              }
+            >
+              {theaterActive && (
+                <button
+                  onClick={handleBackToList}
+                  className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
+                  title="Quay lại danh sách"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+              )}
+              {theaterActive && (
+                <div className="min-w-0 flex-1 flex items-baseline gap-2">
+                  <h1 className="truncate text-sm font-semibold text-foreground" title={title}>
+                    {title}
+                  </h1>
+                  <span className="hidden lg:inline truncate text-xs text-muted-foreground">
+                    {subjectTitle} • Khối {targetGrade}
+                    {topic ? ` • ${topic}` : ''}
+                  </span>
+                </div>
+              )}
+              {isDesktop && (
+                <button
+                  onClick={toggleTheaterMode}
+                  className={toolbarBtn}
+                  title={theaterActive ? 'Thu về khung thường' : 'Chế độ rạp (mở rộng khung bài tập)'}
+                >
+                  {theaterActive ? (
+                    <>
+                      <Square className="w-3.5 h-3.5" />
+                      Khung thường
+                    </>
+                  ) : (
+                    <>
+                      <RectangleHorizontal className="w-3.5 h-3.5" />
+                      Chế độ rạp
+                    </>
+                  )}
+                </button>
+              )}
+              <button
+                onClick={handleEnterFullscreen}
+                className={toolbarBtn}
+                title="Toàn màn hình"
+              >
+                <Maximize className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Toàn màn hình</span>
+              </button>
+            </div>
+          )}
+
+          {!theaterActive && description && description !== topic && (
+            <div className="mb-4">
               <p className="text-muted-foreground leading-relaxed">{description}</p>
             </div>
           )}
 
-          {selectedAssignment.type === 'native_code' && (
-            <button
-              onClick={handleEnterFullscreen}
-              className="absolute top-6 right-6 p-2 bg-muted hover:bg-primary/10 text-muted-foreground hover:text-primary rounded-lg transition-colors border border-border shadow-sm z-10"
-              title="Phóng to (Mở toàn màn hình)"
-            >
-              <Maximize className="w-5 h-5" />
-            </button>
-          )}
-
-          {selectedAssignment.type === 'smart_exam' ? (
+          {isSmartExam ? (
             <SmartExamPlayer
               title={title}
               questions={selectedAssignment.questions || []}
@@ -414,12 +491,20 @@ ${embed}
             />
           ) : (
             <div
-              className={`flex-1 w-full relative overflow-hidden ${
-                selectedAssignment.type !== 'native_code'
-                  ? 'bg-muted/50 rounded-lg border border-border'
-                  : 'bg-card rounded-lg border border-border'
+              ref={fullscreenContainerRef}
+              className={`flex-1 w-full relative overflow-hidden bg-card ${
+                theaterActive || isFullscreen ? '' : 'rounded-lg border border-border'
               }`}
             >
+              {isFullscreen && (
+                <button
+                  onClick={handleExitFullscreen}
+                  className="absolute top-3 right-3 z-20 bg-foreground/80 hover:bg-foreground/90 text-white px-3 py-2 rounded-full shadow-md backdrop-blur-sm transition-all flex items-center gap-2 text-sm font-medium"
+                >
+                  <Minimize className="w-4 h-4" />
+                  Thu nhỏ
+                </button>
+              )}
               {selectedAssignment.type === 'native_code' ? (
                 <iframe
                   key={`inline-${selectedAssignment.id}`}
@@ -434,7 +519,11 @@ ${embed}
                     src={selectedAssignment.embedUrl
                       .replace('watch?v=', 'embed/')
                       .replace('youtu.be/', 'youtube.com/embed/')}
-                    className="w-full h-full max-w-4xl max-h-[600px] aspect-video"
+                    className={
+                      theaterActive || isFullscreen
+                        ? 'w-full h-full'
+                        : 'w-full h-full max-w-4xl max-h-[600px] aspect-video'
+                    }
                     title={title}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
@@ -443,12 +532,12 @@ ${embed}
               ) : embed.startsWith('<iframe') ? (
                 <div
                   dangerouslySetInnerHTML={{ __html: embed }}
-                  className="w-full h-full absolute inset-0 [&>iframe]:w-full [&>iframe]:h-full"
+                  className="w-full h-full absolute inset-0 [&>iframe]:w-full [&>iframe]:h-full [&>iframe]:border-0"
                 />
               ) : (
                 <iframe
                   src={embed}
-                  className="w-full h-full absolute inset-0"
+                  className="w-full h-full absolute inset-0 border-0"
                   title={title}
                   allow="fullscreen"
                   allowFullScreen
