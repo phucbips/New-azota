@@ -12,5 +12,8 @@ export default defineConfig({
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.json']
   },
+  build: {
+    target: ['es2020', 'safari13', 'ios13'],
+  },
 })
 

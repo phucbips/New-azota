@@ -13,19 +13,23 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cartItems, setCartItems] = useState<Course[]>(() => {
-    const saved = localStorage.getItem('edu_cart');
-    if (saved) {
-      try {
+    try {
+      const saved = localStorage.getItem('edu_cart');
+      if (saved) {
         return JSON.parse(saved);
-      } catch (e) {
-        return [];
       }
+    } catch {
+      // Ignore storage errors on iOS Safari Private Mode / WebViews
     }
     return [];
   });
 
   useEffect(() => {
-    localStorage.setItem('edu_cart', JSON.stringify(cartItems));
+    try {
+      localStorage.setItem('edu_cart', JSON.stringify(cartItems));
+    } catch {
+      // Ignore storage errors
+    }
   }, [cartItems]);
 
   const addToCart = (course: Course) => {

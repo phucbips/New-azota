@@ -15,12 +15,20 @@ const ThemeSettingsContext = createContext<ThemeSettingsContextType | undefined>
 
 export const ThemeSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [primaryColor, setPrimaryColor] = useState<PrimaryColor>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as PrimaryColor | null;
-    return stored && THEME_CLASSES.includes(stored) ? stored : 'indigo';
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY) as PrimaryColor | null;
+      return stored && THEME_CLASSES.includes(stored) ? stored : 'indigo';
+    } catch {
+      return 'indigo';
+    }
   });
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, primaryColor);
+    try {
+      localStorage.setItem(STORAGE_KEY, primaryColor);
+    } catch {
+      // Ignore storage errors on iOS Safari Private Mode
+    }
 
     // Remove existing theme classes
     const root = document.documentElement;

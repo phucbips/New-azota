@@ -77,8 +77,13 @@ export const StudentAssignments: React.FC = () => {
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 768px)');
     const onChange = () => setIsDesktop(mq.matches);
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', onChange);
+      return () => mq.removeEventListener('change', onChange);
+    } else if (typeof (mq as any).addListener === 'function') {
+      (mq as any).addListener(onChange);
+      return () => (mq as any).removeListener(onChange);
+    }
   }, []);
 
   const toggleTheaterMode = () => {
@@ -363,18 +368,24 @@ ${embed}
     };
 
     const handleEnterFullscreen = () => {
-      const el = fullscreenContainerRef.current;
-      if (!el || !el.requestFullscreen) return;
       setIsFullscreen(true);
-      el.requestFullscreen().catch((err) => {
-        console.log('Error attempting to enable fullscreen:', err.message);
-        setIsFullscreen(false);
-      });
+      const el = fullscreenContainerRef.current as any;
+      if (!el) return;
+      const reqFs = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (typeof reqFs === 'function') {
+        Promise.resolve(reqFs.call(el)).catch(() => {
+          // On iOS Safari where Fullscreen API is unavailable on div, CSS fixed overlay remains active
+        });
+      }
     };
 
     const handleExitFullscreen = () => {
-      if (document.fullscreenElement) {
-        document.exitFullscreen().catch((err) => console.log(err));
+      const docAny = document as any;
+      if (docAny.fullscreenElement || docAny.webkitFullscreenElement) {
+        const exitFs = docAny.exitFullscreen || docAny.webkitExitFullscreen;
+        if (typeof exitFs === 'function') {
+          Promise.resolve(exitFs.call(document)).catch(() => {});
+        }
       }
       setIsFullscreen(false);
     };
@@ -492,9 +503,13 @@ ${embed}
           ) : (
             <div
               ref={fullscreenContainerRef}
-              className={`flex-1 w-full relative overflow-hidden bg-card ${
-                theaterActive || isFullscreen ? '' : 'rounded-lg border border-border'
-              }`}
+              className={
+                isFullscreen
+                  ? 'fixed inset-0 z-[9999] h-[100dvh] w-screen bg-card overflow-hidden'
+                  : `flex-1 w-full relative overflow-hidden bg-card ${
+                      theaterActive ? '' : 'rounded-lg border border-border'
+                    }`
+              }
             >
               {isFullscreen && (
                 <button

@@ -22,18 +22,33 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
-// Function to get or create a sessionId from localStorage
+// Function to get or create a sessionId from localStorage (safe for iOS Safari Private Mode / WebViews)
 const getSessionId = () => {
-  let sessionId = localStorage.getItem('sessionId');
-  if (!sessionId) {
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-      sessionId = crypto.randomUUID();
-    } else {
-      sessionId = Date.now().toString(36) + Math.random().toString(36).substring(2);
+  const generateId = () => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
     }
-    localStorage.setItem('sessionId', sessionId);
+    return Date.now().toString(36) + Math.random().toString(36).substring(2);
+  };
+
+  try {
+    let sessionId = localStorage.getItem('sessionId');
+    if (!sessionId) {
+      sessionId = generateId();
+      localStorage.setItem('sessionId', sessionId);
+    }
+    return sessionId;
+  } catch {
+    return generateId();
   }
-  return sessionId;
+};
+
+const safeRemoveSessionId = () => {
+  try {
+    localStorage.removeItem('sessionId');
+  } catch {
+    // Ignore storage errors on iOS Private Mode
+  }
 };
 
 const detectDevice = () => {
@@ -159,8 +174,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     let unsubscribeUser: (() => void) | null = null;
+    let isMounted = true;
+
+    // Safety timer for iOS Safari / WebViews where IndexedDB or network might stall auth initialization
+    const authBootTimeout = setTimeout(() => {
+      if (isMounted) {
+        setLoading(false);
+      }
+    }, 7000);
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      clearTimeout(authBootTimeout);
+
       if (unsubscribeUser) {
         unsubscribeUser();
         unsubscribeUser = null;
@@ -170,9 +195,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (currentUidRef.current !== firebaseUser.uid) {
           setLoading(true);
         }
-        const dbUser = await getOrCreateUser(firebaseUser);
+
+        // Prevent Firestore hang on iPhone cellular / WebViews from blocking login indefinitely
+        const dbUser = await Promise.race([
+          getOrCreateUser(firebaseUser),
+          new Promise<User>((resolve) =>
+            setTimeout(() => resolve(buildFallbackUser(firebaseUser, sessionId)), 6000)
+          ),
+        ]);
+
+        if (!isMounted) return;
         currentUidRef.current = firebaseUser.uid;
         setUser(dbUser);
+        setLoading(false);
 
         unsubscribeUser = userService.subscribeToUser(
           firebaseUser.uid,
@@ -180,14 +215,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             if (updatedUser) {
               if (updatedUser.sessionId && updatedUser.sessionId !== sessionId) {
                 toast.error('Tài khoản đã được đăng nhập nơi khác. Đang đăng xuất...');
-                localStorage.removeItem('sessionId');
+                safeRemoveSessionId();
                 firebaseSignOut(auth);
                 return;
               }
 
               if (updatedUser.isActive === false) {
                 toast.error('Tài khoản của bạn đã bị vô hiệu hóa.');
-                localStorage.removeItem('sessionId');
+                safeRemoveSessionId();
                 firebaseSignOut(auth);
                 return;
               }
@@ -209,6 +244,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     });
 
     return () => {
+      isMounted = false;
+      clearTimeout(authBootTimeout);
       unsubscribeAuth();
       if (unsubscribeUser) {
         unsubscribeUser();
@@ -317,7 +354,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const signOut = useCallback(async () => {
-    localStorage.removeItem('sessionId');
+    safeRemoveSessionId();
     await firebaseSignOut(auth);
   }, []);
 

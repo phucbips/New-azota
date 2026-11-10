@@ -23,12 +23,20 @@ const DashboardConfigContext = createContext<DashboardConfigContextType | undefi
 
 export const DashboardConfigProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [widgets, setWidgets] = useState<DashboardWidget[]>(() => {
-    const stored = localStorage.getItem('dashboardConfig');
-    return stored ? JSON.parse(stored) : DEFAULT_WIDGETS;
+    try {
+      const stored = localStorage.getItem('dashboardConfig');
+      return stored ? JSON.parse(stored) : DEFAULT_WIDGETS;
+    } catch {
+      return DEFAULT_WIDGETS;
+    }
   });
 
   useEffect(() => {
-    localStorage.setItem('dashboardConfig', JSON.stringify(widgets));
+    try {
+      localStorage.setItem('dashboardConfig', JSON.stringify(widgets));
+    } catch {
+      // Ignore storage errors on iOS Safari Private Mode
+    }
   }, [widgets]);
 
   const toggleWidget = (id: string) => {
