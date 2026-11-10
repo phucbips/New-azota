@@ -547,7 +547,7 @@ ${embed}
           )}
         </div>
 
-        <StudentSupportWidget />
+        {!theaterActive && !isFullscreen && <StudentSupportWidget />}
       </>
     );
   }
